@@ -34,7 +34,7 @@
 				// MODIFIED: Select openrouter_api_key as well
 				$stmt = $db->prepare('SELECT id, username, password_hash, openrouter_api_key FROM users WHERE username = ?');
 				$stmt->execute([$creds['username']]);
-				$user = $stmt->fetch();
+				$user = $stmt->get_result()->fetch_assoc();
 				if ($user && password_verify($creds['password'], $user['password_hash'])) {
 					unset($user['password_hash']);
 					$_SESSION['user'] = $user;
@@ -47,7 +47,7 @@
 				$data = $args[0];
 				$stmt = $db->prepare('SELECT id FROM users WHERE username = ?');
 				$stmt->execute([$data['username']]);
-				if ($stmt->fetch()) {
+				if ($stmt->get_result()->fetch_assoc()) {
 					$result = ['success' => false, 'message' => 'Username already exists.'];
 				} else {
 					$hash = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -110,11 +110,12 @@
 				$offset = ($page - 1) * $limit;
 				$total = $db->prepare('SELECT COUNT(*) FROM api_logs WHERE user_id = ?');
 				$total->execute([$userId]);
-				$count = $total->fetchColumn();
+				$countRow = $total->get_result()->fetch_row();
+				$count = $countRow[0] ?? 0;
 
 				$stmt = $db->prepare('SELECT id, action, request_payload, response_body, response_code, created_at FROM api_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?');
 				$stmt->execute([$userId, $limit, $offset]);
-				$logs = $stmt->fetchAll();
+				$logs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				$result = ['logs' => $logs, 'totalPages' => ceil($count / $limit), 'currentPage' => $page];
 				break;
 
@@ -185,11 +186,11 @@
         WHERE n.user_id = ? ORDER BY n.updated_at DESC
     ");
 				$stmt->execute([$userId]);
-				$books = $stmt->fetchAll();
+				$books = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				foreach ($books as &$book) {
 					$chStmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
 					$chStmt->execute([$book['id']]);
-					$chapters = $chStmt->fetchAll();
+					$chapters = $chStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 					$book['source_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['source_content'] ?? ''), $chapters));
 					$book['target_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['target_content'] ?? ''), $chapters));
 					if ($book['cover_path']) {
@@ -201,18 +202,18 @@
 			case 'books:getAllWithTranslationMemory':
 				$stmt = $db->prepare('SELECT DISTINCT b.id, b.title FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? ORDER BY b.title ASC');
 				$stmt->execute([$userId]);
-				$result = $stmt->fetchAll();
+				$result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				break;
 			case 'books:getOne':
 			case 'books:getFullManuscript':
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT * FROM user_books WHERE id = ? AND user_id = ?');
 				$stmt->execute([$bookId, $userId]);
-				$book = $stmt->fetch();
+				$book = $stmt->get_result()->fetch_assoc();
 				if ($book) {
 					$chStmt = $db->prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_order');
 					$chStmt->execute([$bookId]);
-					$book['chapters'] = $chStmt->fetchAll();
+					$book['chapters'] = $chStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 					foreach ($book['chapters'] as &$chapter) {
 						$chapter['source_word_count'] = countWordsInHtml($chapter['source_content'] ?? '');
 						$chapter['target_word_count'] = countWordsInHtml($chapter['target_content'] ?? '');
@@ -224,7 +225,7 @@
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
 				$stmt->execute([$bookId]);
-				$chapters = $stmt->fetchAll();
+				$chapters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				$combined = '';
 				foreach ($chapters as $c) {
 					$combined .= ($c['source_content'] ?? '') . ($c['target_content'] ?? '');
@@ -235,20 +236,20 @@
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT id, title, author, target_language FROM user_books WHERE id = ? AND user_id = ?');
 				$stmt->execute([$bookId, $userId]);
-				$book = $stmt->fetch();
+				$book = $stmt->get_result()->fetch_assoc();
 				if (!$book) {
 					throw new Exception('Book not found.');
 				}
 				$chStmt = $db->prepare('SELECT id, title, target_content FROM chapters WHERE book_id = ? ORDER BY chapter_order');
 				$chStmt->execute([$bookId]);
-				$book['chapters'] = $chStmt->fetchAll();
+				$book['chapters'] = $chStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				$result = ['success' => true, 'data' => $book];
 				break;
 			case 'books:createBlank':
 				$data = $args[0];
 				$stmt = $db->prepare('INSERT into user_books (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
 				$stmt->execute([$userId, $data['title'], $data['source_language'], $data['target_language']]);
-				$bookId = $db->lastInsertId();
+				$bookId = $db->insert_id;
 				$chStmt = $db->prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)');
 				for ($i = 1; $i <= 10; $i++) {
 					$chStmt->execute([$bookId, "Chapter $i", $i, '<p></p>', '<p></p>']);
@@ -302,7 +303,7 @@
 
 				$oldImage = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
 				$oldImage->execute([$bookId]);
-				$old = $oldImage->fetch();
+				$old = $oldImage->get_result()->fetch_assoc();
 				if ($old && $old['image_local_path']) {
 					@unlink(IMAGES_DIR . '/' . $old['image_local_path']);
 				}
@@ -317,7 +318,7 @@
 				$bookId = $args[0];
 				$images = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
 				$images->execute([$bookId]);
-				foreach ($images->fetchAll() as $img) {
+				foreach ($images->get_result()->fetch_all(MYSQLI_ASSOC) as $img) {
 					@unlink(IMAGES_DIR . '/' . $img['image_local_path']);
 				}
 				$db->prepare('DELETE FROM images WHERE book_id = ?')->execute([$bookId]);
@@ -355,7 +356,8 @@
 				}
 				$stmt = $db->prepare("SELECT {$data['field']} FROM chapters WHERE id = ?");
 				$stmt->execute([$data['chapterId']]);
-				$result = $stmt->fetchColumn();
+				$row = $stmt->get_result()->fetch_row();
+				$result = $row[0] ?? null;
 				break;
 			case 'chapters:rename':
 				$data = $args[0];
@@ -367,7 +369,7 @@
 				$chapterId = $data['chapterId'];
 				$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
 				$stmt->execute([$chapterId]);
-				$chapter = $stmt->fetch();
+				$chapter = $stmt->get_result()->fetch_assoc();
 				if ($chapter) {
 					$db->prepare('DELETE FROM chapters WHERE id = ?')->execute([$chapterId]);
 					$db->prepare('UPDATE chapters SET chapter_order = chapter_order - 1 WHERE book_id = ? AND chapter_order > ?')->execute([$chapter['book_id'], $chapter['chapter_order']]);
@@ -380,7 +382,7 @@
 				$direction = $data['direction'];
 				$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
 				$stmt->execute([$chapterId]);
-				$ref = $stmt->fetch();
+				$ref = $stmt->get_result()->fetch_assoc();
 				if ($ref) {
 					$newOrder = $direction === 'above' ? $ref['chapter_order'] : $ref['chapter_order'] + 1;
 					$db->prepare('UPDATE chapters SET chapter_order = chapter_order + 1 WHERE book_id = ? AND chapter_order >= ?')->execute([$ref['book_id'], $newOrder]);
@@ -401,7 +403,7 @@
 
 				$stmt = $db->prepare('SELECT book_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?');
 				$stmt->execute([$chapterId]);
-				$current = $stmt->fetch();
+				$current = $stmt->get_result()->fetch_assoc();
 				if (!$current) {
 					throw new Exception('Chapter not found.');
 				}
@@ -416,7 +418,7 @@
 				$needed = $pairCount - count($currentPairs);
 				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ? AND chapter_order < ? ORDER BY chapter_order DESC LIMIT 1');
 				$stmt->execute([$current['book_id'], $current['chapter_order']]);
-				$prev = $stmt->fetch();
+				$prev = $stmt->get_result()->fetch_assoc();
 
 				if (!$prev) {
 					$result = $currentPairs;
@@ -438,7 +440,7 @@
 				$data = $args[0];
 				$stmt = $db->prepare('INSERT into user_books (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
 				$stmt->execute([$userId, $data['title'], $data['source_language'], $data['target_language']]);
-				$bookId = $db->lastInsertId();
+				$bookId = $db->insert_id;
 				$chStmt = $db->prepare('INSERT INTO chapters (book_id, title, source_content, chapter_order) VALUES (?, ?, ?, ?)');
 				foreach ($data['chapters'] as $i => $chapter) {
 					$chStmt->execute([$bookId, $chapter['title'], $chapter['content'], $i + 1]);
@@ -540,7 +542,7 @@
 							$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? AND tm.source_sentence LIKE ? LIMIT 10");
 							foreach ($words as $word) {
 								$stmt->execute([$userId, "%$word%"]);
-								$matches = $stmt->fetchAll();
+								$matches = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 								foreach ($matches as $m) {
 									$key = $m['source_sentence'];
 									if (!isset($tmPairs[$key])) {
@@ -561,7 +563,7 @@
 					if ($hasCodexPlaceholder) {
 						$stmt = $db->prepare("SELECT codex_content FROM user_books WHERE id = ? AND user_id = ?");
 						$stmt->execute([$bookId, $userId]);
-						$row = $stmt->fetch();
+						$row = $stmt->get_result()->fetch_assoc();
 						if ($row && !empty($row['codex_content'])) {
 							$codexContent = "Use the following glossary for consistent translation:\n<glossary>\n" . $row['codex_content'] . "\n</glossary>";
 						}
@@ -718,13 +720,13 @@
 			case 'tm:getAll':
 				$stmt = $db->prepare('SELECT n.id, n.title, n.author, n.source_language, n.target_language, (SELECT COUNT(*) from user_books_translation_memory WHERE book_id = n.id) as tm_count FROM user_books n WHERE n.user_id = ? ORDER BY n.updated_at DESC');
 				$stmt->execute([$userId]);
-				$result = $stmt->fetchAll();
+				$result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				break;
 			case 'tm:getDetails':
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT source_sentence, target_sentence from user_books_translation_memory WHERE book_id = ? ORDER BY id ASC');
 				$stmt->execute([$bookId]);
-				$result = $stmt->fetchAll();
+				$result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				break;
 			case 'tm:delete':
 				$bookId = $args[0];
@@ -736,7 +738,7 @@
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
 				$stmt->execute([$bookId]);
-				$chapters = $stmt->fetchAll();
+				$chapters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				$allPairs = [];
 				foreach ($chapters as $ch) {
 					$allPairs = array_merge($allPairs, extractAllMarkerPairs($ch['source_content'] ?? '', $ch['target_content'] ?? ''));
@@ -749,7 +751,7 @@
 				$count = count($allPairs);
 				if ($count > 0) {
 					$db->prepare('INSERT INTO tm_generation_jobs (book_id, total_blocks) VALUES (?, ?)')->execute([$bookId, $count]);
-					$result = ['job_id' => $db->lastInsertId(), 'total_blocks' => $count];
+					$result = ['job_id' => $db->insert_id, 'total_blocks' => $count];
 				} else {
 					$result = ['job_id' => null];
 				}
@@ -758,7 +760,7 @@
 				$jobId = $args[0];
 				$stmt = $db->prepare('SELECT * FROM tm_generation_jobs WHERE id = ?');
 				$stmt->execute([$jobId]);
-				$job = $stmt->fetch();
+				$job = $stmt->get_result()->fetch_assoc();
 				if (!$job || $job['status'] === 'complete') {
 					$result = ['status' => 'complete', 'processed_blocks' => $job['processed_blocks'] ?? 0];
 					break;
@@ -766,10 +768,10 @@
 				$bookId = $job['book_id'];
 				$stmt = $db->prepare('SELECT source_language, target_language FROM user_books WHERE id = ?');
 				$stmt->execute([$bookId]);
-				$book = $stmt->fetch();
+				$book = $stmt->get_result()->fetch_assoc();
 				$blockStmt = $db->prepare('SELECT * from user_book_blocks WHERE book_id = ? AND is_analyzed = 0 LIMIT 1');
 				$blockStmt->execute([$bookId]);
-				$block = $blockStmt->fetch();
+				$block = $blockStmt->get_result()->fetch_assoc();
 
 				if (!$block) {
 					$db->prepare("UPDATE tm_generation_jobs SET status = 'complete' WHERE id = ?")->execute([$jobId]);
@@ -809,13 +811,13 @@
 			case 'codex:getAll':
 				$stmt = $db->prepare('SELECT id, title, author, source_language, target_language, codex_status FROM user_books WHERE user_id = ? ORDER BY updated_at DESC');
 				$stmt->execute([$userId]);
-				$result = $stmt->fetchAll();
+				$result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				break;
 			case 'codex:getDetails':
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT id, title, codex_content, codex_status FROM user_books WHERE id = ? AND user_id = ?');
 				$stmt->execute([$bookId, $userId]);
-				$result = $stmt->fetch();
+				$result = $stmt->get_result()->fetch_assoc();
 				break;
 			case 'codex:save':
 				$bookId = $args[0];
@@ -832,7 +834,7 @@
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT source_content FROM chapters WHERE book_id = ?');
 				$stmt->execute([$bookId]);
-				$chapters = $stmt->fetchAll();
+				$chapters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				$fullText = '';
 				foreach ($chapters as $c) {
 					$fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
@@ -854,11 +856,11 @@
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT * FROM user_books WHERE id = ?');
 				$stmt->execute([$bookId]);
-				$book = $stmt->fetch();
+				$book = $stmt->get_result()->fetch_assoc();
 
 				$chunkStmt = $db->prepare('SELECT * FROM user_book_codex_chunks WHERE book_id = ? AND is_processed = 0 ORDER BY chunk_index ASC LIMIT 1');
 				$chunkStmt->execute([$bookId]);
-				$chunk = $chunkStmt->fetch();
+				$chunk = $chunkStmt->get_result()->fetch_assoc();
 
 				if (!$chunk) {
 					$db->prepare("UPDATE user_books SET codex_status = 'complete' WHERE id = ?")->execute([$bookId]);
