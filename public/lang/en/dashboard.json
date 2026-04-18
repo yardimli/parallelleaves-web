@@ -85,7 +85,5 @@
   "setApiKey": "Set API Key",
   "setApiKeyTitle": "OpenRouter API Key",
   "setApiKeyLabel": "Enter your OpenRouter API Key:",
-  "apiKeySaved": "API Key saved successfully.",
-  "menu.tm"
-
+  "apiKeySaved": "API Key saved successfully."
 }
