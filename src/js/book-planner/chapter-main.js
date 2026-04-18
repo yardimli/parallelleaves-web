@@ -76,17 +76,17 @@ const debouncedContentSave = debounce(async ({ chapterId, field, value }) => {
 	}
 }, 1000);
 
-const debouncedSaveScroll = debounce((novelId, sourceEl, targetEl) => {
-	if (!novelId || !sourceEl || !targetEl || viewInitialized === false) return;
+const debouncedSaveScroll = debounce((bookId, sourceEl, targetEl) => {
+	if (!bookId || !sourceEl || !targetEl || viewInitialized === false) return;
 	const positions = {
 		source: sourceEl.scrollTop,
 		target: targetEl.scrollTop
 	};
-	localStorage.setItem(`scroll-position-${novelId}`, JSON.stringify(positions));
+	localStorage.setItem(`scroll-position-${bookId}`, JSON.stringify(positions));
 }, 500);
 
-function restoreScrollPositions (novelId, sourceEl, targetEl) {
-	const saved = localStorage.getItem(`scroll-position-${novelId}`);
+function restoreScrollPositions (bookId, sourceEl, targetEl) {
+	const saved = localStorage.getItem(`scroll-position-${bookId}`);
 	if (saved) {
 		try {
 			const positions = JSON.parse(saved);
@@ -95,7 +95,7 @@ function restoreScrollPositions (novelId, sourceEl, targetEl) {
 			return true;
 		} catch (e) {
 			console.error('Failed to parse saved scroll positions:', e);
-			localStorage.removeItem(`scroll-position-${novelId}`);
+			localStorage.removeItem(`scroll-position-${bookId}`);
 		}
 	}
 	return false;
@@ -206,7 +206,7 @@ function synchronizeMarkers (rawSourceHtml, rawTargetHtml) {
 	return { cleanedSourceContent: sourceHtml, wasModified };
 }
 
-async function renderManuscript (novelData) {
+async function renderManuscript (bookData) {
 	const sourceContainer = document.getElementById('js-source-column-container');
 	const targetContainer = document.getElementById('js-target-column-container');
 	const sourceFragment = document.createDocumentFragment();
@@ -223,14 +223,14 @@ async function renderManuscript (novelData) {
 	
 	const tempDiv = document.createElement('div');
 	
-	if (!novelData.chapters || novelData.chapters.length === 0) {
+	if (!bookData.chapters || bookData.chapters.length === 0) {
 		const noChaptersMessage = document.createElement('p');
 		noChaptersMessage.className = 'px-8 py-6 text-base-content/60';
 		noChaptersMessage.textContent = t('editor.noChaptersInBook'); // This translation key can be kept or updated.
 		sourceFragment.appendChild(noChaptersMessage);
 		targetFragment.appendChild(noChaptersMessage.cloneNode(true));
 	} else {
-		for (const chapter of novelData.chapters) {
+		for (const chapter of bookData.chapters) {
 			const { cleanedSourceContent, wasModified } = synchronizeMarkers(chapter.source_content, chapter.target_content);
 			
 			if (wasModified) {
@@ -303,12 +303,12 @@ async function renderManuscript (novelData) {
 	applyTranslationsTo(targetContainer);
 }
 
-function populateNavDropdown (novelData) {
+function populateNavDropdown (bookData) {
 	const navDropdown = document.getElementById('js-chapter-nav-dropdown');
 	navDropdown.innerHTML = '';
 	
-	if (novelData.chapters?.length > 0) {
-		novelData.chapters.forEach(chapter => {
+	if (bookData.chapters?.length > 0) {
+		bookData.chapters.forEach(chapter => {
 			const option = new Option(chapter.title?.trim() ? ` ${chapter.title}` : `${chapter.chapter_order}. ...`, chapter.id);
 			navDropdown.appendChild(option);
 		});
@@ -317,7 +317,7 @@ function populateNavDropdown (novelData) {
 	navDropdown.addEventListener('change', () => scrollToChapter(navDropdown.value, setActiveChapterId));
 }
 
-function initializeView (novelId, novelData, initialChapterId) {
+function initializeView (bookId, bookData, initialChapterId) {
 	if (viewInitialized) return;
 	viewInitialized = true;
 	
@@ -325,8 +325,8 @@ function initializeView (novelId, novelData, initialChapterId) {
 	const targetContainer = document.getElementById('js-target-column-container');
 	
 	setTimeout(() => {
-		if (!restoreScrollPositions(novelId, sourceContainer, targetContainer)) {
-			const chapterToLoad = initialChapterId || novelData.chapters[0]?.id;
+		if (!restoreScrollPositions(bookId, sourceContainer, targetContainer)) {
+			const chapterToLoad = initialChapterId || bookData.chapters[0]?.id;
 			if (chapterToLoad) {
 				document.getElementById('js-chapter-nav-dropdown').value = chapterToLoad;
 				setTimeout(() => scrollToChapter(chapterToLoad, setActiveChapterId), 50);
@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	document.getElementById('js-refresh-page-btn')?.addEventListener('click', () => window.location.reload());
 	
 	const params = new URLSearchParams(window.location.search);
-	const novelId = params.get('novelId');
+	const bookId = params.get('bookId');
 	const initialChapterId = params.get('chapterId');
 	
 	window.showAlert = (message, title = t('common.error')) => {
@@ -361,27 +361,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	};
 	
-	if (!novelId) {
+	if (!bookId) {
 		document.body.innerHTML = `<p class="text-error p-8">${t('editor.errorProjectMissing')}</p>`;
 		return;
 	}
 	
-	document.body.dataset.novelId = novelId;
+	document.body.dataset.bookId = bookId;
 	
 	try {
-		const novelData = await window.api.getFullManuscript(novelId);
-		if (!novelData || !novelData.title) throw new Error('Failed to load project data.');
+		const bookData = await window.api.getFullManuscript(bookId);
+		if (!bookData || !bookData.title) throw new Error('Failed to load project data.');
 		
-		document.title = t('editor.translating', { title: novelData.title });
-		document.getElementById('js-novel-title').textContent = novelData.title;
+		document.title = t('editor.translating', { title: bookData.title });
+		document.getElementById('js-book-title').textContent = bookData.title;
 		
-		const totalTargetWords = novelData.chapters?.reduce((sum, ch) => sum + ch.target_word_count, 0) || 0;
+		const totalTargetWords = bookData.chapters?.reduce((sum, ch) => sum + ch.target_word_count, 0) || 0;
 		document.getElementById('js-total-word-count').textContent = `${totalTargetWords.toLocaleString()} ${t('common.words')}`;
 		
 		const sourceContainer = document.getElementById('js-source-column-container');
 		const targetContainer = document.getElementById('js-target-column-container');
 		
-		if (!novelData.chapters || novelData.chapters.length === 0) {
+		if (!bookData.chapters || bookData.chapters.length === 0) {
 			const noContentHtml = `<div class="p-8 text-center text-base-content/70"><p>${t('editor.noProjectContent')}</p><p class="text-sm mt-2">${t('editor.noProjectContentHelp')}</p></div>`;
 			sourceContainer.innerHTML = noContentHtml;
 			targetContainer.innerHTML = noContentHtml;
@@ -389,8 +389,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 			return;
 		}
 		
-		await renderManuscript(novelData);
-		populateNavDropdown(novelData);
+		await renderManuscript(bookData);
+		populateNavDropdown(bookData);
 		
 		setupTopToolbar({
 			isChapterEditor: true,
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			chapterEditorViews
 		});
 		
-		initDictionaryModal(novelId);
+		initDictionaryModal(bookId);
 		
 		document.body.addEventListener('dictionary:find-replace', (event) => {
 			const { find, replace } = event.detail;
@@ -438,16 +438,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 		
 		if (totalIframes === 0) {
-			initializeView(novelId, novelData, initialChapterId);
+			initializeView(bookId, bookData, initialChapterId);
 		}
 		
-		document.getElementById('js-open-chat-btn')?.addEventListener('click', () => window.api.openChatWindow(novelId));
+		document.getElementById('js-open-chat-btn')?.addEventListener('click', () => window.api.openChatWindow(bookId));
 		
 		const tmStatusEl = document.getElementById('js-tm-status');
 		const codexStatusEl = document.getElementById('js-codex-status');
 		
 		// Start background codex generation on load
-		window.api.codex.startGeneration(novelId);
+		window.api.codex.startGeneration(bookId);
 		
 		window.api.codex.onUpdate((event, { statusKey, progress, total }) => {
 			if (codexStatusEl) {
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			isTmUpdateRunning = true;
 			try {
-				await window.api.translationMemoryGenerateInBackground(novelId);
+				await window.api.translationMemoryGenerateInBackground(bookId);
 			} catch (error) {
 				tmStatusEl.textContent = t('editor.translationMemory.status.error', { message: error.message });
 				isTmUpdateRunning = false; // Reset on error
@@ -519,8 +519,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		// Set interval for subsequent updates every 5 minutes
 		setInterval(runTmUpdate, 60000*5);
 		
-		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(novelId, sourceContainer, targetContainer));
-		targetContainer.addEventListener('scroll', () => debouncedSaveScroll(novelId, sourceContainer, targetContainer));
+		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
+		targetContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
 		
 		const debouncedSelectionUiHandler = debounce(() => {
 			const selection = window.getSelection();
@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 							viewInfo.initialResizeComplete = true;
 							iframesReadyCount++;
 							if (iframesReadyCount >= totalIframes && !viewInitialized) {
-								initializeView(novelId, novelData, initialChapterId);
+								initializeView(bookId, bookData, initialChapterId);
 							}
 						}
 					}
@@ -737,21 +737,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 					if (!viewInfo || !currentSourceSelection.hasSelection) return;
 					
 					(async () => {
-						const novelData = await window.api.getOneNovel(novelId);
+						const bookData = await window.api.getOneBook(bookId);
 						let settings = {};
 						try {
-							settings = novelData.translate_settings ? JSON.parse(novelData.translate_settings) : {};
+							settings = bookData.translate_settings ? JSON.parse(bookData.translate_settings) : {};
 						} catch (e) { console.error('Error parsing translate_settings JSON', e); }
 						
 						const context = {
 							selectedText: currentSourceSelection.text,
 							sourceSelectionRange: currentSourceSelection.range,
-							languageForPrompt: novelData.source_language || 'English',
-							targetLanguage: novelData.target_language || 'English',
+							languageForPrompt: bookData.source_language || 'English',
+							targetLanguage: bookData.target_language || 'English',
 							activeEditorView: sourceWindow,
 							editorInterface: createIframeEditorInterface(sourceWindow),
 							chapterId: viewInfo.iframe.dataset.chapterId,
-							novelId: novelId,
+							bookId: bookId,
 							insertionPoint: { from: payload.from, to: payload.to }
 						};
 						openPromptEditor(context, 'translate', settings);

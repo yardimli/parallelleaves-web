@@ -1,6 +1,6 @@
 import { init as initRephraseEditor, buildPromptJson as buildRephraseJson } from './prompt-editors/rephrase-editor.js';
 import { init as initTranslateEditor, buildPromptJson as buildTranslateJson } from './prompt-editors/translate-editor.js';
-import { updateToolbarState as updateChapterToolbarState } from './novel-planner/toolbar.js';
+import { updateToolbarState as updateChapterToolbarState } from './book-planner/toolbar.js';
 import { t, applyTranslationsTo } from './i18n.js';
 import { htmlToPlainText, processSourceContentForMarkers } from '../utils/html-processing.js';
 
@@ -267,7 +267,7 @@ async function startAiAction(params) {
 			model: params.model,
 			temperature: params.temperature,
 			translation_memory_ids: params.translation_memory_ids,
-			novelId: params.novelId
+			bookId: params.bookId
 		});
 		hideAiSpinner();
 		
@@ -278,7 +278,7 @@ async function startAiAction(params) {
 			if (currentPromptId === 'translate') {
 				const context = currentAiParams.context;
 				currentAiParams.logData = {
-					novelId: context.novelId,
+					bookId: context.bookId,
 					chapterId: context.chapterId,
 					sourceText: context.selectedText,
 					targetText: newContentText,
@@ -430,10 +430,10 @@ async function handleModalApply() {
 	
 	const formDataObj = extractor(form);
 	
-	const novelId = document.body.dataset.novelId;
-	if (novelId) {
+	const bookId = document.body.dataset.bookId;
+	if (bookId) {
 		const settingsToSave = { ...formDataObj };
-		window.api.updatePromptSettings({ novelId, promptType: action, settings: settingsToSave })
+		window.api.updatePromptSettings({ bookId, promptType: action, settings: settingsToSave })
 			.catch(err => console.error('Failed to save prompt settings:', err));
 	}
 	
@@ -484,7 +484,7 @@ async function handleModalApply() {
 		}
 	}
 	
-	let dictionaryContextualContent = await window.api.getDictionaryContentForAI(novelId, 'translation');
+	let dictionaryContextualContent = await window.api.getDictionaryContentForAI(bookId, 'translation');
 	
 	const prompt = builder(formDataObj, promptContext, dictionaryContextualContent);
 	
@@ -495,13 +495,13 @@ async function handleModalApply() {
 			openingMarker = currentActionMarkers.opening;
 			closingMarker = currentActionMarkers.closing;
 		} else {
-			const allContentResult = await window.api.getAllNovelContent(novelId);
+			const allContentResult = await window.api.getAllBookContent(bookId);
 			
 			let highestNum = 0;
 			if (allContentResult.success) {
 				highestNum = await window.api.findHighestMarkerNumber(allContentResult.combinedHtml, '');
 			} else {
-				console.error('Could not fetch all novel content for marker generation:', allContentResult.message);
+				console.error('Could not fetch all book content for marker generation:', allContentResult.message);
 				window.showAlert('Could not generate a translation marker. The translation will proceed without it.');
 			}
 			
@@ -556,7 +556,7 @@ async function handleModalApply() {
 		openingMarker,
 		closingMarker,
 		// MODIFIED: translation_memory_ids is no longer sent. The server handles this automatically.
-		novelId
+		bookId
 	};
 	
 	startAiAction(aiParams);

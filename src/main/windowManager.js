@@ -138,8 +138,8 @@ function createMainWindow() {
 	createContextMenu(mainWindow);
 }
 
-function createChapterEditorWindow({ novelId, chapterId }) {
-	const windowKey = `chapter-editor-${novelId}`;
+function createChapterEditorWindow({ bookId, chapterId }) {
+	const windowKey = `chapter-editor-${bookId}`;
 	if (chapterEditorWindows.has(windowKey)) {
 		const existingWin = chapterEditorWindows.get(windowKey);
 		if (existingWin) {
@@ -164,7 +164,7 @@ function createChapterEditorWindow({ novelId, chapterId }) {
 	
 	setContentSecurityPolicy(win);
 	
-	win.loadFile('public/chapter-editor.html', { query: { novelId, chapterId } });
+	win.loadFile('public/chapter-editor.html', { query: { bookId, chapterId } });
 	chapterEditorWindows.set(windowKey, win);
 	
 	win.on('closed', () => {
@@ -200,13 +200,13 @@ function createImportWindow() {
 	});
 }
 
-function createChatWindow(novelId) {
+function createChatWindow(bookId) {
 	if (chatWindow && !chatWindow.isDestroyed()) {
 		const currentUrl = new URL(chatWindow.webContents.getURL());
-		const currentNovelId = currentUrl.searchParams.get('novelId');
+		const currentBookId = currentUrl.searchParams.get('bookId');
 		
-		if (currentNovelId !== novelId) {
-			chatWindow.loadFile('public/chat-window.html', { query: { novelId: novelId } });
+		if (currentBookId !== bookId) {
+			chatWindow.loadFile('public/chat-window.html', { query: { bookId: bookId } });
 		}
 		chatWindow.focus();
 		return;
@@ -227,7 +227,7 @@ function createChatWindow(novelId) {
 	
 	setContentSecurityPolicy(chatWindow);
 	
-	chatWindow.loadFile('public/chat-window.html', { query: { novelId: novelId } });
+	chatWindow.loadFile('public/chat-window.html', { query: { bookId: bookId } });
 	
 	chatWindow.on('closed', () => {
 		chatWindow = null;

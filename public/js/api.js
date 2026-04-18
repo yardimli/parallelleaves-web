@@ -3,7 +3,6 @@ let codexFinishedCb = null;
 let tmUpdateCb = null;
 let coverUpdatedCb = null;
 
-// Use relative path to point to the api folder one level up from /public/
 const RPC_ENDPOINT = '../api/rpc.php';
 const UPLOAD_ENDPOINT = '../api/upload.php';
 
@@ -27,13 +26,12 @@ function rpcSend(channel, ...args) {
 }
 
 window.api = {
-	// App Level - Navigation is now relative to the current /public/ directory
 	openImportWindow: () => { window.location.href = 'import-document.html'; },
-	openChatWindow: (novelId) => { window.open(`chat-window.html?novelId=${novelId}`, '_blank'); },
+	openChatWindow: (bookId) => { window.open(`chat-window.html?bookId=${bookId}`, '_blank'); },
 	
-	translationMemoryGenerateInBackground: async (novelId) => {
+	translationMemoryGenerateInBackground: async (bookId) => {
 		try {
-			const res = await rpcInvoke('translation-memory:start', novelId);
+			const res = await rpcInvoke('translation-memory:start', bookId);
 			if (!res || !res.job_id) {
 				if (tmUpdateCb) tmUpdateCb({}, { finished: true, processedCount: 0 });
 				return;
@@ -59,9 +57,10 @@ window.api = {
 	
 	getLangFile: (lang) => rpcInvoke('i18n:get-lang-file', lang),
 	login: (credentials) => rpcInvoke('auth:login', credentials),
+	register: (credentials) => rpcInvoke('auth:register', credentials),
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
-	openExternalRegister: () => { window.open('../register.php', '_blank'); },
+	openExternalRegister: () => { window.location.href = 'register.html'; },
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),
 	splashClose: () => { window.location.href = 'index.html'; },
@@ -69,18 +68,17 @@ window.api = {
 	openExternalUrl: (url) => window.open(url, '_blank'),
 	appReset: () => rpcSend('app:reset'),
 	
-	getNovelsWithCovers: () => rpcInvoke('novels:getAllWithCovers'),
-	getAllNovelsWithTM: () => rpcInvoke('novels:getAllWithTranslationMemory'),
-	getOneNovel: (novelId) => rpcInvoke('novels:getOne', novelId),
-	getFullManuscript: (novelId) => rpcInvoke('novels:getFullManuscript', novelId),
-	getAllNovelContent: (novelId) => rpcInvoke('novels:getAllNovelContent', novelId),
+	getBooksWithCovers: () => rpcInvoke('books:getAllWithCovers'),
+	getAllBooksWithTM: () => rpcInvoke('books:getAllWithTranslationMemory'),
+	getOneBook: (bookId) => rpcInvoke('books:getOne', bookId),
+	getFullManuscript: (bookId) => rpcInvoke('books:getFullManuscript', bookId),
+	getAllBookContent: (bookId) => rpcInvoke('books:getAllBookContent', bookId),
 	
-	getNovelForExport: (novelId) => rpcInvoke('novels:getForExport', novelId),
-	exportNovelToDocx: async (data) => {
-		const result = await rpcInvoke('novels:exportToDocx', data);
+	getBookForExport: (bookId) => rpcInvoke('books:getForExport', bookId),
+	exportBookToDocx: async (data) => {
+		const result = await rpcInvoke('books:exportToDocx', data);
 		if (result && result.success && result.downloadUrl) {
 			const a = document.createElement('a');
-			// Convert absolute backend path to relative path
 			a.href = '../' + result.downloadUrl.replace(/^\//, '');
 			a.download = result.filename;
 			a.click();
@@ -88,18 +86,18 @@ window.api = {
 		return result;
 	},
 	
-	openEditor: (novelId) => { window.location.href = `chapter-editor.html?novelId=${novelId}`; },
+	openEditor: (bookId) => { window.location.href = `chapter-editor.html?bookId=${bookId}`; },
 	
 	codex: {
-		startGeneration: async (novelId) => {
+		startGeneration: async (bookId) => {
 			try {
-				const res = await rpcInvoke('codex:start', novelId);
+				const res = await rpcInvoke('codex:start', bookId);
 				if (res.status === 'complete') {
 					if (codexFinishedCb) codexFinishedCb({}, { status: 'complete' });
 					return;
 				}
 				const processNext = async () => {
-					const status = await rpcInvoke('codex:process-batch', novelId);
+					const status = await rpcInvoke('codex:process-batch', bookId);
 					if (codexUpdateCb) codexUpdateCb({}, { statusKey: 'editor.codex.status.generating', progress: status.processed, total: status.total });
 					
 					if (status.status === 'complete') {
@@ -119,19 +117,19 @@ window.api = {
 		onFinished: (cb) => { codexFinishedCb = cb; }
 	},
 	
-	updateProseSettings: (data) => rpcInvoke('novels:updateProseSettings', data),
-	updatePromptSettings: (data) => rpcInvoke('novels:updatePromptSettings', data),
-	updateNovelMeta: (data) => rpcInvoke('novels:updateMeta', data),
-	createBlankNovel: (data) => rpcInvoke('novels:createBlank', data),
+	updateProseSettings: (data) => rpcInvoke('books:updateProseSettings', data),
+	updatePromptSettings: (data) => rpcInvoke('books:updatePromptSettings', data),
+	updateBookMeta: (data) => rpcInvoke('books:updateMeta', data),
+	createBlankBook: (data) => rpcInvoke('books:createBlank', data),
 	
-	updateNovelCover: async (data) => {
-		const res = await rpcInvoke('novels:updateNovelCover', data);
+	updateBookCover: async (data) => {
+		const res = await rpcInvoke('books:updateBookCover', data);
 		if (res && res.success && coverUpdatedCb) {
-			coverUpdatedCb({}, { novelId: data.novelId, imagePath: res.imagePath });
+			coverUpdatedCb({}, { bookId: data.bookId, imagePath: res.imagePath });
 		}
 		return res;
 	},
-	deleteNovel: (novelId) => rpcInvoke('novels:delete', novelId),
+	deleteBook: (bookId) => rpcInvoke('books:delete', bookId),
 	onCoverUpdated: (cb) => { coverUpdatedCb = cb; },
 	
 	showOpenDocumentDialog: () => new Promise((resolve) => {
@@ -150,21 +148,21 @@ window.api = {
 		input.click();
 	}),
 	readDocumentContent: (filePath) => rpcInvoke('document:read', filePath),
-	importDocumentAsNovel: async (data) => {
+	importDocumentAsBook: async (data) => {
 		const result = await rpcInvoke('document:import', data);
-		if (result && result.success && result.novelId) {
-			window.location.href = `chapter-editor.html?novelId=${result.novelId}`;
+		if (result && result.success && result.bookId) {
+			window.location.href = `chapter-editor.html?bookId=${result.bookId}`;
 		}
 		return result;
 	},
-	onImportStatusUpdate: (cb) => { /* Stub for compatibility */ },
+	onImportStatusUpdate: (cb) => { },
 	
 	getTemplate: (templateName) => rpcInvoke('templates:get', templateName),
 	getRawChapterContent: (data) => rpcInvoke('chapters:getRawContent', data),
 	getTranslationContext: (data) => rpcInvoke('chapters:getTranslationContext', data),
 	
-	openChapterEditor: (data) => { window.location.href = `chapter-editor.html?novelId=${data.novelId}&chapterId=${data.chapterId}`; },
-	onManuscriptScrollToChapter: (cb) => { /* Stub for compatibility */ },
+	openChapterEditor: (data) => { window.location.href = `chapter-editor.html?bookId=${data.bookId}&chapterId=${data.chapterId}`; },
+	onManuscriptScrollToChapter: (cb) => { },
 	
 	updateChapterField: (data) => rpcInvoke('chapters:updateField', data),
 	renameChapter: (data) => rpcInvoke('chapters:rename', data),
@@ -182,12 +180,12 @@ window.api = {
 	setSpellCheckerLanguage: (lang) => Promise.resolve({ success: true }),
 	getSupportedLanguages: () => rpcInvoke('languages:get-supported'),
 	
-	getNovelDictionary: (novelId) => rpcInvoke('dictionary:get', novelId),
-	getDictionaryContentForAI: (novelId, type) => rpcInvoke('dictionary:getContentForAI', novelId, type),
-	saveNovelDictionary: (novelId, data) => rpcInvoke('dictionary:save', novelId, data),
+	getBookDictionary: (bookId) => rpcInvoke('dictionary:get', bookId),
+	getDictionaryContentForAI: (bookId, type) => rpcInvoke('dictionary:getContentForAI', bookId, type),
+	saveBookDictionary: (bookId, data) => rpcInvoke('dictionary:save', bookId, data),
 	
 	logTranslationEvent: (data) => rpcInvoke('log:translation', data),
-	findHighestMarkerNumber: (sourceHtml, targetHtml) => rpcInvoke('novels:findHighestMarkerNumber', sourceHtml, targetHtml),
+	findHighestMarkerNumber: (sourceHtml, targetHtml) => rpcInvoke('books:findHighestMarkerNumber', sourceHtml, targetHtml),
 	
 	showOpenImageDialog: () => new Promise((resolve) => {
 		const input = document.createElement('input');
@@ -203,5 +201,15 @@ window.api = {
 			resolve(data);
 		};
 		input.click();
-	})
+	}),
+	
+	// UI Dashboards
+	getLogs: (page) => rpcInvoke('logs:get', page),
+	getTmBooks: () => rpcInvoke('tm:getAll'),
+	getTmDetails: (bookId) => rpcInvoke('tm:getDetails', bookId),
+	deleteTm: (bookId) => rpcInvoke('tm:delete', bookId),
+	getCodexBooks: () => rpcInvoke('codex:getAll'),
+	getCodexDetails: (bookId) => rpcInvoke('codex:getDetails', bookId),
+	saveCodex: (bookId, content) => rpcInvoke('codex:save', bookId, content),
+	resetCodex: (bookId) => rpcInvoke('codex:reset', bookId)
 };

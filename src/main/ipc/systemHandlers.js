@@ -2,7 +2,6 @@ const { ipcMain, shell, app, BrowserWindow } = require('electron');
 const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
-const config = require('../../../config.js');
 const { supportedLanguages } = require('../../js/languages.js');
 const { getTemplate, findHighestMarkerNumber } = require('../utils.js');
 
@@ -15,7 +14,7 @@ const { getTemplate, findHighestMarkerNumber } = require('../utils.js');
 function registerSystemHandlers(db, sessionManager, windowManager) {
 	ipcMain.handle('splash:get-init-data', () => {
 		return {
-			version: config.APP_VERSION,
+			version: '0.1.7',
 			user: sessionManager.getSession()?.user || null,
 			websiteUrl: 'https://github.com/yardimli/parallelleaves'
 		};
@@ -40,15 +39,15 @@ function registerSystemHandlers(db, sessionManager, windowManager) {
 		}
 	});
 	
-	ipcMain.on('app:openChatWindow', (event, novelId) => {
+	ipcMain.on('app:openChatWindow', (event, bookId) => {
 		if (windowManager && typeof windowManager.createChatWindow === 'function') {
-			windowManager.createChatWindow(novelId);
+			windowManager.createChatWindow(bookId);
 		}
 	});
 	
-	ipcMain.on('app:openTranslationMemoryWindow', (event, novelId) => {
+	ipcMain.on('app:openTranslationMemoryWindow', (event, bookId) => {
 		if (windowManager && typeof windowManager.createTranslationMemoryWindow === 'function') {
-			windowManager.createTranslationMemoryWindow(novelId);
+			windowManager.createTranslationMemoryWindow(bookId);
 		}
 	});
 	
@@ -111,7 +110,7 @@ function registerSystemHandlers(db, sessionManager, windowManager) {
 		return supportedLanguages;
 	});
 	
-	ipcMain.handle('novels:findHighestMarkerNumber', (event, sourceHtml, targetHtml) => {
+	ipcMain.handle('books:findHighestMarkerNumber', (event, sourceHtml, targetHtml) => {
 		return findHighestMarkerNumber(sourceHtml, targetHtml);
 	});
 }

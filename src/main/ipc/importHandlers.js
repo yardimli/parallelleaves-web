@@ -6,13 +6,13 @@ const aiService = require('../../ai/ai.js');
 const imageHandler = require('../../utils/image-handler.js');
 
 /**
- * Generates and saves a cover for a novel asynchronously.
+ * Generates and saves a cover for a book asynchronously.
  * @param {Database.Database} db - The database connection.
- * @param {number} novelId - The ID of the novel.
- * @param {string} title - The title of the novel.
+ * @param {number} bookId - The ID of the book.
+ * @param {string} title - The title of the book.
  * @param {string|null} token - The user's session token.
  */
-async function generateAndSaveCover(db, novelId, title, token) {
+async function generateAndSaveCover(db, bookId, title, token) {
 	try {
 		const prompt = await aiService.generateCoverPrompt({ title, token });
 		if (!prompt) throw new Error('Failed to generate cover prompt.');
@@ -22,22 +22,22 @@ async function generateAndSaveCover(db, novelId, title, token) {
 			throw new Error('Image generation failed.');
 		}
 		
-		const localPaths = await imageHandler.storeImageFromUrl(falResponse.images[0].url, novelId, 'cover-autogen');
+		const localPaths = await imageHandler.storeImageFromUrl(falResponse.images[0].url, bookId, 'cover-autogen');
 		if (!localPaths || !localPaths.original_path) {
 			throw new Error('Failed to save the generated cover.');
 		}
 		
 		const userId = 1; // Assuming default user for now
 		db.transaction(() => {
-			db.prepare("DELETE FROM images WHERE novel_id = ? AND image_type LIKE '%cover%'").run(novelId);
+			db.prepare("DELETE FROM images WHERE book_id = ? AND image_type LIKE '%cover%'").run(bookId);
 			db.prepare(`
-                INSERT INTO images (user_id, novel_id, image_local_path, thumbnail_local_path, image_type, prompt)
+                INSERT INTO images (user_id, book_id, image_local_path, thumbnail_local_path, image_type, prompt)
                 VALUES (?, ?, ?, ?, ?, ?)
-            `).run(userId, novelId, localPaths.original_path, localPaths.original_path, 'generated', prompt);
+            `).run(userId, bookId, localPaths.original_path, localPaths.original_path, 'generated', prompt);
 		})();
 		
 	} catch (error) {
-		console.error(`Failed to auto-generate cover for novel ${novelId}:`, error);
+		console.error(`Failed to auto-generate cover for book ${bookId}:`, error);
 	}
 }
 
@@ -85,19 +85,19 @@ function registerImportHandlers(db, sessionManager, windowManager) {
 		}
 		
 		const userId = sessionManager.getSession()?.user.id || 1;
-		let novelId;
+		let bookId;
 		
 		const importTransaction = db.transaction(() => {
-			const novelResult = db.prepare(
-				'INSERT INTO novels (user_id, title, source_language, target_language, status) VALUES (?, ?, ?, ?, ?)'
+			const bookResult = db.prepare(
+				'INSERT into user_books (user_id, title, source_language, target_language, status) VALUES (?, ?, ?, ?, ?)'
 			).run(userId, title, source_language, target_language, 'draft');
-			novelId = novelResult.lastInsertRowid;
+			bookId = bookResult.lastInsertRowid;
 			
 			let chapterOrder = 1;
 			for (const chapter of chapters) {
 				db.prepare(
-					'INSERT INTO chapters (novel_id, title, source_content, status, chapter_order) VALUES (?, ?, ?, ?, ?)'
-				).run(novelId, chapter.title, chapter.content, 'in_progress', chapterOrder++);
+					'INSERT INTO chapters (book_id, title, source_content, status, chapter_order) VALUES (?, ?, ?, ?, ?)'
+				).run(bookId, chapter.title, chapter.content, 'in_progress', chapterOrder++);
 			}
 		});
 		
@@ -110,14 +110,14 @@ function registerImportHandlers(db, sessionManager, windowManager) {
 			}
 			
 			const token = sessionManager.getSession()?.token || null;
-			await generateAndSaveCover(db, novelId, title, token);
+			await generateAndSaveCover(db, bookId, title, token);
 			
 			if (importWindow) {
 				importWindow.close();
 			}
-			windowManager.createChapterEditorWindow({ novelId, chapterId: null });
+			windowManager.createChapterEditorWindow({ bookId, chapterId: null });
 			
-			return { success: true, novelId };
+			return { success: true, bookId };
 		} catch (error) {
 			console.error('Failed to import document:', error);
 			throw error;

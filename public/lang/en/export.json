@@ -1,9 +1,9 @@
 {
   "exportDocx": "Export to DOCX",
   "exportSuccessTitle": "Export Successful",
-  "exportSuccessMessage": "Your novel '{title}' has been successfully exported.",
+  "exportSuccessMessage": "Your book '{title}' has been successfully exported.",
   "exportErrorTitle": "Export Failed",
-  "exportErrorMessage": "There was an error exporting your novel: {message}",
+  "exportErrorMessage": "There was an error exporting your book: {message}",
   "exportDialogTitle": "Export Successful",
   "exportDialogMessage": "Successfully exported '{title}'.",
   "exportDialogDetail": "The file has been saved at:\n{filePath}",

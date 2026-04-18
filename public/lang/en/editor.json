@@ -111,7 +111,7 @@
     "updateTitle": "Update Translation Memory",
     "status": {
       "starting": "Starting TM update...",
-      "syncing": "Syncing novel content...",
+      "syncing": "Syncing book content...",
       "generating": "Generating memories from {processed}/{total} blocks...",
       "complete": "Translation Memory is up to date. ({count} blocks processed)",
       "complete_none": "Translation Memory is up to date. (No new blocks found)",

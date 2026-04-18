@@ -1,7 +1,7 @@
 import { initI18n, t, applyTranslationsTo } from './i18n.js';
 import { htmlToPlainText } from '../utils/html-processing.js';
 
-let novelId = null;
+let bookId = null;
 let chatHistories = [];
 let currentChat = null;
 
@@ -30,8 +30,8 @@ const chapterSelect = document.getElementById('js-chapter-select');
  * Saves the current chat histories to local storage.
  */
 function saveChats() {
-	if (novelId) {
-		localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${novelId}`, JSON.stringify(chatHistories));
+	if (bookId) {
+		localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${bookId}`, JSON.stringify(chatHistories));
 	}
 }
 
@@ -39,9 +39,9 @@ function saveChats() {
  * Loads chat histories from local storage and initializes the current chat.
  */
 function loadChats() {
-	if (!novelId) return;
+	if (!bookId) return;
 	
-	const storedChats = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}${novelId}`);
+	const storedChats = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}${bookId}`);
 	if (storedChats) {
 		try {
 			chatHistories = JSON.parse(storedChats);
@@ -177,25 +177,25 @@ async function populateModels() {
 }
 
 /**
- * Populates the chapter selection dropdown with chapters from the novel.
+ * Populates the chapter selection dropdown with chapters from the book.
  */
 async function populateChapterSelect() {
-	if (!novelId) return;
+	if (!bookId) return;
 	
 	chapterSelect.innerHTML = `<option value="" disabled selected>${t('editor.chat.selectChapter')}</option>`;
 	chapterSelect.add(new Option(t('editor.chat.noChapter'), 'none')); // Option to deselect chapter
 	
 	try {
-		const novelData = await window.api.getOneNovel(novelId);
-		if (novelData && novelData.chapters) {
-			novelData.chapters.forEach(chapter => {
+		const bookData = await window.api.getOneBook(bookId);
+		if (bookData && bookData.chapters) {
+			bookData.chapters.forEach(chapter => {
 				const option = new Option(chapter.title, chapter.id);
 				chapterSelect.appendChild(option);
 			});
 		}
 		chapterSelect.value = currentChat?.selectedChapterId || 'none'; // Set the previously selected chapter or 'none'
 	} catch (error) {
-		console.error('Failed to load novel chapters:', error);
+		console.error('Failed to load book chapters:', error);
 		chapterSelect.disabled = true;
 	}
 }
@@ -282,8 +282,8 @@ async function handleSendMessage(event) {
 	const selectedChapterId = chapterSelect.value;
 	if (selectedChapterId && selectedChapterId !== 'none') {
 		try {
-			const novelData = await window.api.getOneNovel(novelId);
-			const selectedChapter = novelData.chapters.find(c => c.id === parseInt(selectedChapterId));
+			const bookData = await window.api.getOneBook(bookId);
+			const selectedChapter = bookData.chapters.find(c => c.id === parseInt(selectedChapterId));
 			
 			if (selectedChapter) {
 				const sourceContent = htmlToPlainText(selectedChapter.source_content || '');
@@ -349,12 +349,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 	document.title = t('editor.chat.title');
 	
 	const params = new URLSearchParams(window.location.search);
-	novelId = params.get('novelId');
+	bookId = params.get('bookId');
 	
-	if (!novelId) {
-		// Handle case where novelId is missing (e.g., chat opened directly without context)
+	if (!bookId) {
+		// Handle case where bookId is missing (e.g., chat opened directly without context)
 		// Maybe close the window or show an error
-		console.error('Novel ID is missing from chat window URL.');
+		console.error('Book ID is missing from chat window URL.');
 		alert('Error: This chat window requires a project context. Please open it from the editor.');
 		window.close();
 		return;

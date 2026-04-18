@@ -45,11 +45,11 @@
 			case 'tm_get_entry_count':
 				getTranslationMemoryEntryCount($db, $userId, $payload);
 				break;
-			case 'tm_get_memory_for_novels':
-				getMemoryForNovels($db, $userId, $payload);
+			case 'tm_get_memory_for_books':
+				getMemoryForBooks($db, $userId, $payload);
 				break;
 			case 'tm_get_all_with_memory':
-				getAllNovelsWithMemory($db, $userId);
+				getAllBooksWithMemory($db, $userId);
 				break;
 			default:
 				sendJsonError(400, 'Invalid translation memory action specified.');
@@ -79,6 +79,8 @@
 
 		$ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -90,7 +92,7 @@
 
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		//curl_close($ch);
 
 		// NEW: Log the interaction with the LLM API to the api_logs table.
 		logInteraction($db, $userId, 'tm_llm_call', $payload, (string)$response, $httpCode);
@@ -114,19 +116,19 @@
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
-	 * @param array $payload The request payload containing novel info and pairs.
+	 * @param array $payload The request payload containing book info and pairs.
 	 * @return void
 	 */
 	function syncBookBlocks(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
+		$bookId = $payload['book_id'] ?? null;
 		$sourceLang = $payload['source_language'] ?? null;
 		$targetLang = $payload['target_language'] ?? null;
 		$title = $payload['title'] ?? 'Untitled';
 		$author = $payload['author'] ?? null;
 		$pairs = $payload['pairs'] ?? [];
 
-		if (!$novelId || !$sourceLang || !$targetLang || !is_array($pairs)) {
+		if (!$bookId || !$sourceLang || !$targetLang || !is_array($pairs)) {
 			sendJsonError(400, 'Missing required fields for syncing book blocks.');
 		}
 
@@ -136,12 +138,12 @@
 				'INSERT INTO user_books (book_id, user_id, title, author, source_language, target_language) VALUES (?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE title = VALUES(title), author = VALUES(author), source_language = VALUES(source_language), target_language = VALUES(target_language)'
 			);
-			$stmt->bind_param('iissss', $novelId, $userId, $title, $author, $sourceLang, $targetLang);
+			$stmt->bind_param('iissss', $bookId, $userId, $title, $author, $sourceLang, $targetLang);
 			$stmt->execute();
 			$stmt->close();
 
 			$stmt = $db->prepare('SELECT id FROM user_books WHERE book_id = ? AND user_id = ?');
-			$stmt->bind_param('ii', $novelId, $userId);
+			$stmt->bind_param('ii', $bookId, $userId);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			$userBook = $result->fetch_assoc();
@@ -206,22 +208,22 @@
 	}
 
 	/**
-	 * Creates a new job to generate translation memories for a novel.
+	 * Creates a new job to generate translation memories for a book.
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
-	 * @param array $payload The request payload containing the novel_id.
+	 * @param array $payload The request payload containing the book_id.
 	 * @return void
 	 */
 	function startGenerationJob(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
-		if (!$novelId) {
-			sendJsonError(400, 'Missing novel_id for starting a job.');
+		$bookId = $payload['book_id'] ?? null;
+		if (!$bookId) {
+			sendJsonError(400, 'Missing book_id for starting a job.');
 		}
 
 		$stmt = $db->prepare('SELECT id FROM user_books WHERE book_id = ? AND user_id = ?');
-		$stmt->bind_param('ii', $novelId, $userId);
+		$stmt->bind_param('ii', $bookId, $userId);
 		$stmt->execute();
 		$userBook = $stmt->get_result()->fetch_assoc();
 		$stmt->close();
@@ -429,22 +431,22 @@
 
 
 	/**
-	 * Retrieves the formatted translation memory for a single novel.
+	 * Retrieves the formatted translation memory for a single book.
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
-	 * @param array $payload The request payload containing the novel_id.
+	 * @param array $payload The request payload containing the book_id.
 	 * @return void
 	 */
 	function getTranslationMemory(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
-		if (!$novelId) {
-			sendJsonError(400, 'Missing novel_id.');
+		$bookId = $payload['book_id'] ?? null;
+		if (!$bookId) {
+			sendJsonError(400, 'Missing book_id.');
 		}
 
 		$stmt = $db->prepare('SELECT b.id, b.source_language, b.target_language FROM user_books b WHERE b.book_id = ? AND b.user_id = ?');
-		$stmt->bind_param('ii', $novelId, $userId);
+		$stmt->bind_param('ii', $bookId, $userId);
 		$stmt->execute();
 		$result = $stmt->get_result();
 		$userBook = $result->fetch_assoc();
@@ -470,7 +472,7 @@
 		$lastMarkerId = null;
 		foreach ($memories as $mem) {
 			if ($mem['marker_id'] !== $lastMarkerId) {
-				$content .= "\n\n#{$novelId}-{$mem['marker_id']}\n";
+				$content .= "\n\n#{$bookId}-{$mem['marker_id']}\n";
 				$lastMarkerId = $mem['marker_id'];
 			}
 			$content .= "<{$sourceLang}>{$mem['source_sentence']}</{$sourceLang}>\n";
@@ -481,22 +483,22 @@
 	}
 
 	/**
-	 * Gets the total count of translation memory entries for a novel.
+	 * Gets the total count of translation memory entries for a book.
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
-	 * @param array $payload The request payload containing the novel_id.
+	 * @param array $payload The request payload containing the book_id.
 	 * @return void
 	 */
 	function getTranslationMemoryEntryCount(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
-		if (!$novelId) {
-			sendJsonError(400, 'Missing novel_id.');
+		$bookId = $payload['book_id'] ?? null;
+		if (!$bookId) {
+			sendJsonError(400, 'Missing book_id.');
 		}
 
 		$stmt = $db->prepare('SELECT id FROM user_books WHERE book_id = ? AND user_id = ?');
-		$stmt->bind_param('ii', $novelId, $userId);
+		$stmt->bind_param('ii', $bookId, $userId);
 		$stmt->execute();
 		$result = $stmt->get_result();
 		$userBook = $result->fetch_assoc();
@@ -518,26 +520,26 @@
 	}
 
 	/**
-	 * Retrieves and combines translation memories for multiple novels.
+	 * Retrieves and combines translation memories for multiple books.
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
-	 * @param array $payload The request payload containing an array of novel_ids.
+	 * @param array $payload The request payload containing an array of book_ids.
 	 * @return void
 	 */
-	function getMemoryForNovels(mysqli $db, int $userId, array $payload): void
+	function getMemoryForBooks(mysqli $db, int $userId, array $payload): void
 	{
-		$novelIds = $payload['novel_ids'] ?? [];
-		if (empty($novelIds) || !is_array($novelIds)) {
+		$bookIds = $payload['book_ids'] ?? [];
+		if (empty($bookIds) || !is_array($bookIds)) {
 			echo json_encode(['content' => '']);
 			return;
 		}
 
-		$placeholders = implode(',', array_fill(0, count($novelIds), '?'));
-		$types = str_repeat('i', count($novelIds));
+		$placeholders = implode(',', array_fill(0, count($bookIds), '?'));
+		$types = str_repeat('i', count($bookIds));
 
 		$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.user_book_id = b.id WHERE b.user_id = ? AND b.book_id IN ($placeholders)");
-		$stmt->bind_param("i" . $types, $userId, ...$novelIds);
+		$stmt->bind_param("i" . $types, $userId, ...$bookIds);
 		$stmt->execute();
 		$result = $stmt->get_result();
 		$memories = $result->fetch_all(MYSQLI_ASSOC);
@@ -553,13 +555,13 @@
 	}
 
 	/**
-	 * Gets a list of all novel IDs for a user that have at least one translation memory entry.
+	 * Gets a list of all book IDs for a user that have at least one translation memory entry.
 	 *
 	 * @param mysqli $db The database connection.
 	 * @param int $userId The user's ID.
 	 * @return void
 	 */
-	function getAllNovelsWithMemory(mysqli $db, int $userId): void
+	function getAllBooksWithMemory(mysqli $db, int $userId): void
 	{
 		$stmt = $db->prepare('SELECT DISTINCT b.book_id FROM user_books_translation_memory tm JOIN user_books b ON tm.user_book_id = b.id WHERE b.user_id = ?');
 		$stmt->bind_param('i', $userId);
@@ -568,7 +570,7 @@
 		$rows = $result->fetch_all(MYSQLI_ASSOC);
 		$stmt->close();
 
-		$novelIds = array_map(fn($row) => (int)$row['book_id'], $rows);
+		$bookIds = array_map(fn($row) => (int)$row['book_id'], $rows);
 
-		echo json_encode(['novel_ids' => $novelIds]);
+		echo json_encode(['book_ids' => $bookIds]);
 	}

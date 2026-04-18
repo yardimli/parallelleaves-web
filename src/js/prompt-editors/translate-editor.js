@@ -118,7 +118,7 @@ const updatePreview = async (container, context) => {
 		}
 	}
 	
-	let userDictionaryContent= await window.api.getDictionaryContentForAI(context.novelId, 'translation');
+	let userDictionaryContent= await window.api.getDictionaryContentForAI(context.bookId, 'translation');
 	
 	try {
 		const promptJson = buildPromptJson(formData, previewContext, userDictionaryContent);
@@ -155,13 +155,13 @@ const updatePreview = async (container, context) => {
 	}
 };
 
-const populateForm = (container, state, novelId) => {
+const populateForm = (container, state, bookId) => {
 	const form = container.querySelector('#translate-editor-form');
 	if (!form) {
 		return;
 	}
 	
-	const storageKey = `tense-preference-${novelId}-translate`;
+	const storageKey = `tense-preference-${bookId}-translate`;
 	const savedTense = localStorage.getItem(storageKey);
 	
 	const tense = state.tense || savedTense || defaultState.tense;
@@ -186,7 +186,7 @@ export const init = async (container, context) => {
 		
 		const fullContext = { ...context };
 		
-		populateForm(container, context.initialState || defaultState, context.novelId);
+		populateForm(container, context.initialState || defaultState, context.bookId);
 		// MODIFIED: Removed call to populateTranslationMemoriesDropdown
 		
 		const form = container.querySelector('#translate-editor-form');
@@ -221,7 +221,7 @@ export const init = async (container, context) => {
 					
 					form.elements.tense.value = newTense;
 					
-					const storageKey = `tense-preference-${context.novelId}-translate`;
+					const storageKey = `tense-preference-${context.bookId}-translate`;
 					localStorage.setItem(storageKey, newTense);
 					
 					debouncedUpdatePreview();

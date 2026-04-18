@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Parallel Leaves - Register</title>
+	<link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="../dist/styles.css">
+</head>
+<body class="bg-base-100 min-h-screen flex flex-col items-center justify-center p-4 text-base-content">
+<div class="text-center">
+	<h1 class="text-4xl font-bold text-base-content mb-6">Parallel Leaves</h1>
+</div>
+<div class="card w-full max-w-md bg-base-200 shadow-xl">
+	<div class="card-body">
+		<h2 class="card-title text-2xl justify-center mb-2">Create an Account</h2>
+		<div id="register-alert" class="alert hidden my-4">
+			<span id="register-alert-msg"></span>
+		</div>
+		<form id="register-form" class="space-y-4">
+			<div class="form-control">
+				<label class="label" for="username"><span class="label-text">Username</span></label>
+				<input type="text" id="username" name="username" required class="input input-bordered w-full" />
+			</div>
+			<div class="form-control">
+				<label class="label" for="password"><span class="label-text">Password (min. 8 characters)</span></label>
+				<input type="password" id="password" name="password" required minlength="8" class="input input-bordered w-full" />
+			</div>
+			<div class="form-control mt-6">
+				<button type="submit" class="btn btn-primary" id="register-btn">Register</button>
+			</div>
+			<div class="text-center mt-4">
+				<a href="index.html" class="link link-hover text-sm">Back to Login</a>
+			</div>
+		</form>
+	</div>
+</div>
+<script src="js/api.js"></script>
+<script src="../src/js/theme.js"></script>
+<script type="module" src="../src/js/register.js"></script>
+</body>
+</html>

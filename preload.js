@@ -3,8 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
 	// --- App Level ---
 	openImportWindow: () => ipcRenderer.send('app:open-import-window'),
-	openChatWindow: (novelId) => ipcRenderer.send('app:openChatWindow', novelId),
-	translationMemoryGenerateInBackground: (novelId) => ipcRenderer.invoke('translation-memory:generate-in-background', novelId),
+	openChatWindow: (bookId) => ipcRenderer.send('app:openChatWindow', bookId),
+	translationMemoryGenerateInBackground: (bookId) => ipcRenderer.invoke('translation-memory:generate-in-background', bookId),
 	onTranslationMemoryProgressUpdate: (callback) => ipcRenderer.on('translation-memory:progress-update', (event, ...args) => callback(...args)),
 	
 	getLangFile: (lang) => ipcRenderer.invoke('i18n:get-lang-file', lang),
@@ -18,38 +18,38 @@ contextBridge.exposeInMainWorld('api', {
 	splashFinished: () => ipcRenderer.send('splash:finished'),
 	openExternalUrl: (url) => ipcRenderer.send('app:open-external-url', url),
 	
-	// --- Dashboard/Novel Creation ---
-	getNovelsWithCovers: () => ipcRenderer.invoke('novels:getAllWithCovers'),
+	// --- Dashboard/Book Creation ---
+	getBooksWithCovers: () => ipcRenderer.invoke('books:getAllWithCovers'),
 	
-	// Handlers to get novels that have a TM
-	getAllNovelsWithTM: () => ipcRenderer.invoke('novels:getAllWithTranslationMemory'),
-	getOneNovel: (novelId) => ipcRenderer.invoke('novels:getOne', novelId),
-	getFullManuscript: (novelId) => ipcRenderer.invoke('novels:getFullManuscript', novelId),
-	getAllNovelContent: (novelId) => ipcRenderer.invoke('novels:getAllNovelContent', novelId),
+	// Handlers to get books that have a TM
+	getAllBooksWithTM: () => ipcRenderer.invoke('books:getAllWithTranslationMemory'),
+	getOneBook: (bookId) => ipcRenderer.invoke('books:getOne', bookId),
+	getFullManuscript: (bookId) => ipcRenderer.invoke('books:getFullManuscript', bookId),
+	getAllBookContent: (bookId) => ipcRenderer.invoke('books:getAllBookContent', bookId),
 	
-	getNovelForExport: (novelId) => ipcRenderer.invoke('novels:getForExport', novelId),
-	exportNovelToDocx: (data) => ipcRenderer.invoke('novels:exportToDocx', data),
+	getBookForExport: (bookId) => ipcRenderer.invoke('books:getForExport', bookId),
+	exportBookToDocx: (data) => ipcRenderer.invoke('books:exportToDocx', data),
 	
-	openEditor: (novelId) => ipcRenderer.send('novels:openEditor', novelId),
+	openEditor: (bookId) => ipcRenderer.send('books:openEditor', bookId),
 	codex: {
-		startGeneration: (novelId) => ipcRenderer.send('codex:start-generation', novelId),
+		startGeneration: (bookId) => ipcRenderer.send('codex:start-generation', bookId),
 		onUpdate: (callback) => ipcRenderer.on('codex:update', callback),
 		onFinished: (callback) => ipcRenderer.on('codex:finished', callback)
 	},
-	updateProseSettings: (data) => ipcRenderer.invoke('novels:updateProseSettings', data),
-	updatePromptSettings: (data) => ipcRenderer.invoke('novels:updatePromptSettings', data),
+	updateProseSettings: (data) => ipcRenderer.invoke('books:updateProseSettings', data),
+	updatePromptSettings: (data) => ipcRenderer.invoke('books:updatePromptSettings', data),
 	
-	updateNovelMeta: (data) => ipcRenderer.invoke('novels:updateMeta', data),
-	createBlankNovel: (data) => ipcRenderer.invoke('novels:createBlank', data),
-	updateNovelCover: (data) => ipcRenderer.invoke('novels:updateNovelCover', data),
-	deleteNovel: (novelId) => ipcRenderer.invoke('novels:delete', novelId),
+	updateBookMeta: (data) => ipcRenderer.invoke('books:updateMeta', data),
+	createBlankBook: (data) => ipcRenderer.invoke('books:createBlank', data),
+	updateBookCover: (data) => ipcRenderer.invoke('books:updateBookCover', data),
+	deleteBook: (bookId) => ipcRenderer.invoke('books:delete', bookId),
 	
-	onCoverUpdated: (callback) => ipcRenderer.on('novels:cover-updated', callback),
+	onCoverUpdated: (callback) => ipcRenderer.on('books:cover-updated', callback),
 	
 	// --- Document Import ---
 	showOpenDocumentDialog: () => ipcRenderer.invoke('dialog:showOpenDocument'),
 	readDocumentContent: (filePath) => ipcRenderer.invoke('document:read', filePath),
-	importDocumentAsNovel: (data) => ipcRenderer.invoke('document:import', data),
+	importDocumentAsBook: (data) => ipcRenderer.invoke('document:import', data),
 	onImportStatusUpdate: (callback) => ipcRenderer.on('import:status-update', (event, ...args) => callback(...args)),
 	
 	// --- Editor Specific APIs ---
@@ -79,12 +79,12 @@ contextBridge.exposeInMainWorld('api', {
 	
 	getSupportedLanguages: () => ipcRenderer.invoke('languages:get-supported'),
 	
-	getNovelDictionary: (novelId) => ipcRenderer.invoke('dictionary:get', novelId),
-	getDictionaryContentForAI: (novelId, type) => ipcRenderer.invoke('dictionary:getContentForAI', novelId, type),
-	saveNovelDictionary: (novelId, data) => ipcRenderer.invoke('dictionary:save', novelId, data),
+	getBookDictionary: (bookId) => ipcRenderer.invoke('dictionary:get', bookId),
+	getDictionaryContentForAI: (bookId, type) => ipcRenderer.invoke('dictionary:getContentForAI', bookId, type),
+	saveBookDictionary: (bookId, data) => ipcRenderer.invoke('dictionary:save', bookId, data),
 	
 	// API for logging translation events
 	logTranslationEvent: (data) => ipcRenderer.invoke('log:translation', data),
 	
-	findHighestMarkerNumber: (sourceHtml, targetHtml) => ipcRenderer.invoke('novels:findHighestMarkerNumber', sourceHtml, targetHtml)
+	findHighestMarkerNumber: (sourceHtml, targetHtml) => ipcRenderer.invoke('books:findHighestMarkerNumber', sourceHtml, targetHtml)
 });

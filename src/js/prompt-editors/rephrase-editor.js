@@ -78,7 +78,7 @@ const updatePreview = async (container, context) => {
 	
 	if (!systemPreview || !userPreview || !aiPreview) return;
 	
-	let dictionaryContextualContent = await window.api.getDictionaryContentForAI(context.novelId, 'translation');
+	let dictionaryContextualContent = await window.api.getDictionaryContentForAI(context.bookId, 'translation');
 
 	const previewContext = { ...context };
 	
@@ -94,11 +94,11 @@ const updatePreview = async (container, context) => {
 	}
 };
 
-const populateForm = (container, state, novelId) => {
+const populateForm = (container, state, bookId) => {
 	const form = container.querySelector('#rephrase-editor-form');
 	if (!form) return;
 	
-	const storageKey = `tense-preference-${novelId}-rephrase`;
+	const storageKey = `tense-preference-${bookId}-rephrase`;
 	const savedTense = localStorage.getItem(storageKey);
 	
 	const tense = state.tense || savedTense || defaultState.tense;
@@ -121,7 +121,7 @@ export const init = async (container, context) => {
 		const wordCount = context.selectedText ? context.selectedText.trim().split(/\s+/).filter(Boolean).length : 0;
 		const fullContext = { ...context, wordCount };
 		
-		populateForm(container, context.initialState || defaultState, context.novelId);
+		populateForm(container, context.initialState || defaultState, context.bookId);
 		
 		const form = container.querySelector('#rephrase-editor-form');
 		
@@ -152,7 +152,7 @@ export const init = async (container, context) => {
 					form.elements.tense.value = newTense;
 					
 					// Save preference to localStorage
-					const storageKey = `tense-preference-${context.novelId}-rephrase`;
+					const storageKey = `tense-preference-${context.bookId}-rephrase`;
 					localStorage.setItem(storageKey, newTense);
 					
 					// Trigger preview update

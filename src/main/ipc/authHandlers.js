@@ -1,19 +1,16 @@
 const { ipcMain, shell } = require('electron');
 const fetch = require('node-fetch');
-const config = require('../../../config.js');
 
 /**
  * Registers IPC handlers for authentication.
  * @param {object} sessionManager - The session manager instance.
  */
 function registerAuthHandlers(sessionManager) {
-	const LOGIN_API_URL = config.LOGIN_API_URL;
-	const REGISTER_URL = config.REGISTER_URL;
+	const LOGIN_API_URL = '/parallelleaves-web/sever/login.php';
+	const REGISTER_URL = '/parallelleaves-web/sever/register.php';
 	
 	ipcMain.handle('auth:login', async (event, credentials) => {
 		try {
-			if (!LOGIN_API_URL) throw new Error('Login API URL is not configured in config.js.');
-			
 			const response = await fetch(LOGIN_API_URL, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -48,11 +45,7 @@ function registerAuthHandlers(sessionManager) {
 	});
 	
 	ipcMain.on('auth:open-register-url', () => {
-		if (REGISTER_URL) {
 			shell.openExternal(REGISTER_URL);
-		} else {
-			console.error('REGISTER_URL is not defined in config.js file.');
-		}
 	});
 }
 

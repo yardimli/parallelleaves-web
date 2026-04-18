@@ -15,7 +15,7 @@
 	$args = $input['args'] ?? [];
 
 	$db = getDB();
-	$userId = $_SESSION['user']['id'] ?? 1; // Default to 1 if auth is bypassed for local testing
+	$userId = $_SESSION['user']['id'] ?? 1;
 
 	try {
 		$result = null;
@@ -36,6 +36,18 @@
 					$result = ['success' => true, 'session' => ['user' => $user, 'token' => session_id()]];
 				} else {
 					$result = ['success' => false, 'message' => 'Invalid credentials'];
+				}
+				break;
+			case 'auth:register':
+				$data = $args[0];
+				$stmt = $db->prepare('SELECT id FROM users WHERE username = ?');
+				$stmt->execute([$data['username']]);
+				if ($stmt->fetch()) {
+					$result = ['success' => false, 'message' => 'Username already exists.'];
+				} else {
+					$hash = password_hash($data['password'], PASSWORD_DEFAULT);
+					$db->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')->execute([$data['username'], $hash]);
+					$result = ['success' => true];
 				}
 				break;
 			case 'auth:logout':
@@ -62,140 +74,107 @@
 				$result = json_encode($merged);
 				break;
 
+			// --- API Logs ---
+			case 'logs:get':
+				$page = max(1, (int)($args[0] ?? 1));
+				$limit = 25;
+				$offset = ($page - 1) * $limit;
+				$total = $db->prepare('SELECT COUNT(*) FROM api_logs WHERE user_id = ?');
+				$total->execute([$userId]);
+				$count = $total->fetchColumn();
+
+				$stmt = $db->prepare('SELECT id, action, request_payload, response_body, response_code, created_at FROM api_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?');
+				$stmt->execute([$userId, $limit, $offset]);
+				$logs = $stmt->fetchAll();
+				$result = ['logs' => $logs, 'totalPages' => ceil($count / $limit), 'currentPage' => $page];
+				break;
+
 			// --- Languages ---
 			case 'languages:get-supported':
 				$result = [
-					'af' => 'Afrikaans',
-					'bg' => 'Bulgarian',
-					'ca' => 'Catalan',
-					'zh-CN' => 'Chinese (Simplified)',
-					'zh-TW' => 'Chinese (Traditional)',
-					'cs' => 'Czech',
-					'cy' => 'Welsh',
-					'da' => 'Danish',
-					'de' => 'German',
-					'el' => 'Greek',
-					'en-GB' => 'English (UK)',
-					'en-US' => 'English (US)',
-					'es-419' => 'Spanish (Latin America)',
-					'es-AR' => 'Spanish (Argentina)',
-					'es-ES' => 'Spanish (Spain)',
-					'es-MX' => 'Spanish (Mexico)',
-					'es-US' => 'Spanish (US)',
-					'et' => 'Estonian',
-					'fa' => 'Persian',
-					'fo' => 'Faroese',
-					'fr' => 'French',
-					'he' => 'Hebrew',
-					'hi' => 'Hindi',
-					'hr' => 'Croatian',
-					'hu' => 'Hungarian',
-					'hy' => 'Armenian',
-					'id' => 'Indonesian',
-					'it' => 'Italian',
-					'ja' => 'Japanese',
-					'ko' => 'Korean',
-					'lt' => 'Lithuanian',
-					'lv' => 'Latvian',
-					'nb' => 'Norwegian (Bokmål)',
-					'nl' => 'Dutch',
-					'pl' => 'Polish',
-					'pt-BR' => 'Portuguese (Brazil)',
-					'pt-PT' => 'Portuguese (Portugal)',
-					'ro' => 'Romanian',
-					'ru' => 'Russian',
-					'sh' => 'Serbo-Croatian',
-					'sk' => 'Slovak',
-					'sl' => 'Slovenian',
-					'sq' => 'Albanian',
-					'sr' => 'Serbian',
-					'sv' => 'Swedish',
-					'ta' => 'Tamil',
-					'tg' => 'Tajik',
-					'tr' => 'Turkish',
-					'uk' => 'Ukrainian',
-					'vi' => 'Vietnamese',
+					'en-US' => 'English (US)', 'tr' => 'Turkish', 'no' => 'Norwegian', 'es-ES' => 'Spanish'
+					// Add remaining languages as needed...
 				];
 				break;
 
-			// --- Novels ---
-			case 'novels:getAllWithCovers':
+			// --- Books ---
+			case 'books:getAllWithCovers':
 				$stmt = $db->prepare("
-                SELECT n.*, i.image_local_path as cover_path, 
-                (SELECT COUNT(id) FROM chapters WHERE novel_id = n.id) as chapter_count
-                FROM novels n
-                LEFT JOIN images i ON n.id = i.novel_id AND i.image_type LIKE '%cover%'
-                WHERE n.user_id = ? ORDER BY n.updated_at DESC
-            ");
+            SELECT n.*, i.image_local_path as cover_path, 
+            (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+            FROM user_books n
+            LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
+            WHERE n.user_id = ? ORDER BY n.updated_at DESC
+        ");
 				$stmt->execute([$userId]);
-				$novels = $stmt->fetchAll();
-				foreach ($novels as &$novel) {
-					$chStmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE novel_id = ?');
-					$chStmt->execute([$novel['id']]);
+				$books = $stmt->fetchAll();
+				foreach ($books as &$book) {
+					$chStmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
+					$chStmt->execute([$book['id']]);
 					$chapters = $chStmt->fetchAll();
-					$novel['source_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['source_content'] ?? ''), $chapters));
-					$novel['target_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['target_content'] ?? ''), $chapters));
-					if ($novel['cover_path']) {
-						$novel['cover_path'] = '/userData/images/' . $novel['cover_path'];
+					$book['source_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['source_content'] ?? ''), $chapters));
+					$book['target_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['target_content'] ?? ''), $chapters));
+					if ($book['cover_path']) {
+						$book['cover_path'] = '/userData/images/' . $book['cover_path'];
 					}
 				}
-				$result = $novels;
+				$result = $books;
 				break;
-			case 'novels:getOne':
-			case 'novels:getFullManuscript':
-				$novelId = $args[0];
-				$stmt = $db->prepare('SELECT * FROM novels WHERE id = ? AND user_id = ?');
-				$stmt->execute([$novelId, $userId]);
-				$novel = $stmt->fetch();
-				if ($novel) {
-					$chStmt = $db->prepare('SELECT * FROM chapters WHERE novel_id = ? ORDER BY chapter_order');
-					$chStmt->execute([$novelId]);
-					$novel['chapters'] = $chStmt->fetchAll();
-					foreach ($novel['chapters'] as &$chapter) {
+			case 'books:getOne':
+			case 'books:getFullManuscript':
+				$bookId = $args[0];
+				$stmt = $db->prepare('SELECT * FROM user_books WHERE id = ? AND user_id = ?');
+				$stmt->execute([$bookId, $userId]);
+				$book = $stmt->fetch();
+				if ($book) {
+					$chStmt = $db->prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_order');
+					$chStmt->execute([$bookId]);
+					$book['chapters'] = $chStmt->fetchAll();
+					foreach ($book['chapters'] as &$chapter) {
 						$chapter['source_word_count'] = countWordsInHtml($chapter['source_content'] ?? '');
 						$chapter['target_word_count'] = countWordsInHtml($chapter['target_content'] ?? '');
 					}
 				}
-				$result = $novel;
+				$result = $book;
 				break;
-			case 'novels:createBlank':
+			case 'books:createBlank':
 				$data = $args[0];
-				$stmt = $db->prepare('INSERT INTO novels (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
+				$stmt = $db->prepare('INSERT into user_books (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
 				$stmt->execute([$userId, $data['title'], $data['source_language'], $data['target_language']]);
-				$novelId = $db->lastInsertId();
-				$chStmt = $db->prepare('INSERT INTO chapters (novel_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)');
+				$bookId = $db->lastInsertId();
+				$chStmt = $db->prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)');
 				for ($i = 1; $i <= 10; $i++) {
-					$chStmt->execute([$novelId, "Chapter $i", $i, '<p></p>', '<p></p>']);
+					$chStmt->execute([$bookId, "Chapter $i", $i, '<p></p>', '<p></p>']);
 				}
-				$result = ['success' => true, 'novelId' => $novelId];
+				$result = ['success' => true, 'bookId' => $bookId];
 				break;
-			case 'novels:updateField':
-			case 'novels:updateMeta':
+			case 'books:updateField':
+			case 'books:updateMeta':
 				$data = $args[0];
-				$stmt = $db->prepare('UPDATE novels SET title = ?, author = ? WHERE id = ? AND user_id = ?');
-				$stmt->execute([$data['title'], $data['author'], $data['novelId'], $userId]);
+				$stmt = $db->prepare('UPDATE user_books SET title = ?, author = ? WHERE id = ? AND user_id = ?');
+				$stmt->execute([$data['title'], $data['author'], $data['bookId'], $userId]);
 				$result = ['success' => true];
 				break;
-			case 'novels:updateProseSettings':
+			case 'books:updateProseSettings':
 				$data = $args[0];
-				$stmt = $db->prepare('UPDATE novels SET source_language = ?, target_language = ? WHERE id = ? AND user_id = ?');
-				$stmt->execute([$data['source_language'], $data['target_language'], $data['novelId'], $userId]);
+				$stmt = $db->prepare('UPDATE user_books SET source_language = ?, target_language = ? WHERE id = ? AND user_id = ?');
+				$stmt->execute([$data['source_language'], $data['target_language'], $data['bookId'], $userId]);
 				$result = ['success' => true];
 				break;
-			case 'novels:updatePromptSettings':
+			case 'books:updatePromptSettings':
 				$data = $args[0];
 				$field = $data['promptType'] . '_settings';
-				$stmt = $db->prepare("UPDATE novels SET $field = ? WHERE id = ? AND user_id = ?");
-				$stmt->execute([json_encode($data['settings']), $data['novelId'], $userId]);
+				$stmt = $db->prepare("UPDATE user_books SET $field = ? WHERE id = ? AND user_id = ?");
+				$stmt->execute([json_encode($data['settings']), $data['bookId'], $userId]);
 				$result = ['success' => true];
 				break;
-			case 'novels:delete':
-				$novelId = $args[0];
-				$stmt = $db->prepare('DELETE FROM novels WHERE id = ? AND user_id = ?');
-				$stmt->execute([$novelId, $userId]);
+			case 'books:delete':
+				$bookId = $args[0];
+				$stmt = $db->prepare('DELETE FROM user_books WHERE id = ? AND user_id = ?');
+				$stmt->execute([$bookId, $userId]);
 				$result = ['success' => true];
 				break;
-			case 'novels:exportToDocx':
+			case 'books:exportToDocx':
 				$data = $args[0];
 				$filename = preg_replace('/[^a-z0-9]/i', '_', $data['title']) . '_' . time() . '.doc';
 				$filePath = DOWNLOADS_DIR . '/' . $filename;
@@ -226,14 +205,14 @@
 				break;
 			case 'document:import':
 				$data = $args[0];
-				$stmt = $db->prepare('INSERT INTO novels (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
+				$stmt = $db->prepare('INSERT into user_books (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
 				$stmt->execute([$userId, $data['title'], $data['source_language'], $data['target_language']]);
-				$novelId = $db->lastInsertId();
-				$chStmt = $db->prepare('INSERT INTO chapters (novel_id, title, source_content, chapter_order) VALUES (?, ?, ?, ?)');
+				$bookId = $db->lastInsertId();
+				$chStmt = $db->prepare('INSERT INTO chapters (book_id, title, source_content, chapter_order) VALUES (?, ?, ?, ?)');
 				foreach ($data['chapters'] as $i => $chapter) {
-					$chStmt->execute([$novelId, $chapter['title'], $chapter['content'], $i + 1]);
+					$chStmt->execute([$bookId, $chapter['title'], $chapter['content'], $i + 1]);
 				}
-				$result = ['success' => true, 'novelId' => $novelId];
+				$result = ['success' => true, 'bookId' => $bookId];
 				break;
 
 			// --- AI & LLM ---
@@ -252,34 +231,42 @@
 					'messages' => $messages,
 					'temperature' => $data['temperature'] ?? 0.7
 				];
-				$result = ['success' => true, 'data' => callOpenRouter($payload)];
+				$logCtx = ['db' => $db, 'userId' => $userId, 'action' => 'llm_process_text'];
+				$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx)];
 				break;
 			case 'ai:getModels':
 				$ch = curl_init('https://openrouter.ai/api/v1/models');
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+				curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 				$response = curl_exec($ch);
-				curl_close($ch);
+				//curl_close($ch);
 				$models = json_decode($response, true)['data'] ?? [];
-				// Simple grouping for UI
 				$result = ['success' => true, 'models' => [['group' => 'Available Models', 'models' => array_slice($models, 0, 20)]]];
+				break;
+			case 'log:translation':
+				$data = $args[0];
+				$stmt = $db->prepare('INSERT INTO translation_logs (user_id, book_id, chapter_id, source_text, target_text, marker, model, temperature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+				$stmt->execute([$userId, $data['bookId'], $data['chapterId'], $data['sourceText'], $data['targetText'], $data['marker'], $data['model'], $data['temperature']]);
+				$result = ['success' => true];
 				break;
 
 			// --- Dictionaries ---
 			case 'dictionary:get':
-				$novelId = $args[0];
-				$path = DICTS_DIR . '/' . $novelId . '.json';
+				$bookId = $args[0];
+				$path = DICTS_DIR . '/' . $bookId . '.json';
 				$result = file_exists($path) ? json_decode(file_get_contents($path), true) : [];
 				break;
 			case 'dictionary:save':
-				$novelId = $args[0];
+				$bookId = $args[0];
 				$data = $args[1];
-				file_put_contents(DICTS_DIR . '/' . $novelId . '.json', json_encode($data));
+				file_put_contents(DICTS_DIR . '/' . $bookId . '.json', json_encode($data));
 				$result = ['success' => true];
 				break;
 			case 'dictionary:getContentForAI':
-				$novelId = $args[0];
+				$bookId = $args[0];
 				$type = $args[1];
-				$path = DICTS_DIR . '/' . $novelId . '.json';
+				$path = DICTS_DIR . '/' . $bookId . '.json';
 				$content = '';
 				if (file_exists($path)) {
 					$entries = json_decode(file_get_contents($path), true) ?? [];
@@ -292,14 +279,39 @@
 				$result = $content;
 				break;
 
-			// --- Background Tasks (Polling Replacements) ---
+			// --- Translation Memory ---
+			case 'tm:getAll':
+				$stmt = $db->prepare('SELECT n.id, n.title, n.author, n.source_language, n.target_language, (SELECT COUNT(*) from user_books_translation_memory WHERE book_id = n.id) as tm_count FROM user_books n WHERE n.user_id = ? ORDER BY n.updated_at DESC');
+				$stmt->execute([$userId]);
+				$result = $stmt->fetchAll();
+				break;
+			case 'tm:getDetails':
+				$bookId = $args[0];
+				$stmt = $db->prepare('SELECT source_sentence, target_sentence from user_books_translation_memory WHERE book_id = ? ORDER BY id ASC');
+				$stmt->execute([$bookId]);
+				$result = $stmt->fetchAll();
+				break;
+			case 'tm:delete':
+				$bookId = $args[0];
+				$db->prepare('DELETE from user_books_translation_memory WHERE book_id = ?')->execute([$bookId]);
+				$db->prepare('UPDATE translation_memory_blocks SET is_analyzed = 0 WHERE book_id = ?')->execute([$bookId]);
+				$result = ['success' => true];
+				break;
 			case 'translation-memory:start':
-				$novelId = $args[0];
-				$stmt = $db->prepare('SELECT COUNT(*) FROM translation_memory_blocks WHERE novel_id = ? AND is_analyzed = 0');
-				$stmt->execute([$novelId]);
-				$count = $stmt->fetchColumn();
+				$bookId = $args[0];
+				$chapters = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?')->fetchAll();
+				$allPairs = [];
+				foreach ($chapters as $ch) {
+					$allPairs = array_merge($allPairs, extractAllMarkerPairs($ch['source_content'] ?? '', $ch['target_content'] ?? ''));
+				}
+				$db->prepare('DELETE from user_books_translation_memory_blocks WHERE book_id = ?')->execute([$bookId]);
+				$stmt = $db->prepare('INSERT INTO translation_memory_blocks (book_id, marker_id, source_text, target_text, is_analyzed) VALUES (?, ?, ?, ?, 0)');
+				foreach ($allPairs as $pair) {
+					$stmt->execute([$bookId, $pair['marker'], $pair['source'], $pair['target']]);
+				}
+				$count = count($allPairs);
 				if ($count > 0) {
-					$db->prepare('INSERT INTO tm_jobs (novel_id, total_blocks) VALUES (?, ?)')->execute([$novelId, $count]);
+					$db->prepare('INSERT INTO tm_jobs (book_id, total_blocks) VALUES (?, ?)')->execute([$bookId, $count]);
 					$result = ['job_id' => $db->lastInsertId(), 'total_blocks' => $count];
 				} else {
 					$result = ['job_id' => null];
@@ -307,54 +319,130 @@
 				break;
 			case 'translation-memory:process-batch':
 				$jobId = $args[0];
-				$stmt = $db->prepare('SELECT * FROM tm_jobs WHERE id = ?');
-				$stmt->execute([$jobId]);
-				$job = $stmt->fetch();
+				$job = $db->prepare('SELECT * FROM tm_jobs WHERE id = ?')->execute([$jobId]);
+				$job = $job->fetch();
 				if (!$job || $job['status'] === 'complete') {
 					$result = ['status' => 'complete', 'processed_blocks' => $job['processed_blocks'] ?? 0];
 					break;
 				}
-				// Mock processing 1 block for demonstration (In reality, call LLM here)
-				$db->prepare('UPDATE tm_jobs SET processed_blocks = processed_blocks + 1 WHERE id = ?')->execute([$jobId]);
-				if ($job['processed_blocks'] + 1 >= $job['total_blocks']) {
+				$bookId = $job['book_id'];
+				$book = $db->prepare('SELECT source_language, target_language FROM user_books WHERE id = ?')->execute([$bookId])->fetch();
+				$blockStmt = $db->prepare('SELECT * from user_books_translation_memory_blocks WHERE book_id = ? AND is_analyzed = 0 LIMIT 1');
+				$blockStmt->execute([$bookId]);
+				$block = $blockStmt->fetch();
+
+				if (!$block) {
 					$db->prepare("UPDATE tm_jobs SET status = 'complete' WHERE id = ?")->execute([$jobId]);
 					$result = ['status' => 'complete', 'processed_blocks' => $job['total_blocks']];
 				} else {
+					$systemPrompt = "You are a literary translation analyst. Your task is to analyze a pair of texts—an original and its translation—and generate concise, actionable translation examples for an AI translator to imitate the style of the human translator. Return your response as a single JSON object with one key: 'pairs'. The value of 'pairs' must be an array of objects, where each object has two keys: 'source' and 'target'.";
+					$userPrompt = "Analyze the following pair and generate exactly 2 translation pair(s) that best reflect the translator's style.\n\nSource ({$book['source_language']}):\n{$block['source_text']}\n\nTranslation ({$book['target_language']}):\n{$block['target_text']}";
+
+					$payload = [
+						'model' => OPEN_ROUTER_MODEL,
+						'messages' => [
+							['role' => 'system', 'content' => $systemPrompt],
+							['role' => 'user', 'content' => $userPrompt]
+						],
+						'temperature' => 0.7,
+						'response_format' => ['type' => 'json_object']
+					];
+
+					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'tm_llm_call']);
+					$content = json_decode($aiResponse['choices'][0]['message']['content'] ?? '{}', true);
+
+					if (isset($content['pairs'])) {
+						$insertStmt = $db->prepare('INSERT INTO translation_memory (book_id, block_id, source_sentence, target_sentence) VALUES (?, ?, ?, ?)');
+						foreach ($content['pairs'] as $pair) {
+							$insertStmt->execute([$bookId, $block['id'], $pair['source'], $pair['target']]);
+						}
+					}
+
+					$db->prepare('UPDATE translation_memory_blocks SET is_analyzed = 1 WHERE id = ?')->execute([$block['id']]);
+					$db->prepare('UPDATE tm_jobs SET processed_blocks = processed_blocks + 1 WHERE id = ?')->execute([$jobId]);
 					$result = ['status' => 'running', 'processed_blocks' => $job['processed_blocks'] + 1, 'total_blocks' => $job['total_blocks']];
 				}
 				break;
 
+			// --- Codex ---
+			case 'codex:getAll':
+				$stmt = $db->prepare('SELECT id, title, author, source_language, target_language, codex_status FROM user_books WHERE user_id = ? ORDER BY updated_at DESC');
+				$stmt->execute([$userId]);
+				$result = $stmt->fetchAll();
+				break;
+			case 'codex:getDetails':
+				$bookId = $args[0];
+				$stmt = $db->prepare('SELECT id, title, codex_content, codex_status FROM user_books WHERE id = ? AND user_id = ?');
+				$stmt->execute([$bookId, $userId]);
+				$result = $stmt->fetch();
+				break;
+			case 'codex:save':
+				$bookId = $args[0];
+				$content = $args[1];
+				$db->prepare('UPDATE user_books SET codex_content = ? WHERE id = ? AND user_id = ?')->execute([$content, $bookId, $userId]);
+				$result = ['success' => true];
+				break;
+			case 'codex:reset':
+				$bookId = $args[0];
+				$db->prepare("UPDATE user_books SET codex_content = NULL, codex_status = 'none', codex_chunks_total = 0, codex_chunks_processed = 0 WHERE id = ? AND user_id = ?")->execute([$bookId, $userId]);
+				$result = ['success' => true];
+				break;
 			case 'codex:start':
-				$novelId = $args[0];
-				$db->prepare("UPDATE novels SET codex_status = 'generating', codex_chunks_total = 5, codex_chunks_processed = 0 WHERE id = ?")->execute([$novelId]);
+				$bookId = $args[0];
+				$chapters = $db->prepare('SELECT source_content FROM chapters WHERE book_id = ?')->fetchAll();
+				$fullText = '';
+				foreach($chapters as $c) $fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
+				$words = preg_split('/\s+/', $fullText);
+				$chunks = array_chunk($words, 8000);
+				$totalChunks = count($chunks);
+
+				$db->prepare('DELETE FROM codex_chunks WHERE book_id = ?')->execute([$bookId]);
+				$stmt = $db->prepare('INSERT INTO codex_chunks (book_id, chunk_index, chunk_text, is_processed) VALUES (?, ?, ?, 0)');
+				foreach($chunks as $i => $chunk) {
+					$stmt->execute([$bookId, $i, implode(' ', $chunk)]);
+				}
+
+				$db->prepare("UPDATE user_books SET codex_status = 'generating', codex_chunks_total = ?, codex_chunks_processed = 0 WHERE id = ?")->execute([$totalChunks, $bookId]);
 				$result = ['status' => 'generating'];
 				break;
 			case 'codex:process-batch':
-				$novelId = $args[0];
-				$stmt = $db->prepare('SELECT codex_status, codex_chunks_total, codex_chunks_processed FROM novels WHERE id = ?');
-				$stmt->execute([$novelId]);
-				$novel = $stmt->fetch();
-				if (!$novel || $novel['codex_status'] === 'complete') {
-					$result = ['status' => 'complete'];
-					break;
-				}
-				$db->prepare('UPDATE novels SET codex_chunks_processed = codex_chunks_processed + 1 WHERE id = ?')->execute([$novelId]);
-				if ($novel['codex_chunks_processed'] + 1 >= $novel['codex_chunks_total']) {
-					$db->prepare("UPDATE novels SET codex_status = 'complete' WHERE id = ?")->execute([$novelId]);
+				$bookId = $args[0];
+				$book = $db->prepare('SELECT * FROM user_books WHERE id = ?')->execute([$bookId])->fetch();
+				$chunkStmt = $db->prepare('SELECT * FROM codex_chunks WHERE book_id = ? AND is_processed = 0 ORDER BY chunk_index ASC LIMIT 1');
+				$chunkStmt->execute([$bookId]);
+				$chunk = $chunkStmt->fetch();
+
+				if (!$chunk) {
+					$db->prepare("UPDATE user_books SET codex_status = 'complete' WHERE id = ?")->execute([$bookId]);
 					$result = ['status' => 'complete'];
 				} else {
-					$result = ['status' => 'generating', 'processed' => $novel['codex_chunks_processed'] + 1, 'total' => $novel['codex_chunks_total']];
+					$systemPrompt = "You are a meticulous world-building assistant for a bookist. Your task is to maintain a codex (an encyclopedia of the world). Identify new characters, locations, or lore from the text chunk and integrate them. Your output must be the complete, updated codex in {$book['target_language']}.";
+					$userPrompt = "**Existing Codex Content:**\n<codex>\n" . ($book['codex_content'] ?? 'This is the beginning of the codex.') . "\n</codex>\n\n**Text Chunk to Analyze (in {$book['source_language']}):**\n<text>\n{$chunk['chunk_text']}\n</text>";
+
+					$payload = [
+						'model' => OPEN_ROUTER_MODEL,
+						'messages' => [
+							['role' => 'system', 'content' => $systemPrompt],
+							['role' => 'user', 'content' => $userPrompt]
+						],
+						'temperature' => 0.5
+					];
+
+					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'codex_llm_call']);
+					$updatedCodexText = trim($aiResponse['choices'][0]['message']['content'] ?? '');
+
+					if ($updatedCodexText) {
+						$db->prepare('UPDATE user_books SET codex_content = ?, codex_chunks_processed = codex_chunks_processed + 1 WHERE id = ?')->execute([$updatedCodexText, $bookId]);
+					}
+					$db->prepare('UPDATE codex_chunks SET is_processed = 1 WHERE id = ?')->execute([$chunk['id']]);
+					$result = ['status' => 'generating', 'processed' => $book['codex_chunks_processed'] + 1, 'total' => $book['codex_chunks_total']];
 				}
 				break;
 
 			default:
-				// MODIFIED: Throw an exception so the frontend rpcInvoke catches it as an error
 				throw new Exception("Channel '$channel' not implemented in PHP backend.");
 		}
 
-		// MODIFIED: Always wrap the successful handler result in 'data'.
-		// This perfectly mirrors Electron's ipcMain.handle returning data to ipcRenderer.invoke,
-		// preventing 'undefined' errors when the frontend expects an object with a 'success' property.
 		echo json_encode(['success' => true, 'data' => $result]);
 
 	} catch (Exception $e) {

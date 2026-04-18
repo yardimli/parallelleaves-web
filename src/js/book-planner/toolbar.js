@@ -112,24 +112,24 @@ async function handleToolbarAction (button) {
 	
 	if (button.classList.contains('js-ai-action-btn')) {
 		const action = button.dataset.action;
-		const novelId = document.body.dataset.novelId;
-		if (!novelId) {
+		const bookId = document.body.dataset.bookId;
+		if (!bookId) {
 			window.showAlert(t('editor.toolbar.errorNoProject'));
 			return;
 		}
 		
-		const novelData = await window.api.getOneNovel(novelId);
+		const bookData = await window.api.getOneBook(bookId);
 		
 		let settings = {};
-		if (action === 'rephrase' && novelData.rephrase_settings) {
+		if (action === 'rephrase' && bookData.rephrase_settings) {
 			try {
-				settings = JSON.parse(novelData.rephrase_settings);
+				settings = JSON.parse(bookData.rephrase_settings);
 			} catch (e) {
 				console.error('Error parsing rephrase_settings JSON', e);
 			}
-		} else if (action === 'translate' && novelData.translate_settings) {
+		} else if (action === 'translate' && bookData.translate_settings) {
 			try {
-				settings = JSON.parse(novelData.translate_settings);
+				settings = JSON.parse(bookData.translate_settings);
 			} catch (e) {
 				console.error('Error parsing translate_settings JSON', e);
 			}
@@ -151,11 +151,11 @@ async function handleToolbarAction (button) {
 			selectedText: selectionInfo.selectedText,
 			wordsBefore: selectionInfo.wordsBefore,
 			wordsAfter: selectionInfo.wordsAfter,
-			languageForPrompt: novelData.target_language || 'English',
+			languageForPrompt: bookData.target_language || 'English',
 			activeEditorView: activeContentWindow,
 			editorInterface: editorInterface,
 			chapterId: chapterId,
-			novelId: novelId
+			bookId: bookId
 		};
 		openPromptEditor(context, action, settings);
 		return;

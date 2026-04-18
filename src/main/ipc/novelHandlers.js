@@ -19,60 +19,60 @@ function toRoman(num) {
 }
 
 /**
- * Registers IPC handlers for novel-related functionality.
+ * Registers IPC handlers for book-related functionality.
  * @param {Database.Database} db - The application's database connection.
  * @param {object} sessionManager - The session manager instance.
  * @param {object} windowManager - The window manager instance.
  */
-function registerNovelHandlers(db, sessionManager, windowManager) {
-	ipcMain.handle('novels:getAllWithCovers', (event) => {
+function registerBookHandlers(db, sessionManager, windowManager) {
+	ipcMain.handle('books:getAllWithCovers', (event) => {
 		const stmt = db.prepare(`
             SELECT
                 n.*,
                 i.image_local_path as cover_path,
-                (SELECT COUNT(id) FROM chapters WHERE novel_id = n.id) as chapter_count
-            FROM novels n
+                (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+            FROM user_books n
             LEFT JOIN (
-                SELECT novel_id, image_local_path, ROW_NUMBER() OVER(PARTITION BY novel_id ORDER BY created_at DESC) as rn
+                SELECT book_id, image_local_path, ROW_NUMBER() OVER(PARTITION BY book_id ORDER BY created_at DESC) as rn
                 FROM images
-            ) i ON n.id = i.novel_id AND i.rn = 1
+            ) i ON n.id = i.book_id AND i.rn = 1
             ORDER BY n.updated_at DESC
         `);
-		const novels = stmt.all();
+		const books = stmt.all();
 		
-		for (const novel of novels) {
-			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE novel_id = ?').all(novel.id);
+		for (const book of books) {
+			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?').all(book.id);
 			
-			novel.source_word_count = chapters.reduce((sum, ch) => sum + countWordsInHtml(ch.source_content), 0);
-			novel.target_word_count = chapters.reduce((sum, ch) => sum + countWordsInHtml(ch.target_content), 0);
+			book.source_word_count = chapters.reduce((sum, ch) => sum + countWordsInHtml(ch.source_content), 0);
+			book.target_word_count = chapters.reduce((sum, ch) => sum + countWordsInHtml(ch.target_content), 0);
 			
-			if (novel.cover_path) {
-				novel.cover_path = `/images/${novel.cover_path.replace(/\\/g, '/')}`;
+			if (book.cover_path) {
+				book.cover_path = `/images/${book.cover_path.replace(/\\/g, '/')}`;
 			}
 		}
 		
-		return novels;
+		return books;
 	});
 	
-	ipcMain.handle('novels:getAllWithTranslationMemory', async (event) => {
+	ipcMain.handle('books:getAllWithTranslationMemory', async (event) => {
 		try {
-			const allNovels = db.prepare('SELECT id, title FROM novels ORDER BY title ASC').all();
-			const novelsWithTmResult = await hasValidTranslationMemory(sessionManager.getSession()?.token);
+			const allBooks = db.prepare('SELECT id, title FROM user_books ORDER BY title ASC').all();
+			const booksWithTmResult = await hasValidTranslationMemory(sessionManager.getSession()?.token);
 			
-			if (!novelsWithTmResult.success) {
-				console.error('Failed to get novels with TM from server:', novelsWithTmResult.message);
+			if (!booksWithTmResult.success) {
+				console.error('Failed to get books with TM from server:', booksWithTmResult.message);
 				return [];
 			}
 			
-			const tmNovelIds = new Set(novelsWithTmResult.novelIds);
-			return allNovels.filter(novel => tmNovelIds.has(novel.id));
+			const tmBookIds = new Set(booksWithTmResult.bookIds);
+			return allBooks.filter(book => tmBookIds.has(book.id));
 		} catch (error) {
-			console.error('Failed to get novels with translation memory:', error);
+			console.error('Failed to get books with translation memory:', error);
 			return [];
 		}
 	});
 	
-	ipcMain.handle('novels:createBlank', (event, { title, source_language, target_language }) => {
+	ipcMain.handle('books:createBlank', (event, { title, source_language, target_language }) => {
 		try {
 			const session = sessionManager.getSession();
 			if (!session || !session.user) {
@@ -80,51 +80,51 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 			}
 			const userId = session.user.id;
 			
-			const novelResult = db.prepare(
-				'INSERT INTO novels (user_id, title, author, source_language, target_language) VALUES (?, ?, ?, ?, ?)'
+			const bookResult = db.prepare(
+				'INSERT into user_books (user_id, title, author, source_language, target_language) VALUES (?, ?, ?, ?, ?)'
 			).run(userId, title, '', source_language, target_language);
 			
-			const novelId = novelResult.lastInsertRowid;
+			const bookId = bookResult.lastInsertRowid;
 			
-			const insertChapter = db.prepare('INSERT INTO chapters (novel_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)');
+			const insertChapter = db.prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)');
 			
 			db.transaction(() => {
 				for (let j = 1; j <= 10; j++) { // 10 Chapters
-					insertChapter.run(novelId, `Chapter ${j}`, j, '<p></p>', '<p></p>');
+					insertChapter.run(bookId, `Chapter ${j}`, j, '<p></p>', '<p></p>');
 				}
 			})();
 			
-			return { success: true, novelId };
+			return { success: true, bookId };
 		} catch (error) {
-			console.error('Failed to create blank novel:', error);
+			console.error('Failed to create blank book:', error);
 			return { success: false, message: error.message };
 		}
 	});
 	
-	ipcMain.handle('novels:getOne', (event, novelId) => {
-		const novel = db.prepare('SELECT id, title, source_language, target_language, rephrase_settings, translate_settings FROM novels WHERE id = ?').get(novelId);
-		if (!novel) return null;
+	ipcMain.handle('books:getOne', (event, bookId) => {
+		const book = db.prepare('SELECT id, title, source_language, target_language, rephrase_settings, translate_settings FROM user_books WHERE id = ?').get(bookId);
+		if (!book) return null;
 		
-		novel.chapters = db.prepare('SELECT * FROM chapters WHERE novel_id = ? ORDER BY chapter_order').all(novelId);
+		book.chapters = db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY chapter_order').all(bookId);
 		
-		return novel;
+		return book;
 	});
 	
-	ipcMain.handle('novels:getForExport', (event, novelId) => {
+	ipcMain.handle('books:getForExport', (event, bookId) => {
 		try {
-			const novel = db.prepare('SELECT id, title, author, target_language FROM novels WHERE id = ?').get(novelId);
-			if (!novel) throw new Error('Novel not found.');
+			const book = db.prepare('SELECT id, title, author, target_language FROM user_books WHERE id = ?').get(bookId);
+			if (!book) throw new Error('Book not found.');
 			
-			novel.chapters = db.prepare('SELECT id, title, target_content FROM chapters WHERE novel_id = ? ORDER BY chapter_order').all(novelId);
+			book.chapters = db.prepare('SELECT id, title, target_content FROM chapters WHERE book_id = ? ORDER BY chapter_order').all(bookId);
 			
-			return { success: true, data: novel };
+			return { success: true, data: book };
 		} catch (error) {
-			console.error(`Failed to get novel for export (ID: ${novelId}):`, error);
+			console.error(`Failed to get book for export (ID: ${bookId}):`, error);
 			return { success: false, message: error.message };
 		}
 	});
 	
-	ipcMain.handle('novels:exportToDocx', async (event, { title, htmlContent, targetLanguage, dialogStrings }) => {
+	ipcMain.handle('books:exportToDocx', async (event, { title, htmlContent, targetLanguage, dialogStrings }) => {
 		try {
 			const langCode = mapLanguageToIsoCode(targetLanguage || 'English');
 			
@@ -151,7 +151,7 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 		}
 	});
 	
-	ipcMain.handle('novels:updatePromptSettings', (event, { novelId, promptType, settings }) => {
+	ipcMain.handle('books:updatePromptSettings', (event, { bookId, promptType, settings }) => {
 		const allowedTypes = ['rephrase', 'translate'];
 		if (!allowedTypes.includes(promptType)) {
 			return { success: false, message: 'Invalid prompt type.' };
@@ -160,45 +160,45 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 		const fieldName = `${promptType}_settings`;
 		
 		try {
-			db.prepare(`UPDATE novels SET ${fieldName} = ? WHERE id = ?`).run(settingsJson, novelId);
+			db.prepare(`UPDATE user_books SET ${fieldName} = ? WHERE id = ?`).run(settingsJson, bookId);
 			return { success: true };
 		} catch (error) {
-			console.error(`Failed to update prompt settings for novel ${novelId}:`, error);
+			console.error(`Failed to update prompt settings for book ${bookId}:`, error);
 			throw new Error('Failed to update prompt settings.');
 		}
 	});
 	
-	ipcMain.handle('novels:getFullManuscript', (event, novelId) => {
+	ipcMain.handle('books:getFullManuscript', (event, bookId) => {
 		try {
-			const novel = db.prepare('SELECT * FROM novels WHERE id = ?').get(novelId);
-			if (!novel) return { id: novelId, title: 'Not Found', chapters: [] };
+			const book = db.prepare('SELECT * FROM user_books WHERE id = ?').get(bookId);
+			if (!book) return { id: bookId, title: 'Not Found', chapters: [] };
 			
-			novel.chapters = db.prepare('SELECT id, title, source_content, target_content, chapter_order FROM chapters WHERE novel_id = ? ORDER BY chapter_order').all(novelId);
-			for (const chapter of novel.chapters) {
+			book.chapters = db.prepare('SELECT id, title, source_content, target_content, chapter_order FROM chapters WHERE book_id = ? ORDER BY chapter_order').all(bookId);
+			for (const chapter of book.chapters) {
 				chapter.source_word_count = countWordsInHtml(chapter.source_content);
 				chapter.target_word_count = countWordsInHtml(chapter.target_content);
 			}
-			return novel;
+			return book;
 		} catch (error) {
-			console.error(`Error in getFullManuscript for novelId ${novelId}:`, error);
-			return { id: novelId, title: 'Error Loading', chapters: [] };
+			console.error(`Error in getFullManuscript for bookId ${bookId}:`, error);
+			return { id: bookId, title: 'Error Loading', chapters: [] };
 		}
 	});
 	
-	ipcMain.handle('novels:getAllNovelContent', (event, novelId) => {
+	ipcMain.handle('books:getAllBookContent', (event, bookId) => {
 		try {
-			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE novel_id = ?').all(novelId);
+			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?').all(bookId);
 			const combinedContent = chapters.map(c => (c.source_content || '') + (c.target_content || '')).join('');
 			return { success: true, combinedHtml: combinedContent };
 		} catch (error) {
-			console.error(`Failed to get all content for novel ${novelId}:`, error);
-			return { success: false, message: 'Failed to retrieve novel content.' };
+			console.error(`Failed to get all content for book ${bookId}:`, error);
+			return { success: false, message: 'Failed to retrieve book content.' };
 		}
 	});
 	
-	ipcMain.handle('novels:updateProseSettings', (event, { novelId, source_language, target_language }) => {
+	ipcMain.handle('books:updateProseSettings', (event, { bookId, source_language, target_language }) => {
 		try {
-			db.prepare('UPDATE novels SET source_language = ?, target_language = ? WHERE id = ?').run(source_language, target_language, novelId);
+			db.prepare('UPDATE user_books SET source_language = ?, target_language = ? WHERE id = ?').run(source_language, target_language, bookId);
 			return { success: true };
 		} catch (error) {
 			console.error('Failed to update language settings:', error);
@@ -206,25 +206,25 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 		}
 	});
 	
-	ipcMain.handle('novels:updateMeta', (event, { novelId, title, author }) => {
+	ipcMain.handle('books:updateMeta', (event, { bookId, title, author }) => {
 		try {
-			db.prepare('UPDATE novels SET title = ?, author = ? WHERE id = ?').run(title, author, novelId);
+			db.prepare('UPDATE user_books SET title = ?, author = ? WHERE id = ?').run(title, author, bookId);
 			return { success: true };
 		} catch (error) {
-			console.error('Failed to update novel meta:', error);
-			throw new Error('Failed to update novel metadata.');
+			console.error('Failed to update book meta:', error);
+			throw new Error('Failed to update book metadata.');
 		}
 	});
 	
-	ipcMain.handle('novels:updateNovelCover', async (event, { novelId, coverInfo }) => {
+	ipcMain.handle('books:updateBookCover', async (event, { bookId, coverInfo }) => {
 		let localPath;
 		let imageType = 'unknown';
 		
 		if (coverInfo.type === 'remote') {
-			localPath = await imageHandler.storeImageFromUrl(coverInfo.data, novelId, 'cover');
+			localPath = await imageHandler.storeImageFromUrl(coverInfo.data, bookId, 'cover');
 			imageType = 'generated';
 		} else if (coverInfo.type === 'local') {
-			const paths = await imageHandler.storeImageFromPath(coverInfo.data, novelId, 'cover-upload');
+			const paths = await imageHandler.storeImageFromPath(coverInfo.data, bookId, 'cover-upload');
 			localPath = paths.original_path;
 			imageType = 'upload';
 		}
@@ -234,28 +234,28 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 		}
 		
 		db.transaction(() => {
-			const oldImage = db.prepare('SELECT * FROM images WHERE novel_id = ?').get(novelId);
+			const oldImage = db.prepare('SELECT * FROM images WHERE book_id = ?').get(bookId);
 			if (oldImage && oldImage.image_local_path) {
 				const oldFullPath = path.join(imageHandler.IMAGES_DIR, oldImage.image_local_path);
 				if (fs.existsSync(oldFullPath)) fs.unlinkSync(oldFullPath);
 			}
-			db.prepare('DELETE FROM images WHERE novel_id = ?').run(novelId);
+			db.prepare('DELETE FROM images WHERE book_id = ?').run(bookId);
 			
-			db.prepare('INSERT INTO images (user_id, novel_id, image_local_path, thumbnail_local_path, image_type) VALUES (?, ?, ?, ?, ?)')
-				.run(1, novelId, localPath, localPath, imageType);
+			db.prepare('INSERT INTO images (user_id, book_id, image_local_path, thumbnail_local_path, image_type) VALUES (?, ?, ?, ?, ?)')
+				.run(1, bookId, localPath, localPath, imageType);
 		})();
 		
 		const absolutePath = path.join(imageHandler.IMAGES_DIR, localPath);
 		BrowserWindow.getAllWindows().forEach(win => {
-			win.webContents.send('novels:cover-updated', { novelId, imagePath: absolutePath });
+			win.webContents.send('books:cover-updated', { bookId, imagePath: absolutePath });
 		});
 		
 		return { success: true };
 	});
 	
-	ipcMain.handle('novels:delete', (event, novelId) => {
+	ipcMain.handle('books:delete', (event, bookId) => {
 		db.transaction(() => {
-			const imagesToDelete = db.prepare('SELECT image_local_path, thumbnail_local_path FROM images WHERE novel_id = ?').all(novelId);
+			const imagesToDelete = db.prepare('SELECT image_local_path, thumbnail_local_path FROM images WHERE book_id = ?').all(bookId);
 			
 			for (const image of imagesToDelete) {
 				if (image.image_local_path) {
@@ -268,16 +268,16 @@ function registerNovelHandlers(db, sessionManager, windowManager) {
 				}
 			}
 			
-			db.prepare('DELETE FROM novels WHERE id = ?').run(novelId);
+			db.prepare('DELETE FROM user_books WHERE id = ?').run(bookId);
 		})();
 		
 		return { success: true };
 	});
 	
-	ipcMain.on('novels:openEditor', (event, novelId) => {
-		windowManager.createChapterEditorWindow({ novelId, chapterId: null });
+	ipcMain.on('books:openEditor', (event, bookId) => {
+		windowManager.createChapterEditorWindow({ bookId, chapterId: null });
 	});
 	
 }
 
-module.exports = { registerNovelHandlers };
+module.exports = { registerBookHandlers };

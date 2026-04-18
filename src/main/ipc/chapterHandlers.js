@@ -75,8 +75,8 @@ const extractMarkerPairsFromHtml = (sourceHtml, targetHtml, selectedText = null)
  * @param {object} windowManager - The window manager instance.
  */
 function registerChapterHandlers(db, windowManager) {
-	ipcMain.on('chapters:openEditor', (event, { novelId, chapterId }) => {
-		windowManager.createChapterEditorWindow({ novelId, chapterId });
+	ipcMain.on('chapters:openEditor', (event, { bookId, chapterId }) => {
+		windowManager.createChapterEditorWindow({ bookId, chapterId });
 	});
 	
 	ipcMain.handle('chapters:updateField', (event, { chapterId, field, value }) => {
@@ -113,7 +113,7 @@ function registerChapterHandlers(db, windowManager) {
 		}
 		
 		try {
-			const currentChapter = db.prepare('SELECT novel_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?').get(chapterId);
+			const currentChapter = db.prepare('SELECT book_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?').get(chapterId);
 			if (!currentChapter) {
 				throw new Error('Current chapter not found.');
 			}
@@ -129,10 +129,10 @@ function registerChapterHandlers(db, windowManager) {
 			const previousChapter = db.prepare(`
 	            SELECT source_content, target_content
 	            FROM chapters
-	            WHERE novel_id = ? AND chapter_order < ?
+	            WHERE book_id = ? AND chapter_order < ?
 	            ORDER BY chapter_order DESC
 	            LIMIT 1
-	        `).get(currentChapter.novel_id, currentChapter.chapter_order);
+	        `).get(currentChapter.book_id, currentChapter.chapter_order);
 			
 			if (!previousChapter) {
 				return currentChapterPairs;
@@ -161,13 +161,13 @@ function registerChapterHandlers(db, windowManager) {
 	
 	ipcMain.handle('chapters:delete', (event, { chapterId }) => {
 		try {
-			const chapter = db.prepare('SELECT novel_id, chapter_order FROM chapters WHERE id = ?').get(chapterId);
+			const chapter = db.prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?').get(chapterId);
 			if (!chapter) throw new Error('Chapter not found.');
 			
 			db.transaction(() => {
 				db.prepare('DELETE FROM chapters WHERE id = ?').run(chapterId);
-				db.prepare('UPDATE chapters SET chapter_order = chapter_order - 1 WHERE novel_id = ? AND chapter_order > ?')
-					.run(chapter.novel_id, chapter.chapter_order);
+				db.prepare('UPDATE chapters SET chapter_order = chapter_order - 1 WHERE book_id = ? AND chapter_order > ?')
+					.run(chapter.book_id, chapter.chapter_order);
 			})();
 			
 			return { success: true };
@@ -179,17 +179,17 @@ function registerChapterHandlers(db, windowManager) {
 	
 	ipcMain.handle('chapters:insert', (event, { chapterId, direction }) => {
 		try {
-			const refChapter = db.prepare('SELECT novel_id, chapter_order FROM chapters WHERE id = ?').get(chapterId);
+			const refChapter = db.prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?').get(chapterId);
 			if (!refChapter) throw new Error('Reference chapter not found.');
 			
 			const newOrder = direction === 'above' ? refChapter.chapter_order : refChapter.chapter_order + 1;
 			
 			db.transaction(() => {
-				db.prepare('UPDATE chapters SET chapter_order = chapter_order + 1 WHERE novel_id = ? AND chapter_order >= ?')
-					.run(refChapter.novel_id, newOrder);
+				db.prepare('UPDATE chapters SET chapter_order = chapter_order + 1 WHERE book_id = ? AND chapter_order >= ?')
+					.run(refChapter.book_id, newOrder);
 				
-				db.prepare('INSERT INTO chapters (novel_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)')
-					.run(refChapter.novel_id, 'New Chapter', newOrder, '<p></p>', '<p></p>');
+				db.prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)')
+					.run(refChapter.book_id, 'New Chapter', newOrder, '<p></p>', '<p></p>');
 			})();
 			
 			return { success: true };

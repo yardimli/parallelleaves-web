@@ -1,25 +1,25 @@
 import { t } from './i18n.js';
 
 /**
- * Handles the entire process of exporting a novel to a DOCX file.
- * @param {number} novelId - The ID of the novel to export.
+ * Handles the entire process of exporting a book to a DOCX file.
+ * @param {number} bookId - The ID of the book to export.
  */
-export async function exportNovel(novelId) {
+export async function exportBook(bookId) {
 	try {
 		// 1. Fetch all necessary data from the main process.
-		const result = await window.api.getNovelForExport(novelId);
+		const result = await window.api.getBookForExport(bookId);
 		if (!result.success) {
 			throw new Error(result.message);
 		}
-		const novel = result.data;
+		const book = result.data;
 		
-		// 2. Construct a single HTML string from the novel data.
-		let htmlContent = `<h1>${novel.title}</h1>`;
-		if (novel.author) {
-			htmlContent += `<p><em>by ${novel.author}</em></p>`;
+		// 2. Construct a single HTML string from the book data.
+		let htmlContent = `<h1>${book.title}</h1>`;
+		if (book.author) {
+			htmlContent += `<p><em>by ${book.author}</em></p>`;
 		}
 		
-		novel.chapters.forEach(chapter => {
+		book.chapters.forEach(chapter => {
 			// Add Chapter breaks using a page break and heading.
 			htmlContent += `<br pageBreakBefore="true" /><h3>${chapter.title}</h3>`;
 			
@@ -30,13 +30,13 @@ export async function exportNovel(novelId) {
 		});
 		
 		// 3. Send the constructed HTML, target language, and localized dialog strings to the main process.
-		const exportResult = await window.api.exportNovelToDocx({
-			title: novel.title,
+		const exportResult = await window.api.exportBookToDocx({
+			title: book.title,
 			htmlContent: htmlContent,
-			targetLanguage: novel.target_language,
+			targetLanguage: book.target_language,
 			dialogStrings: {
 				title: t('export.exportDialogTitle'),
-				message: t('export.exportDialogMessage', { title: novel.title }),
+				message: t('export.exportDialogMessage', { title: book.title }),
 				detail: t('export.exportDialogDetail'), // {filePath} is a placeholder for the main process
 				openFolder: t('export.exportDialogOpenFolder'),
 				ok: t('export.exportDialogOK'),

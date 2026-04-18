@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 		
 		try {
-			await window.api.importDocumentAsNovel({
+			await window.api.importDocumentAsBook({
 				title: titleInput.value.trim(),
 				source_language: sourceLangSelect.value,
 				target_language: targetLangSelect.value,

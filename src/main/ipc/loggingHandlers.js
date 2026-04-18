@@ -1,8 +1,5 @@
 const { ipcMain } = require('electron');
 const fetch = require('node-fetch');
-const config = require('../../../config.js');
-
-const AI_PROXY_URL = config.AI_PROXY_URL;
 
 /**
  * Registers IPC handlers for logging functionality.
@@ -26,7 +23,7 @@ function registerLoggingHandlers(db, sessionManager) {
 		}
 		
 		const normalizedLogData = {
-			novel_id: logData.novel_id || logData.novelId,
+			book_id: logData.book_id || logData.bookId,
 			chapter_id: logData.chapter_id || logData.chapterId,
 			source_text: logData.source_text || logData.sourceText,
 			target_text: logData.target_text || logData.targetText,
@@ -47,7 +44,7 @@ function registerLoggingHandlers(db, sessionManager) {
 			// Use the normalized data for the remote payload to ensure the proxy receives snake_case keys.
 			const payload = { ...normalizedLogData, auth_token: session.token };
 			//console.log('Logging translation to remote server with payload:', payload);
-			const response = await fetch(`${AI_PROXY_URL}?action=log_translation`, {
+			const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=log_translation`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)

@@ -114,7 +114,7 @@
 <?php
 	if ($view === 'list'): ?>
 		<h2 class="text-3xl font-semibold mb-4">Translation Memory</h2>
-		<p class="mb-6">Select a novel to view its generated translation memory pairs.</p>
+		<p class="mb-6">Select a book to view its generated translation memory pairs.</p>
 
 		<?php
 		if ($updateMessage): ?>
@@ -135,7 +135,7 @@
 				<table class="table w-full">
 					<thead>
 					<tr>
-						<!-- MODIFIED: Changed header from Novel ID to Title -->
+						<!-- MODIFIED: Changed header from Book ID to Title -->
 						<th>Title</th>
 						<th>Languages</th>
 						<th>TM Entries</th>

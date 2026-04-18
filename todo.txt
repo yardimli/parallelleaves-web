@@ -181,13 +181,13 @@ add a startup splash screen with logged in user (if user has logged in), and ver
 
 on chapter-editor on the source at the top of every chapter add a button that says edit it should switch the source chapter to contenteditable (plain not using prose-mirror) and hide the edit button and make two new buttons save and cancel visible. when switching to edit the content should load from the database table so its plain text and when saved after save or cancel reload the chapter with the codex entries and markers clickable.
 
-on the novel editor save cursor position for both source and target and restore it when the editor is opened again save per book in local storage using novelId
+on the book editor save cursor position for both source and target and restore it when the editor is opened again save per book in local storage using bookId
 
-make the llm model dropdown look like novelcrafter
+make the llm model dropdown look like bookcrafter
 
 in the chapter-editor make the markers [[#number]] on the source clickable and scroll the target to the same marker in the chapter if found
 
-on the novel editor remove the chapter sections instead split the view into two columns, make the left column source and right column target iframes. each column should scroll independently. the document should not have a scroll bar.
+on the book editor remove the chapter sections instead split the view into two columns, make the left column source and right column target iframes. each column should scroll independently. the document should not have a scroll bar.
 
 when running translation for blocks above the selection instead of using paragraphs use the markers [#<number>] on both target and source to create matching pairs. if there are no markers then dont use previous blocks.
 
@@ -199,7 +199,7 @@ remove the translate button from the toolbar, instead when user has selected a t
 
 in import add different options to detect chapters and acts (like a single line all capital letters with empty lines before and after, or a line starting with chapter/act and a number, etc)
 
-in my novels page show word count and chapter count for each book for both source and target language. along with an estimated progress of the translation based on chapter, translation blocks and word count. add create date and last edit date (update database schema)
+in my books page show word count and chapter count for each book for both source and target language. along with an estimated progress of the translation based on chapter, translation blocks and word count. add create date and last edit date (update database schema)
 
 when adding a new book create cover with ai write prompt with llm and use server to generate the image and add it to the book
 
@@ -217,7 +217,7 @@ create a php script that will run on a server that will call openrouter on behal
 
 in chapter-editor underline codex entries in the chapter text and show a tooltip with the codex entry summary on hover, clicking on it should open the codex entry window
 
-in novel outline add a button to auto generate codex entries for each chapter, it should update exisiting entries and create new ones as needed
+in book outline add a button to auto generate codex entries for each chapter, it should update exisiting entries and create new ones as needed
 
 in chapter editor make it easy to navigate between chapters
 

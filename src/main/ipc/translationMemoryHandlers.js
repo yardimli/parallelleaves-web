@@ -4,7 +4,6 @@ const { htmlToPlainText } = require('../utils.js');
 const path = require('path');
 const fs = require('fs');
 const fetch = require('node-fetch');
-const { AI_PROXY_URL } = require('../../../config.js');
 
 /**
  * A generic function to call the translation memory API endpoints.
@@ -14,13 +13,9 @@ const { AI_PROXY_URL } = require('../../../config.js');
  * @returns {Promise<any>} The JSON response from the API.
  */
 async function callTmApi(action, payload, token) {
-	if (!AI_PROXY_URL) {
-		throw new Error('AI Proxy URL is not configured.');
-	}
-	
 	const fullPayload = { ...payload, auth_token: token };
 	
-	const response = await fetch(`${AI_PROXY_URL}?action=${action}`, {
+	const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=${action}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(fullPayload),
@@ -103,20 +98,20 @@ const extractAllMarkerPairs = (sourceHtml, targetHtml) => {
 };
 
 /**
- * Checks the server to see which novels have a translation memory.
+ * Checks the server to see which books have a translation memory.
  * @param {string|null} token The user's auth token.
- * @returns {Promise<{success: boolean, novelIds?: number[], message?: string}>}
+ * @returns {Promise<{success: boolean, bookIds?: number[], message?: string}>}
  */
 async function hasValidTranslationMemory(token) {
 	try {
 		const result = await callTmApi('tm_get_all_with_memory', {}, token);
-		return { success: true, novelIds: result.novel_ids || [] };
+		return { success: true, bookIds: result.book_ids || [] };
 	} catch (error) {
 		return { success: false, message: error.message };
 	}
 }
 
-// Map to store active job runners to prevent multiple concurrent jobs for the same novel.
+// Map to store active job runners to prevent multiple concurrent jobs for the same book.
 const activeTmJobs = new Map();
 
 /**
@@ -126,18 +121,18 @@ const activeTmJobs = new Map();
  * @param {object} windowManager - The window manager instance.
  */
 function registerTranslationMemoryHandlers(db, sessionManager, windowManager) {
-	ipcMain.handle('translation-memory:generate-in-background', async (event, novelId) => {
+	ipcMain.handle('translation-memory:generate-in-background', async (event, bookId) => {
 		const editorWindow = event.sender.getOwnerBrowserWindow();
 		const token = sessionManager.getSession()?.token || null;
 		
-		if (activeTmJobs.has(novelId)) {
-			console.log(`Job for novel ${novelId} is already running.`);
-			return { success: false, error: 'A generation job for this novel is already in progress.' };
+		if (activeTmJobs.has(bookId)) {
+			console.log(`Job for book ${bookId} is already running.`);
+			return { success: false, error: 'A generation job for this book is already in progress.' };
 		}
 		
 		const processNextBatch = async (jobId) => {
-			if (!activeTmJobs.has(novelId)) {
-				console.log(`Job for novel ${novelId} was cancelled or finished.`);
+			if (!activeTmJobs.has(bookId)) {
+				console.log(`Job for book ${bookId} was cancelled or finished.`);
 				return;
 			}
 			
@@ -163,7 +158,7 @@ function registerTranslationMemoryHandlers(db, sessionManager, windowManager) {
 							processedCount: status.processed_blocks
 						});
 					}
-					activeTmJobs.delete(novelId); // Job finished, remove from active list
+					activeTmJobs.delete(bookId); // Job finished, remove from active list
 				} else if (status.status === 'error') {
 					throw new Error(status.error_message || 'Unknown server error during job processing.');
 				} else {
@@ -171,43 +166,43 @@ function registerTranslationMemoryHandlers(db, sessionManager, windowManager) {
 					setTimeout(() => processNextBatch(jobId), 100); // Small delay
 				}
 			} catch (error) {
-				console.error(`Error in TM job for novel ${novelId}:`, error);
+				console.error(`Error in TM job for book ${bookId}:`, error);
 				if (editorWindow && !editorWindow.isDestroyed()) {
 					editorWindow.webContents.send('translation-memory:progress-update', {
 						error: true,
 						message: error.message
 					});
 				}
-				activeTmJobs.delete(novelId); // Job failed, remove from active list
+				activeTmJobs.delete(bookId); // Job failed, remove from active list
 			}
 		};
 		
 		try {
-			activeTmJobs.set(novelId, true); // Mark job as active
+			activeTmJobs.set(bookId, true); // Mark job as active
 			
 			// Step 1: Sync local content
-			editorWindow.webContents.send('translation-memory:progress-update', { message: 'Syncing novel content...' });
+			editorWindow.webContents.send('translation-memory:progress-update', { message: 'Syncing book content...' });
 			// MODIFIED: Fetch title and author along with languages
-			const novel = db.prepare('SELECT title, author, source_language, target_language FROM novels WHERE id = ?').get(novelId);
-			if (!novel) throw new Error('Novel not found locally.');
+			const book = db.prepare('SELECT title, author, source_language, target_language FROM user_books WHERE id = ?').get(bookId);
+			if (!book) throw new Error('Book not found locally.');
 			
-			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE novel_id = ?').all(novelId);
+			const chapters = db.prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?').all(bookId);
 			const combinedSource = chapters.map(c => c.source_content || '').join('');
 			const combinedTarget = chapters.map(c => c.target_content || '').join('');
 			const allPairs = extractAllMarkerPairs(combinedSource, combinedTarget);
 			
 			// MODIFIED: Send title and author in the sync payload
 			await callTmApi('tm_sync_blocks', {
-				novel_id: novelId,
-				title: novel.title,
-				author: novel.author,
-				source_language: novel.source_language,
-				target_language: novel.target_language,
+				book_id: bookId,
+				title: book.title,
+				author: book.author,
+				source_language: book.source_language,
+				target_language: book.target_language,
 				pairs: allPairs
 			}, token);
 			
 			// Step 2: Start the job on the server
-			const jobResult = await callTmApi('tm_start_generation_job', { novel_id: novelId }, token);
+			const jobResult = await callTmApi('tm_start_generation_job', { book_id: bookId }, token);
 			
 			if (jobResult.job_id) {
 				editorWindow.webContents.send('translation-memory:progress-update', {
@@ -223,7 +218,7 @@ function registerTranslationMemoryHandlers(db, sessionManager, windowManager) {
 					finished: true,
 					processedCount: 0
 				});
-				activeTmJobs.delete(novelId);
+				activeTmJobs.delete(bookId);
 				return { success: true, processedCount: 0 };
 			}
 			
@@ -235,7 +230,7 @@ function registerTranslationMemoryHandlers(db, sessionManager, windowManager) {
 					message: error.message
 				});
 			}
-			activeTmJobs.delete(novelId); // Ensure job is cleared on initial failure
+			activeTmJobs.delete(bookId); // Ensure job is cleared on initial failure
 			return { success: false, error: error.message };
 		}
 	});

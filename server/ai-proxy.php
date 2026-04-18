@@ -30,7 +30,7 @@
 	 * CREATE TABLE `translation_logs` (
 	 *   `id` int(11) NOT NULL AUTO_INCREMENT,
 	 *   `user_id` int(11) NOT NULL,
-	 *   `novel_id` int(11) NOT NULL,
+	 *   `book_id` int(11) NOT NULL,
 	 *   `chapter_id` int(11) NOT NULL,
 	 *   `source_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *   `target_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -48,7 +48,7 @@
 	 *
 	 * CREATE TABLE `user_books` (
 	 *   `id` int(11) NOT NULL AUTO_INCREMENT,
-	 *   `book_id` int(11) NOT NULL COMMENT 'The novel_id from the Electron app''s local DB',
+	 *   `book_id` int(11) NOT NULL COMMENT 'The book_id from the Electron app''s local DB',
 	 *   `user_id` int(11) NOT NULL,
 	 *   `title` varchar(255) NOT NULL,
 	 *   `author` varchar(255) DEFAULT NULL,
@@ -292,8 +292,9 @@
 		}
 
 		$ch = curl_init('https://openrouter.ai/api/v1/models');
-		$ch = curl_init('https://openrouter.ai/api/v1/models');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
 			'Accept: application/json',
 			'HTTP-Referer: https://paralleleaves.com', // Recommended by OpenRouter
@@ -302,7 +303,7 @@
 
 		$liveResponse = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		//curl_close($ch);
 
 		if ($httpCode !== 200) {
 			logInteraction($db, $userId, $action, null, (string)$liveResponse, $httpCode);
@@ -389,8 +390,8 @@
 		$chat_payload = $payload;
 		unset($chat_payload['messages']);
 
-		if (!empty($payload['novel_id'])) {
-			$chat_payload['novel_id'] = $payload['novel_id'];
+		if (!empty($payload['book_id'])) {
+			$chat_payload['book_id'] = $payload['book_id'];
 		}
 
 		$tmContent = '';
@@ -422,10 +423,10 @@
 			if (!empty($uniqueWords)) {
 				$allMemories = [];
 				$maxPairs = 100;
-				$currentNovelId = $payload['novel_id'] ?? null;
+				$currentBookId = $payload['book_id'] ?? null;
 
-				// NEW: First pass - get memories from the current novel first.
-				if ($currentNovelId) {
+				// NEW: First pass - get memories from the current book first.
+				if ($currentBookId) {
 					$stmt = $db->prepare(
 						"SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 						"FROM user_books_translation_memory tm " .
@@ -439,7 +440,7 @@
 						}
 						$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
 						// Bind userId twice to handle the OR condition
-						$stmt->bind_param("iiis", $userId, $userId, $currentNovelId, $regexpPattern);
+						$stmt->bind_param("iiis", $userId, $userId, $currentBookId, $regexpPattern);
 						$stmt->execute();
 						$result = $stmt->get_result();
 						$memoriesForWord = $result->fetch_all(MYSQLI_ASSOC);
@@ -458,13 +459,13 @@
 					$stmt->close();
 				}
 
-				// NEW: Second pass - fill remaining slots with memories from other novels.
+				// NEW: Second pass - fill remaining slots with memories from other books.
 				if (count($allMemories) < $maxPairs) {
 					$sql = "SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 						"FROM user_books_translation_memory tm " .
 						"JOIN user_books b ON tm.user_book_id = b.id " .
 						"WHERE (b.user_id = ? OR ? = 1) ";
-					if ($currentNovelId) {
+					if ($currentBookId) {
 						$sql .= "AND b.book_id != ? ";
 					}
 					$sql .= "AND tm.source_sentence REGEXP ?";
@@ -475,9 +476,9 @@
 							break;
 						}
 						$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
-						if ($currentNovelId) {
+						if ($currentBookId) {
 							// Bind userId twice to handle the OR condition
-							$stmt->bind_param("iiis", $userId, $userId, $currentNovelId, $regexpPattern);
+							$stmt->bind_param("iiis", $userId, $userId, $currentBookId, $regexpPattern);
 						} else {
 							$stmt->bind_param("iis", $userId, $userId, $regexpPattern);
 						}
@@ -513,10 +514,10 @@
 
 
 		$codexContent = '';
-		if (!empty($payload['novel_id'])) {
-			$novelId = $payload['novel_id'];
+		if (!empty($payload['book_id'])) {
+			$bookId = $payload['book_id'];
 			$stmt = $db->prepare("SELECT codex_content FROM user_books WHERE user_id = ? AND book_id = ?");
-			$stmt->bind_param("ii", $userId, $novelId);
+			$stmt->bind_param("ii", $userId, $bookId);
 			$stmt->execute();
 			$result = $stmt->get_result()->fetch_assoc();
 			$stmt->close();
@@ -580,6 +581,8 @@
 
 		$ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -591,7 +594,7 @@
 
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		//curl_close($ch);
 
 		logInteraction($db, $userId, $action, array('chat_payload' => $chat_payload, "payload" => $payload), (string)$response, $httpCode);
 
@@ -618,6 +621,8 @@
 
 		$ch = curl_init('https://fal.run/fal-ai/qwen-image');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($falPayload));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -628,7 +633,7 @@
 
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		//curl_close($ch);
 
 		logInteraction($db, $userId, 'fal_generate_cover', $falPayload, (string)$response, $httpCode);
 
@@ -641,7 +646,7 @@
 		}
 
 		// Extract data from the payload
-		$novelId = $payload['novel_id'] ?? null;
+		$bookId = $payload['book_id'] ?? null;
 		$chapterId = $payload['chapter_id'] ?? null;
 		$sourceText = $payload['source_text'] ?? null;
 		$targetText = $payload['target_text'] ?? null;
@@ -650,16 +655,16 @@
 		$temperature = $payload['temperature'] ?? null;
 
 		// Basic validation
-		if (!$novelId || !$chapterId || !$sourceText || !$targetText || !$model || !isset($temperature)) {
+		if (!$bookId || !$chapterId || !$sourceText || !$targetText || !$model || !isset($temperature)) {
 			sendJsonError(400, 'Missing required fields for translation logging.');
 		}
 
 		try {
 			$stmt = $db->prepare(
-				'INSERT INTO translation_logs (user_id, novel_id, chapter_id, source_text, target_text, marker, model, temperature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+				'INSERT INTO translation_logs (user_id, book_id, chapter_id, source_text, target_text, marker, model, temperature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 			);
 			// Note: bind_param types must match the columns: i, i, i, s, s, s, s, d
-			$stmt->bind_param('iiissssd', $userId, $novelId, $chapterId, $sourceText, $targetText, $marker, $model, $temperature);
+			$stmt->bind_param('iiissssd', $userId, $bookId, $chapterId, $sourceText, $targetText, $marker, $model, $temperature);
 			$stmt->execute();
 			$stmt->close();
 

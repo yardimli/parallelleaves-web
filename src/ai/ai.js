@@ -2,10 +2,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-const config = require('../../config.js');
 const { htmlToPlainText } = require('../main/utils.js');
-
-const AI_PROXY_URL = config.AI_PROXY_URL;
 
 /**
  * A generic function to call the AI proxy.
@@ -15,10 +12,6 @@ const AI_PROXY_URL = config.AI_PROXY_URL;
  * @throws {Error} If the API call fails.
  */
 async function callOpenRouter(payload, token) {
-	if (!AI_PROXY_URL) {
-		throw new Error('AI Proxy URL is not configured in config.js.');
-	}
-	
 	const headers = {
 		'Content-Type': 'application/json'
 	};
@@ -27,7 +20,7 @@ async function callOpenRouter(payload, token) {
 		payload.auth_token = token;
 	}
 	
-	const response = await fetch(`${AI_PROXY_URL}?action=chat`, {
+	const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=chat`, {
 		method: 'POST',
 		headers: headers,
 		body: JSON.stringify(payload)
@@ -62,12 +55,12 @@ async function callOpenRouter(payload, token) {
 /**
  * Generates a creative prompt for a book cover based on its title.
  * @param {object} params - The parameters for prompt generation.
- * @param {string} params.title - The title of the novel.
+ * @param {string} params.title - The title of the book.
  * @param {string|null} params.token - The user's session token.
  * @returns {Promise<string|null>} The generated prompt string, or null on failure.
  */
 async function generateCoverPrompt({ title, token }) {
-	const modelId = config.OPEN_ROUTER_MODEL || 'openai/gpt-4o';
+	const modelId = 'openai/gpt-4o';
 	const prompt = `Using the book title "${title}", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the "${title}" in the prompt Return the result as a JSON with one key "prompt". Example: with title "Blue Scape" {"prompt": "An astronaut on a red planet looking at a big cosmic cloud, realistic, add the title "Blue Scape" to the image."}`;
 	
 	try {
@@ -92,10 +85,6 @@ async function generateCoverPrompt({ title, token }) {
  * @returns {Promise<any>} The JSON response from the proxy (which is the Fal.ai response).
  */
 async function generateCoverImageViaProxy({ prompt, token }) {
-	if (!AI_PROXY_URL) {
-		throw new Error('AI Proxy URL is not configured in config.js.');
-	}
-	
 	const payload = {
 		prompt: prompt
 	};
@@ -106,7 +95,7 @@ async function generateCoverImageViaProxy({ prompt, token }) {
 	
 	console.log(payload);
 	
-	const response = await fetch(`${AI_PROXY_URL}?action=generate_cover`, {
+	const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=generate_cover`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload)
@@ -135,11 +124,11 @@ async function generateCoverImageViaProxy({ prompt, token }) {
  * @param {string|null} params.token - The user's session token.
  * @param {number} [params.temperature=0.7] - The temperature for the AI model.
  * @param {object|null} [params.response_format=null] - Optional response format object (e.g., { type: 'json_object' }).
- * @param {Array<number>} [params.translation_memory_ids=[]] - Array of novel IDs for TM.
- * @param {number|null} [params.novelId=null] - The novel ID.
+ * @param {Array<number>} [params.translation_memory_ids=[]] - Array of book IDs for TM.
+ * @param {number|null} [params.bookId=null] - The book ID.
  * @returns {Promise<object>} The AI response object.
  */
-async function processLLMText({ prompt, model, token, temperature = 0.7, response_format = null, translation_memory_ids = [], novelId = null }) {
+async function processLLMText({ prompt, model, token, temperature = 0.7, response_format = null, translation_memory_ids = [], bookId = null }) {
 	const messages = [];
 	if (prompt.system) {
 		messages.push({ role: 'system', content: prompt.system });
@@ -174,7 +163,7 @@ async function processLLMText({ prompt, model, token, temperature = 0.7, respons
 		payload.translation_memory_ids = translation_memory_ids;
 	}
 	
-	payload.novel_id = novelId;
+	payload.book_id = bookId;
 	
 	return callOpenRouter(payload, token);
 }
@@ -205,10 +194,6 @@ async function getOpenRouterModels(forceRefresh = false, token) {
 		}
 	}
 	
-	if (!AI_PROXY_URL) {
-		throw new Error('AI Proxy URL is not configured in config.js.');
-	}
-	
 	const headers = {
 		'Accept': 'application/json',
 		'Content-Type': 'application/json'
@@ -219,7 +204,7 @@ async function getOpenRouterModels(forceRefresh = false, token) {
 		payload.auth_token = token;
 	}
 	
-	const response = await fetch(`${AI_PROXY_URL}?action=get_models`, {
+	const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=get_models`, {
 		method: 'POST',
 		headers: headers,
 		body: JSON.stringify(payload)

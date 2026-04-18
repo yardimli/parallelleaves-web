@@ -1,6 +1,5 @@
 const { ipcMain } = require('electron');
 const aiService = require('../../ai/ai.js');
-const config = require('../../../config.js');
 
 /**
  * Registers IPC handlers for AI-related functionality.
@@ -11,8 +10,8 @@ function registerAiHandlers(db, sessionManager) {
 	ipcMain.handle('llm:process-text', async (event, data) => {
 		try {
 			const token = sessionManager.getSession()?.token || null;
-			const { prompt, model, temperature, response_format, translation_memory_ids, novelId } = data;
-			const result = await aiService.processLLMText({ prompt, model, temperature, response_format, token, translation_memory_ids, novelId });
+			const { prompt, model, temperature, response_format, translation_memory_ids, bookId } = data;
+			const result = await aiService.processLLMText({ prompt, model, temperature, response_format, token, translation_memory_ids, bookId });
 			return { success: true, data: result };
 		} catch (error) {
 			console.error('AI Processing Error in main process:', error);
@@ -31,10 +30,10 @@ function registerAiHandlers(db, sessionManager) {
 		}
 	});
 	
-	ipcMain.handle('ai:generate-cover-prompt', async (event, { novelTitle }) => {
+	ipcMain.handle('ai:generate-cover-prompt', async (event, { bookTitle }) => {
 		try {
 			const token = sessionManager.getSession()?.token || null;
-			const prompt = await aiService.generateCoverPrompt({ title: novelTitle, token });
+			const prompt = await aiService.generateCoverPrompt({ title: bookTitle, token });
 			return { success: true, prompt };
 		} catch (error) {
 			console.error('Failed to generate cover prompt in main process:', error);
@@ -42,7 +41,7 @@ function registerAiHandlers(db, sessionManager) {
 		}
 	});
 	
-	ipcMain.handle('ai:generate-cover', async (event, { novelId, prompt }) => {
+	ipcMain.handle('ai:generate-cover', async (event, { bookId, prompt }) => {
 		try {
 			const token = sessionManager.getSession()?.token || null;
 			const falResponse = await aiService.generateCoverImageViaProxy({ prompt, token });
@@ -55,7 +54,7 @@ function registerAiHandlers(db, sessionManager) {
 			const imageHandler = require('../../utils/image-handler.js');
 			const path = require('path');
 			
-			const localPaths = await imageHandler.storeImageFromUrl(imageUrl, novelId, 'generated-fal');
+			const localPaths = await imageHandler.storeImageFromUrl(imageUrl, bookId, 'generated-fal');
 			
 			if (!localPaths || !localPaths.original_path) {
 				throw new Error('Failed to download and save the generated cover.');

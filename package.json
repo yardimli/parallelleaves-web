@@ -5,12 +5,12 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./src/css/input.css -o ./dist/styles.css",
-    "build:js:chapter-editor": "esbuild src/js/novel-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser",
-    "build:js:editor-iframe": "esbuild src/js/novel-planner/editor-iframe-main.js --bundle --outfile=dist/editor-iframe-bundle.js --platform=browser",
+    "build:js:chapter-editor": "esbuild src/js/book-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser",
+    "build:js:editor-iframe": "esbuild src/js/book-planner/editor-iframe-main.js --bundle --outfile=dist/editor-iframe-bundle.js --platform=browser",
     "build": "npm run build:css && npm run build:js:chapter-editor && npm run build:js:editor-iframe",
     "watch:css": "tailwindcss -i ./src/css/input.css -o ./dist/styles.css --watch",
-    "watch:js:chapter-editor": "esbuild src/js/novel-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser --watch",
-    "watch:js:editor-iframe": "esbuild src/js/novel-planner/editor-iframe-main.js --bundle --outfile=dist/editor-iframe-bundle.js --platform=browser --watch",
+    "watch:js:chapter-editor": "esbuild src/js/book-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser --watch",
+    "watch:js:editor-iframe": "esbuild src/js/book-planner/editor-iframe-main.js --bundle --outfile=dist/editor-iframe-bundle.js --platform=browser --watch",
     "watch": "concurrently \"npm:watch:css\" \"npm:watch:js:chapter-editor\" \"npm:watch:js:editor-iframe\""
   },
   "author": "Ekim Emre Yardimli",

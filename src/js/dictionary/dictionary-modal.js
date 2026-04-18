@@ -6,7 +6,7 @@ let dictionaryNoEntriesMessage;
 let dictionaryAddRowBtn;
 let dictionaryDeleteSelectedBtn;
 let dictionarySaveBtn;
-let currentNovelId;
+let currentBookId;
 let currentDictionaryData = []; // [{source: "term", target: "translation", type: "translation"}]
 let currentSort = { sortBy: null, direction: 'asc' };
 
@@ -165,7 +165,7 @@ async function saveDictionary() {
 	currentDictionaryData = updatedData;
 	
 	try {
-		await window.api.saveNovelDictionary(currentNovelId, currentDictionaryData);
+		await window.api.saveBookDictionary(currentBookId, currentDictionaryData);
 		dictionaryModal.close();
 	} catch (error) {
 		console.error('Failed to save dictionary:', error);
@@ -225,10 +225,10 @@ function updateSortButtonIcons() {
 
 /**
  * Initializes the dictionary modal and its event listeners.
- * @param {string} novelId - The ID of the current novel.
+ * @param {string} bookId - The ID of the current book.
  */
-export function initDictionaryModal(novelId) {
-	currentNovelId = novelId;
+export function initDictionaryModal(bookId) {
+	currentBookId = bookId;
 	dictionaryModal = document.getElementById('dictionary-modal');
 	dictionaryTableBody = document.getElementById('dictionary-table-body');
 	dictionaryNoEntriesMessage = document.getElementById('dictionary-no-entries');
@@ -311,7 +311,7 @@ export async function openDictionaryModal(selectedText = '', sourceOrTarget = ''
 		// This new flow fetches data, modifies it in memory, and then renders the table just once.
 		currentSort = { sortBy: null, direction: 'asc' }; // Reset sort state before loading.
 		
-		const data = await window.api.getNovelDictionary(currentNovelId);
+		const data = await window.api.getBookDictionary(currentBookId);
 		currentDictionaryData = data || [];
 		
 		// If text is selected, add a pre-filled row directly to the data array.

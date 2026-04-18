@@ -17,9 +17,9 @@ function ensureDictionariesDir() {
  * Registers IPC handlers for dictionary-related functionality.
  */
 function registerDictionaryHandlers() {
-	ipcMain.handle('dictionary:get', async (event, novelId) => {
+	ipcMain.handle('dictionary:get', async (event, bookId) => {
 		ensureDictionariesDir();
-		const filePath = path.join(DICTIONARIES_DIR, `${novelId}.json`);
+		const filePath = path.join(DICTIONARIES_DIR, `${bookId}.json`);
 		try {
 			if (fs.existsSync(filePath)) {
 				const data = fs.readFileSync(filePath, 'utf8');
@@ -27,14 +27,14 @@ function registerDictionaryHandlers() {
 			}
 			return []; // Return empty array if file doesn't exist
 		} catch (error) {
-			console.error(`Failed to read dictionary for novel ${novelId}:`, error);
+			console.error(`Failed to read dictionary for book ${bookId}:`, error);
 			throw new Error('Could not load dictionary.');
 		}
 	});
 	
-	ipcMain.handle('dictionary:getContentForAI', async (event, novelId, type) => {
+	ipcMain.handle('dictionary:getContentForAI', async (event, bookId, type) => {
 		ensureDictionariesDir();
-		const filePath = path.join(DICTIONARIES_DIR, `${novelId}.json`);
+		const filePath = path.join(DICTIONARIES_DIR, `${bookId}.json`);
 		try {
 			if (fs.existsSync(filePath)) {
 				const data = fs.readFileSync(filePath, 'utf8');
@@ -55,19 +55,19 @@ function registerDictionaryHandlers() {
 			}
 			return '';
 		} catch (error) {
-			console.error(`Failed to read or parse dictionary for novel ${novelId} for AI context:`, error);
+			console.error(`Failed to read or parse dictionary for book ${bookId} for AI context:`, error);
 			return '';
 		}
 	});
 	
-	ipcMain.handle('dictionary:save', async (event, novelId, data) => {
+	ipcMain.handle('dictionary:save', async (event, bookId, data) => {
 		ensureDictionariesDir();
-		const filePath = path.join(DICTIONARIES_DIR, `${novelId}.json`);
+		const filePath = path.join(DICTIONARIES_DIR, `${bookId}.json`);
 		try {
 			fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8'); // Write data to file.
 			return { success: true }; // Indicate success.
 		} catch (error) {
-			console.error(`Failed to save dictionary for novel ${novelId}:`, error);
+			console.error(`Failed to save dictionary for book ${bookId}:`, error);
 			throw new Error('Could not save dictionary.'); // Throw error on failure.
 		}
 	});

@@ -3,7 +3,7 @@
 	/**
 	 * Codex Handler for the AI Proxy.
 	 *
-	 * This script manages server-side operations for the novel codex,
+	 * This script manages server-side operations for the book codex,
 	 * including initializing jobs, processing text chunks to generate entries via an LLM,
 	 * and tracking progress. It is included and called by ai-proxy.php.
 	 *
@@ -49,13 +49,13 @@
 	 *
 	 * @param mysqli $db The database connection object.
 	 * @param int $userId The ID of the current user.
-	 * @param int $novelId The public-facing novel_id from the Electron app.
+	 * @param int $bookId The public-facing book_id from the Electron app.
 	 * @return int|null The internal ID or null if not found.
 	 */
-	function getUserBookId(mysqli $db, int $userId, int $novelId): ?int
+	function getUserBookId(mysqli $db, int $userId, int $bookId): ?int
 	{
 		$stmt = $db->prepare('SELECT id FROM user_books WHERE user_id = ? AND book_id = ?');
-		$stmt->bind_param('ii', $userId, $novelId);
+		$stmt->bind_param('ii', $userId, $bookId);
 		$stmt->execute();
 		$result = $stmt->get_result()->fetch_assoc();
 		$stmt->close();
@@ -63,7 +63,7 @@
 	}
 
 	/**
-	 * Retrieves the current status of codex generation for a novel.
+	 * Retrieves the current status of codex generation for a book.
 	 *
 	 * @param mysqli $db
 	 * @param int $userId
@@ -72,12 +72,12 @@
 	 */
 	function getCodexStatus(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
-		if (!$novelId) {
-			sendJsonError(400, 'Missing novel_id for status check.');
+		$bookId = $payload['book_id'] ?? null;
+		if (!$bookId) {
+			sendJsonError(400, 'Missing book_id for status check.');
 		}
 
-		$userBookId = getUserBookId($db, $userId, (int)$novelId);
+		$userBookId = getUserBookId($db, $userId, (int)$bookId);
 		if (!$userBookId) {
 			echo json_encode(['status' => 'none', 'processed' => 0, 'total' => 0]);
 			return;
@@ -97,7 +97,7 @@
 	}
 
 	/**
-	 * Initializes or resets a codex generation job for a novel.
+	 * Initializes or resets a codex generation job for a book.
 	 * It now creates the book entry on the server if it doesn't exist.
 	 *
 	 * @param mysqli $db
@@ -107,26 +107,26 @@
 	 */
 	function startCodexJob(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
+		$bookId = $payload['book_id'] ?? null;
 		$totalChunks = $payload['total_chunks'] ?? 0;
 		$sourceLang = $payload['source_language'] ?? null;
 		$targetLang = $payload['target_language'] ?? null;
 		$title = $payload['title'] ?? 'Untitled';
 		$author = $payload['author'] ?? null;
 
-		if (!$novelId || !$sourceLang || !$targetLang) {
-			sendJsonError(400, 'Missing novel_id, source_language, or target_language to start a job.');
+		if (!$bookId || !$sourceLang || !$targetLang) {
+			sendJsonError(400, 'Missing book_id, source_language, or target_language to start a job.');
 		}
 
 		$stmt = $db->prepare(
 			'INSERT INTO user_books (book_id, user_id, title, author, source_language, target_language) VALUES (?, ?, ?, ?, ?, ?)
 			 ON DUPLICATE KEY UPDATE title = VALUES(title), author = VALUES(author), source_language = VALUES(source_language), target_language = VALUES(target_language)'
 		);
-		$stmt->bind_param('iissss', $novelId, $userId, $title, $author, $sourceLang, $targetLang);
+		$stmt->bind_param('iissss', $bookId, $userId, $title, $author, $sourceLang, $targetLang);
 		$stmt->execute();
 		$stmt->close();
 
-		$userBookId = getUserBookId($db, $userId, (int)$novelId);
+		$userBookId = getUserBookId($db, $userId, (int)$bookId);
 		if (!$userBookId) {
 			sendJsonError(500, 'Failed to find or create book entry in the database.');
 		}
@@ -154,14 +154,14 @@
 	 */
 	function processCodexChunk(mysqli $db, int $userId, array $payload, string $apiKey, array $codexConfig): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
+		$bookId = $payload['book_id'] ?? null;
 		$chunkText = $payload['chunk_text'] ?? null;
 
-		if (!$novelId || !$chunkText) {
-			sendJsonError(400, 'Missing novel_id or chunk_text for processing.');
+		if (!$bookId || !$chunkText) {
+			sendJsonError(400, 'Missing book_id or chunk_text for processing.');
 		}
 
-		$userBookId = getUserBookId($db, $userId, (int)$novelId);
+		$userBookId = getUserBookId($db, $userId, (int)$bookId);
 		if (!$userBookId) {
 			sendJsonError(404, 'Book not found for this user.');
 		}
@@ -172,7 +172,7 @@
 		$book = $stmt->get_result()->fetch_assoc();
 		$stmt->close();
 
-		$systemPrompt = "You are a meticulous world-building assistant for a novelist. Your task is to maintain a codex (an encyclopedia of the world).\n\n**Instructions:**\n1. You will be given the **Existing Codex Content** and a new **Text Chunk** (written in {$book['source_language']}).\n2. Your job is to integrate new information from the text chunk into the codex.\n3. Identify new characters, locations, or lore. Add them as new entries.\n4. Identify new information about entities that already exist in the codex. Update their entries by incorporating the new details.\n5. **Your output must be the complete, updated codex.** This means you must include all original entries that were not changed, plus any new or updated entries.\n6. If you update an entry, the new version should completely replace the old one.\n7. Gormat for each entry: a title on its own line, followed by the description on the next line, with two blank lines separating entries.\n8. **IMPORTANT:** All your output must be written in **{$book['target_language']}**.\n9. If the text chunk adds no new information worth noting, you must return the **Existing Codex Content** exactly as it was given to you.";
+		$systemPrompt = "You are a meticulous world-building assistant for a bookist. Your task is to maintain a codex (an encyclopedia of the world).\n\n**Instructions:**\n1. You will be given the **Existing Codex Content** and a new **Text Chunk** (written in {$book['source_language']}).\n2. Your job is to integrate new information from the text chunk into the codex.\n3. Identify new characters, locations, or lore. Add them as new entries.\n4. Identify new information about entities that already exist in the codex. Update their entries by incorporating the new details.\n5. **Your output must be the complete, updated codex.** This means you must include all original entries that were not changed, plus any new or updated entries.\n6. If you update an entry, the new version should completely replace the old one.\n7. Gormat for each entry: a title on its own line, followed by the description on the next line, with two blank lines separating entries.\n8. **IMPORTANT:** All your output must be written in **{$book['target_language']}**.\n9. If the text chunk adds no new information worth noting, you must return the **Existing Codex Content** exactly as it was given to you.";
 		$userPrompt = "**Existing Codex Content (for context):**\n<codex>\n" . ($book['codex_content'] ?? 'This is the beginning of the codex.') . "\n</codex>\n\n**Text Chunk to Analyze (in {$book['source_language']}):**\n<text>\n{$chunkText}\n</text>";
 
 		$messages = [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => $userPrompt]];
@@ -222,12 +222,12 @@
 	 */
 	function markCodexComplete(mysqli $db, int $userId, array $payload): void
 	{
-		$novelId = $payload['novel_id'] ?? null;
-		if (!$novelId) {
-			sendJsonError(400, 'Missing novel_id to complete job.');
+		$bookId = $payload['book_id'] ?? null;
+		if (!$bookId) {
+			sendJsonError(400, 'Missing book_id to complete job.');
 		}
 
-		$userBookId = getUserBookId($db, $userId, (int)$novelId);
+		$userBookId = getUserBookId($db, $userId, (int)$bookId);
 		if (!$userBookId) {
 			sendJsonError(404, 'Book not found for this user.');
 		}
@@ -258,6 +258,8 @@
 
 		$ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -269,7 +271,7 @@
 
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
+		//curl_close($ch);
 
 		// NEW: Log the interaction with the LLM API to the api_logs table.
 		logInteraction($db, $userId, 'codex_llm_call', $payload, (string)$response, $httpCode);

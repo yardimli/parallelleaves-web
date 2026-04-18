@@ -1,5 +1,5 @@
 import { initI18n, t, applyTranslationsTo, setLanguage, appLanguages } from './i18n.js';
-import { exportNovel } from './exporter.js';
+import { exportBook } from './exporter.js';
 
 /**
  * Compares two semantic version strings (e.g., '1.10.2' vs '1.2.0').
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	};
 	
 	// --- DOM Elements ---
-	const novelList = document.getElementById('novel-list');
+	const bookList = document.getElementById('book-list');
 	const loadingMessage = document.getElementById('loading-message');
 	const importDocBtnMenu = document.getElementById('import-doc-btn-menu');
 	const newProjectBtnMenu = document.getElementById('new-project-btn-menu');
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	const proseModal = document.getElementById('prose-settings-modal');
 	const proseForm = document.getElementById('prose-settings-form');
-	const proseNovelIdInput = document.getElementById('prose-novel-id');
+	const proseBookIdInput = document.getElementById('prose-book-id');
 	const saveProseBtn = document.getElementById('save-prose-settings-btn');
 	const sourceLangSelect = document.getElementById('prose_source_language');
 	const targetLangSelect = document.getElementById('prose_target_language');
@@ -72,12 +72,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 	// Meta Modal Elements
 	const metaModal = document.getElementById('meta-settings-modal');
 	const metaForm = document.getElementById('meta-settings-form');
-	const metaNovelIdInput = document.getElementById('meta-novel-id');
+	const metaBookIdInput = document.getElementById('meta-book-id');
 	const metaCoverPreview = document.getElementById('meta-cover-preview');
 	const saveMetaBtn = document.getElementById('save-meta-settings-btn');
 	const generateCoverBtn = document.getElementById('generate-cover-btn');
 	const uploadCoverBtn = document.getElementById('upload-cover-btn');
-	const deleteNovelBtn = document.getElementById('delete-novel-btn');
+	const deleteBookBtn = document.getElementById('delete-book-btn');
 	
 	// AI Cover Generation elements
 	const metaCoverActions = document.getElementById('meta-cover-actions');
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const cancelGenerateCoverBtn = document.getElementById('cancel-generate-cover-btn');
 	const refreshBtn = document.getElementById('js-refresh-page-btn');
 	
-	let novelsData = [];
+	let booksData = [];
 	let stagedCover = null;
 	let isRefreshingData = false;
 	
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			document.getElementById('login-btn').addEventListener('click', () => loginModal.showModal());
 			if (authDivider) authDivider.classList.add('hidden');
 			
-			novelList.innerHTML = `<p class="text-base-content/70 text-center">${t('dashboard.signInPrompt')}</p>`;
+			bookList.innerHTML = `<p class="text-base-content/70 text-center">${t('dashboard.signInPrompt')}</p>`;
 			loadingMessage.style.display = 'none';
 			
 			loginModal.showModal();
@@ -219,22 +219,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 		if (spinner) spinner.classList.toggle('hidden', !isLoading);
 	}
 	
-	function openProseSettingsModal(novel) {
-		proseNovelIdInput.value = novel.id;
-		sourceLangSelect.value = novel.source_language || 'English';
-		targetLangSelect.value = novel.target_language || 'English';
+	function openProseSettingsModal(book) {
+		proseBookIdInput.value = book.id;
+		sourceLangSelect.value = book.source_language || 'English';
+		targetLangSelect.value = book.target_language || 'English';
 		proseModal.showModal();
 	}
 	
-	function openMetaSettingsModal(novel) {
+	function openMetaSettingsModal(book) {
 		stagedCover = null;
-		metaNovelIdInput.value = novel.id;
-		metaForm.querySelector('#meta-title').value = novel.title;
-		metaForm.querySelector('#meta-author').value = novel.author || '';
+		metaBookIdInput.value = book.id;
+		metaForm.querySelector('#meta-title').value = book.title;
+		metaForm.querySelector('#meta-author').value = book.author || '';
 		
-		const currentNovel = novelsData.find(n => n.id === novel.id);
-		if (currentNovel && currentNovel.cover_path) {
-			metaCoverPreview.innerHTML = `<img src="${currentNovel.cover_path}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altCurrentCover')}" class="w-full h-auto">`;
+		const currentBook = booksData.find(n => n.id === book.id);
+		if (currentBook && currentBook.cover_path) {
+			metaCoverPreview.innerHTML = `<img src="${currentBook.cover_path}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altCurrentCover')}" class="w-full h-auto">`;
 		} else {
 			metaCoverPreview.innerHTML = `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 		}
@@ -245,14 +245,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 		metaModal.showModal();
 	}
 	
-	function updateNovelCardUI(novelId) {
-		const novel = novelsData.find(n => n.id === novelId);
-		if (!novel) return;
+	function updateBookCardUI(bookId) {
+		const book = booksData.find(n => n.id === bookId);
+		if (!book) return;
 		
-		const card = novelList.querySelector(`[data-novel-id='${novelId}']`);
+		const card = bookList.querySelector(`[data-book-id='${bookId}']`);
 		if (card) {
-			card.querySelector('.card-title').textContent = novel.title;
-			card.querySelector('.text-base-content\\/80').textContent = novel.author || t('common.unknownAuthor');
+			card.querySelector('.card-title').textContent = book.title;
+			card.querySelector('.text-base-content\\/80').textContent = book.author || t('common.unknownAuthor');
 		}
 	}
 	
@@ -263,8 +263,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		isRefreshingData = true;
 		
 		try {
-			novelsData = await window.api.getNovelsWithCovers();
-			renderNovels();
+			booksData = await window.api.getBooksWithCovers();
+			renderBooks();
 		} catch (error) {
 			console.error('Failed to load initial data:', error);
 			loadingMessage.textContent = t('dashboard.errorLoading');
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	}
 	
 	function applyListViewStyles() {
-		const cards = document.querySelectorAll('#novel-list > .card');
+		const cards = document.querySelectorAll('#book-list > .card');
 		
 		cards.forEach(card => {
 			// Remove any grid-specific layout classes that might exist
@@ -286,29 +286,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 	}
 	
-	function renderNovels() {
+	function renderBooks() {
 		loadingMessage.style.display = 'none';
 		
-		if (novelsData.length === 0) {
-			novelList.innerHTML = `<p class="text-base-content/70 text-center" data-i18n="dashboard.noProjects">${t('dashboard.noProjects')}</p>`;
+		if (booksData.length === 0) {
+			bookList.innerHTML = `<p class="text-base-content/70 text-center" data-i18n="dashboard.noProjects">${t('dashboard.noProjects')}</p>`;
 			return;
 		}
 		
-		novelList.innerHTML = '';
-		novelsData.forEach(novel => {
-			const novelCard = document.createElement('div');
-			novelCard.className = 'card bg-base-200 shadow-xl transition-shadow h-full flex';
-			novelCard.dataset.novelId = novel.id;
+		bookList.innerHTML = '';
+		booksData.forEach(book => {
+			const bookCard = document.createElement('div');
+			bookCard.className = 'card bg-base-200 shadow-xl transition-shadow h-full flex';
+			bookCard.dataset.bookId = book.id;
 			
-			const coverHtml = novel.cover_path
-				? `<img src="${novel.cover_path}?t=${new Date(novel.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', { title: novel.title })}" class="w-full">`
+			const coverHtml = book.cover_path
+				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', { title: book.title })}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 			
-			novelCard.innerHTML = `
+			bookCard.innerHTML = `
                 <figure class="cursor-pointer js-open-editor">${coverHtml}</figure>
                 <div class="card-body flex flex-col flex-grow">
-                    <h2 class="card-title js-open-editor cursor-pointer">${novel.title}</h2>
-                    <p class="text-base-content/80 -mt-2 mb-2">${novel.author || t('common.unknownAuthor')}</p>
+                    <h2 class="card-title js-open-editor cursor-pointer">${book.title}</h2>
+                    <p class="text-base-content/80 -mt-2 mb-2">${book.author || t('common.unknownAuthor')}</p>
                     
                     <!-- Stats Section -->
                     <div class="text-xs space-y-2 text-base-content/70 mt-auto">
@@ -360,18 +360,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
 			
-			const progressBar = novelCard.querySelector('.js-progress-bar');
-			const progressPercent = novelCard.querySelector('.js-progress-percent');
-			const sourceWords = novelCard.querySelector('.js-source-words');
-			const targetWords = novelCard.querySelector('.js-target-words');
-			const chapterCountEl = novelCard.querySelector('.js-chapter-count');
-			const createdDateEl = novelCard.querySelector('.js-created-date');
-			const updatedDateEl = novelCard.querySelector('.js-updated-date');
+			const progressBar = bookCard.querySelector('.js-progress-bar');
+			const progressPercent = bookCard.querySelector('.js-progress-percent');
+			const sourceWords = bookCard.querySelector('.js-source-words');
+			const targetWords = bookCard.querySelector('.js-target-words');
+			const chapterCountEl = bookCard.querySelector('.js-chapter-count');
+			const createdDateEl = bookCard.querySelector('.js-created-date');
+			const updatedDateEl = bookCard.querySelector('.js-updated-date');
 			
 			let progress = 0;
-			if (novel.source_word_count > 0) {
-				progress = Math.round((novel.target_word_count / novel.source_word_count) * 100);
-			} else if (novel.target_word_count > 0) {
+			if (book.source_word_count > 0) {
+				progress = Math.round((book.target_word_count / book.source_word_count) * 100);
+			} else if (book.target_word_count > 0) {
 				progress = 100;
 			}
 			progress = Math.min(100, Math.max(0, progress));
@@ -382,28 +382,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const numberFormat = new Intl.NumberFormat();
 			const wordLabel = t('common.words');
 			
-			if (sourceWords) sourceWords.textContent = `${numberFormat.format(novel.source_word_count)} ${wordLabel}`;
-			if (targetWords) targetWords.textContent = `${numberFormat.format(novel.target_word_count)} ${wordLabel}`;
-			if (chapterCountEl) chapterCountEl.textContent = novel.chapter_count;
+			if (sourceWords) sourceWords.textContent = `${numberFormat.format(book.source_word_count)} ${wordLabel}`;
+			if (targetWords) targetWords.textContent = `${numberFormat.format(book.target_word_count)} ${wordLabel}`;
+			if (chapterCountEl) chapterCountEl.textContent = book.chapter_count;
 			
 			const dateFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-			if (createdDateEl && novel.created_at) {
-				createdDateEl.textContent = new Date(novel.created_at).toLocaleDateString(undefined, dateFormatOptions);
+			if (createdDateEl && book.created_at) {
+				createdDateEl.textContent = new Date(book.created_at).toLocaleDateString(undefined, dateFormatOptions);
 			}
-			if (updatedDateEl && novel.updated_at) {
-				updatedDateEl.textContent = new Date(novel.updated_at).toLocaleDateString(undefined, dateFormatOptions);
+			if (updatedDateEl && book.updated_at) {
+				updatedDateEl.textContent = new Date(book.updated_at).toLocaleDateString(undefined, dateFormatOptions);
 			}
 			
-			novelCard.querySelectorAll('.js-open-editor').forEach(el => el.addEventListener('click', () => window.api.openEditor(novel.id)));
-			novelCard.querySelector('.js-prose-settings').addEventListener('click', () => openProseSettingsModal(novel));
-			novelCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(novel));
-			novelCard.querySelector('.js-export-docx').addEventListener('click', () => exportNovel(novel.id));
+			bookCard.querySelectorAll('.js-open-editor').forEach(el => el.addEventListener('click', () => window.api.openEditor(book.id)));
+			bookCard.querySelector('.js-prose-settings').addEventListener('click', () => openProseSettingsModal(book));
+			bookCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(book));
+			bookCard.querySelector('.js-export-docx').addEventListener('click', () => exportBook(book.id));
 			
-			novelList.appendChild(novelCard);
+			bookList.appendChild(bookCard);
 		});
 		
 		applyListViewStyles();
-		applyTranslationsTo(novelList);
+		applyTranslationsTo(bookList);
 	}
 	
 	// --- Event Listeners ---
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			
 			try {
-				const result = await window.api.createBlankNovel(data);
+				const result = await window.api.createBlankBook(data);
 				if (result.success) {
 					newProjectModal.close();
 					await loadInitialData(); // Refresh the project list
@@ -459,18 +459,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	saveProseBtn.addEventListener('click', async (e) => {
 		e.preventDefault();
-		const novelId = parseInt(proseNovelIdInput.value, 10);
+		const bookId = parseInt(proseBookIdInput.value, 10);
 		const formData = new FormData(proseForm);
 		const data = {
-			novelId,
+			bookId,
 			source_language: formData.get('prose_source_language'),
 			target_language: formData.get('prose_target_language'),
 		};
 		
 		try {
 			await window.api.updateProseSettings(data);
-			const novelIndex = novelsData.findIndex(n => n.id === novelId);
-			if (novelIndex !== -1) Object.assign(novelsData[novelIndex], data);
+			const bookIndex = booksData.findIndex(n => n.id === bookId);
+			if (bookIndex !== -1) Object.assign(booksData[bookIndex], data);
 			proseModal.close();
 		} catch (error) {
 			console.error('Failed to save language settings:', error);
@@ -479,23 +479,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	saveMetaBtn.addEventListener('click', async (e) => {
 		e.preventDefault();
-		const novelId = parseInt(metaNovelIdInput.value, 10);
+		const bookId = parseInt(metaBookIdInput.value, 10);
 		
 		const formData = new FormData(metaForm);
 		const data = {
-			novelId,
+			bookId,
 			title: formData.get('title'),
 			author: formData.get('author'),
 		};
 		
 		try {
-			await window.api.updateNovelMeta(data);
-			const novelIndex = novelsData.findIndex(n => n.id === novelId);
-			if (novelIndex !== -1) Object.assign(novelsData[novelIndex], data);
-			updateNovelCardUI(novelId);
+			await window.api.updateBookMeta(data);
+			const bookIndex = booksData.findIndex(n => n.id === bookId);
+			if (bookIndex !== -1) Object.assign(booksData[bookIndex], data);
+			updateBookCardUI(bookId);
 			
 			if (stagedCover) {
-				await window.api.updateNovelCover({ novelId, coverInfo: stagedCover });
+				await window.api.updateBookCover({ bookId, coverInfo: stagedCover });
 			}
 			
 			metaModal.close();
@@ -511,17 +511,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 		metaAiPrompt.value = '';
 		metaAiPrompt.disabled = true;
 		
-		const novelTitle = metaForm.querySelector('#meta-title').value;
+		const bookTitle = metaForm.querySelector('#meta-title').value;
 		try {
-			const result = await window.api.generateCoverPrompt({ novelTitle });
+			const result = await window.api.generateCoverPrompt({ bookTitle });
 			if (result.success && result.prompt) {
 				metaAiPrompt.value = result.prompt;
 			} else {
-				metaAiPrompt.value = `A book cover for a story titled "${novelTitle}"`;
+				metaAiPrompt.value = `A book cover for a story titled "${bookTitle}"`;
 			}
 		} catch (error) {
 			console.error('Failed to generate cover prompt:', error);
-			metaAiPrompt.value = `A book cover for a story titled "${novelTitle}"`;
+			metaAiPrompt.value = `A book cover for a story titled "${bookTitle}"`;
 		} finally {
 			metaAiPrompt.disabled = false;
 		}
@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 	
 	runGenerateCoverBtn.addEventListener('click', async () => {
-		const novelId = parseInt(metaNovelIdInput.value, 10);
+		const bookId = parseInt(metaBookIdInput.value, 10);
 		const prompt = metaAiPrompt.value.trim();
 		if (!prompt) {
 			showAlert('Please enter an image prompt.');
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		</div>`;
 		
 		try {
-			const result = await window.api.generateCover({ novelId, prompt });
+			const result = await window.api.generateCover({ bookId, prompt });
 			if (result.success && result.filePath) {
 				stagedCover = { type: 'local', data: result.filePath };
 				metaCoverPreview.innerHTML = `<img src="${result.filePath}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
@@ -557,9 +557,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 		} catch (error) {
 			console.error('Failed to generate cover:', error);
 			window.showAlert('Error generating cover: ' + error.message);
-			const currentNovel = novelsData.find(n => n.id === novelId);
-			if (currentNovel && currentNovel.cover_path) {
-				metaCoverPreview.innerHTML = `<img src="${currentNovel.cover_path}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altCurrentCover')}" class="w-full h-auto">`;
+			const currentBook = booksData.find(n => n.id === bookId);
+			if (currentBook && currentBook.cover_path) {
+				metaCoverPreview.innerHTML = `<img src="${currentBook.cover_path}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altCurrentCover')}" class="w-full h-auto">`;
 			} else {
 				metaCoverPreview.innerHTML = `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 			}
@@ -576,18 +576,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	});
 	
-	deleteNovelBtn.addEventListener('click', async () => {
-		const novelId = parseInt(metaNovelIdInput.value, 10);
-		const novel = novelsData.find(n => n.id === novelId);
-		if (!novel) return;
+	deleteBookBtn.addEventListener('click', async () => {
+		const bookId = parseInt(metaBookIdInput.value, 10);
+		const book = booksData.find(n => n.id === bookId);
+		if (!book) return;
 		
-		const confirmation = confirm(t('dashboard.metaSettings.deleteConfirm', { title: novel.title }));
+		const confirmation = confirm(t('dashboard.metaSettings.deleteConfirm', { title: book.title }));
 		if (confirmation) {
 			try {
-				await window.api.deleteNovel(novelId);
-				novelsData = novelsData.filter(n => n.id !== novelId);
+				await window.api.deleteBook(bookId);
+				booksData = booksData.filter(n => n.id !== bookId);
 				metaModal.close();
-				renderNovels();
+				renderBooks();
 			} catch (error) {
 				console.error('Failed to delete project:', error);
 				window.showAlert(t('dashboard.metaSettings.errorDelete'));
@@ -597,18 +597,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	// --- IPC Listeners ---
 	
-	window.api.onCoverUpdated((event, { novelId, imagePath }) => {
-		const novelIndex = novelsData.findIndex(n => n.id === novelId);
-		if (novelIndex !== -1) {
-			novelsData[novelIndex].cover_path = imagePath;
+	window.api.onCoverUpdated((event, { bookId, imagePath }) => {
+		const bookIndex = booksData.findIndex(n => n.id === bookId);
+		if (bookIndex !== -1) {
+			booksData[bookIndex].cover_path = imagePath;
 		}
 		
-		const card = novelList.querySelector(`[data-novel-id='${novelId}']`);
+		const card = bookList.querySelector(`[data-book-id='${bookId}']`);
 		if (card) {
 			const figure = card.querySelector('figure');
 			if (figure) {
-				const novel = novelsData.find(n => n.id === novelId);
-				const altText = t('dashboard.metaSettings.altCoverFor', { title: novel ? novel.title : novelId });
+				const book = booksData.find(n => n.id === bookId);
+				const altText = t('dashboard.metaSettings.altCoverFor', { title: book ? book.title : bookId });
 				figure.innerHTML = `<img src="${imagePath}?t=${Date.now()}" alt="${altText}" class="w-full">`;
 			}
 		}

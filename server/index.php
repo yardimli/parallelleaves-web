@@ -98,7 +98,7 @@
 			<div class="card bg-base-200 shadow-xl">
 				<div class="card-body">
 					<h3 class="card-title">Translation Memory</h3>
-					<p>View the translation memory pairs that have been generated from your synced novels.</p>
+					<p>View the translation memory pairs that have been generated from your synced books.</p>
 					<div class="card-actions justify-end">
 						<a href="translation_memory.php" class="btn btn-primary">View TM</a>
 					</div>
@@ -109,7 +109,7 @@
 			<div class="card bg-base-200 shadow-xl">
 				<div class="card-body">
 					<h3 class="card-title">Codex Editor</h3>
-					<p>Review and edit the auto-generated codex (world encyclopedia) for each of your novels.</p>
+					<p>Review and edit the auto-generated codex (world encyclopedia) for each of your books.</p>
 					<div class="card-actions justify-end">
 						<a href="codex.php" class="btn btn-primary">Edit Codex</a>
 					</div>
