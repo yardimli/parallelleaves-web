@@ -122,6 +122,7 @@
 			throw new Exception('OpenRouter API key is missing. Please set it in your account settings.');
 		}
 
+		session_write_close();
 		$ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -137,7 +138,6 @@
 
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
 
 		if ($logContext && isset($logContext['db'], $logContext['userId'], $logContext['action'])) {
 			logInteraction($logContext['db'], $logContext['userId'], $logContext['action'], $payload, (string)$response, $httpCode);
@@ -223,13 +223,13 @@
 
 	function storeImageFromUrl(string $url, int $bookId, string $filenameBase): ?array
 	{
+		session_write_close();
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 		$data = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close($ch);
 
 		if ($httpCode !== 200 || !$data) {
 			return null;

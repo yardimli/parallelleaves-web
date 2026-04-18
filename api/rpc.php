@@ -463,6 +463,7 @@
 
 					if ($prompt) {
 						$falPayload = ['prompt' => $prompt, 'image_size' => 'portrait_4_3'];
+						session_write_close();
 						$ch = curl_init('https://fal.run/fal-ai/qwen-image');
 						curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 						curl_setopt($ch, CURLOPT_POST, true);
@@ -473,7 +474,6 @@
 							'Accept: application/json'
 						]);
 						$response = curl_exec($ch);
-						curl_close($ch);
 
 						$falData = $response ? json_decode($response, true) : [];
 
@@ -603,12 +603,12 @@
 				$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx, $userApiKey)];
 				break;
 			case 'ai:getModels':
+				session_write_close();
 				$ch = curl_init('https://openrouter.ai/api/v1/models');
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 				curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 				$response = curl_exec($ch);
-				curl_close($ch);
 
 				$liveModelsData = $response ? json_decode($response, true) : [];
 
@@ -649,6 +649,7 @@
 				$bookId = $args[0]['bookId'];
 				$prompt = $args[0]['prompt'];
 				$falPayload = ['prompt' => $prompt, 'image_size' => 'portrait_4_3'];
+				session_write_close();
 				$ch = curl_init('https://fal.run/fal-ai/qwen-image');
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 				curl_setopt($ch, CURLOPT_POST, true);
@@ -659,7 +660,6 @@
 					'Accept: application/json'
 				]);
 				$response = curl_exec($ch);
-				curl_close($ch);
 
 				if (!$response) {
 					throw new Exception('Image generation API call failed.');
