@@ -14,7 +14,6 @@ contextBridge.exposeInMainWorld('api', {
 	openExternalRegister: () => ipcRenderer.send('auth:open-register-url'),
 	
 	splashGetInitData: () => ipcRenderer.invoke('splash:get-init-data'),
-	splashCheckForUpdates: () => ipcRenderer.invoke('splash:check-for-updates'),
 	splashClose: () => ipcRenderer.send('splash:close'),
 	splashFinished: () => ipcRenderer.send('splash:finished'),
 	openExternalUrl: (url) => ipcRenderer.send('app:open-external-url', url),
@@ -82,11 +81,6 @@ contextBridge.exposeInMainWorld('api', {
 	setSpellCheckerLanguage: (lang) => ipcRenderer.invoke('session:setSpellCheckerLanguage', lang),
 	
 	getSupportedLanguages: () => ipcRenderer.invoke('languages:get-supported'),
-	
-	getNovelForBackup: (novelId) => ipcRenderer.invoke('novels:getForBackup', novelId),
-	restoreNovelFromBackup: (backupData) => ipcRenderer.invoke('novels:restoreFromBackup', backupData),
-	saveBackupToFile: (defaultFileName, jsonString) => ipcRenderer.invoke('dialog:saveBackup', defaultFileName, jsonString),
-	openBackupFile: () => ipcRenderer.invoke('dialog:openBackup'),
 	
 	getNovelDictionary: (novelId) => ipcRenderer.invoke('dictionary:get', novelId),
 	getDictionaryContentForAI: (novelId, type) => ipcRenderer.invoke('dictionary:getContentForAI', novelId, type),

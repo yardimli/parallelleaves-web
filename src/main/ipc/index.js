@@ -1,6 +1,5 @@
 const { registerAiHandlers } = require('./aiHandlers.js');
 const { registerAuthHandlers } = require('./authHandlers.js');
-const { registerBackupRestoreHandlers } = require('./backupRestoreHandlers.js');
 const { registerChapterHandlers } = require('./chapterHandlers.js');
 const { registerChatHandlers } = require('./chatHandlers.js');
 const { registerCodexHandlers } = require('./codexHandlers.js');
@@ -20,7 +19,6 @@ const { registerTranslationMemoryHandlers } = require('./translationMemoryHandle
 function registerIpcHandlers(db, sessionManager, windowManager) {
 	registerAiHandlers(db, sessionManager);
 	registerAuthHandlers(sessionManager);
-	registerBackupRestoreHandlers(db, sessionManager);
 	registerChapterHandlers(db, windowManager);
 	registerChatHandlers(db, sessionManager);
 	registerCodexHandlers(db, sessionManager, windowManager);

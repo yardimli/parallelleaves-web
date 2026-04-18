@@ -1,7 +1,14 @@
-const evtSource = new EventSource('/api/events');
+let codexUpdateCb = null;
+let codexFinishedCb = null;
+let tmUpdateCb = null;
+let coverUpdatedCb = null;
+
+// Use relative path to point to the api folder one level up from /public/
+const RPC_ENDPOINT = '../api/rpc.php';
+const UPLOAD_ENDPOINT = '../api/upload.php';
 
 async function rpcInvoke(channel, ...args) {
-	const res = await fetch('/api/rpc', {
+	const res = await fetch(RPC_ENDPOINT, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ channel, args })
@@ -12,7 +19,7 @@ async function rpcInvoke(channel, ...args) {
 }
 
 function rpcSend(channel, ...args) {
-	fetch('/api/rpc', {
+	fetch(RPC_ENDPOINT, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ channel, args })
@@ -20,24 +27,45 @@ function rpcSend(channel, ...args) {
 }
 
 window.api = {
-	// App Level
-	openImportWindow: () => { window.location.href = '/import-document.html'; },
-	openChatWindow: (novelId) => { window.open(`/chat-window.html?novelId=${novelId}`, '_blank'); },
-	translationMemoryGenerateInBackground: (novelId) => rpcInvoke('translation-memory:generate-in-background', novelId),
-	onTranslationMemoryProgressUpdate: (cb) => {
-		evtSource.addEventListener('translation-memory:progress-update', (e) => cb({}, JSON.parse(e.data)));
+	// App Level - Navigation is now relative to the current /public/ directory
+	openImportWindow: () => { window.location.href = 'import-document.html'; },
+	openChatWindow: (novelId) => { window.open(`chat-window.html?novelId=${novelId}`, '_blank'); },
+	
+	translationMemoryGenerateInBackground: async (novelId) => {
+		try {
+			const res = await rpcInvoke('translation-memory:start', novelId);
+			if (!res || !res.job_id) {
+				if (tmUpdateCb) tmUpdateCb({}, { finished: true, processedCount: 0 });
+				return;
+			}
+			const processNext = async () => {
+				const status = await rpcInvoke('translation-memory:process-batch', res.job_id);
+				if (tmUpdateCb) tmUpdateCb({}, { processed: status.processed_blocks, total: status.total_blocks });
+				
+				if (status.status === 'complete') {
+					if (tmUpdateCb) tmUpdateCb({}, { finished: true, processedCount: status.processed_blocks });
+				} else if (status.status === 'error') {
+					if (tmUpdateCb) tmUpdateCb({}, { error: true, message: status.error_message });
+				} else {
+					setTimeout(processNext, 1000);
+				}
+			};
+			processNext();
+		} catch (err) {
+			if (tmUpdateCb) tmUpdateCb({}, { error: true, message: err.message });
+		}
 	},
+	onTranslationMemoryProgressUpdate: (cb) => { tmUpdateCb = cb; },
 	
 	getLangFile: (lang) => rpcInvoke('i18n:get-lang-file', lang),
 	login: (credentials) => rpcInvoke('auth:login', credentials),
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
-	openExternalRegister: () => rpcSend('auth:open-register-url'),
+	openExternalRegister: () => { window.open('../register.php', '_blank'); },
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),
-	splashCheckForUpdates: () => rpcInvoke('splash:check-for-updates'),
-	splashClose: () => { window.location.href = '/index.html'; },
-	splashFinished: () => { window.location.href = '/index.html'; },
+	splashClose: () => { window.location.href = 'index.html'; },
+	splashFinished: () => { window.location.href = 'index.html'; },
 	openExternalUrl: (url) => window.open(url, '_blank'),
 	appReset: () => rpcSend('app:reset'),
 	
@@ -52,29 +80,60 @@ window.api = {
 		const result = await rpcInvoke('novels:exportToDocx', data);
 		if (result && result.success && result.downloadUrl) {
 			const a = document.createElement('a');
-			a.href = result.downloadUrl;
+			// Convert absolute backend path to relative path
+			a.href = '../' + result.downloadUrl.replace(/^\//, '');
 			a.download = result.filename;
 			a.click();
 		}
 		return result;
 	},
 	
-	openEditor: (novelId) => { window.location.href = `/chapter-editor.html?novelId=${novelId}`; },
+	openEditor: (novelId) => { window.location.href = `chapter-editor.html?novelId=${novelId}`; },
+	
 	codex: {
-		startGeneration: (novelId) => rpcSend('codex:start-generation', novelId),
-		onUpdate: (cb) => evtSource.addEventListener('codex:update', (e) => cb({}, JSON.parse(e.data))),
-		onFinished: (cb) => evtSource.addEventListener('codex:finished', (e) => cb({}, JSON.parse(e.data)))
+		startGeneration: async (novelId) => {
+			try {
+				const res = await rpcInvoke('codex:start', novelId);
+				if (res.status === 'complete') {
+					if (codexFinishedCb) codexFinishedCb({}, { status: 'complete' });
+					return;
+				}
+				const processNext = async () => {
+					const status = await rpcInvoke('codex:process-batch', novelId);
+					if (codexUpdateCb) codexUpdateCb({}, { statusKey: 'editor.codex.status.generating', progress: status.processed, total: status.total });
+					
+					if (status.status === 'complete') {
+						if (codexFinishedCb) codexFinishedCb({}, { status: 'complete' });
+					} else if (status.status === 'error') {
+						if (codexFinishedCb) codexFinishedCb({}, { status: 'error', message: status.error_message });
+					} else {
+						setTimeout(processNext, 1000);
+					}
+				};
+				processNext();
+			} catch (err) {
+				if (codexFinishedCb) codexFinishedCb({}, { status: 'error', message: err.message });
+			}
+		},
+		onUpdate: (cb) => { codexUpdateCb = cb; },
+		onFinished: (cb) => { codexFinishedCb = cb; }
 	},
+	
 	updateProseSettings: (data) => rpcInvoke('novels:updateProseSettings', data),
 	updatePromptSettings: (data) => rpcInvoke('novels:updatePromptSettings', data),
 	updateNovelMeta: (data) => rpcInvoke('novels:updateMeta', data),
 	createBlankNovel: (data) => rpcInvoke('novels:createBlank', data),
-	updateNovelCover: (data) => rpcInvoke('novels:updateNovelCover', data),
+	
+	updateNovelCover: async (data) => {
+		const res = await rpcInvoke('novels:updateNovelCover', data);
+		if (res && res.success && coverUpdatedCb) {
+			coverUpdatedCb({}, { novelId: data.novelId, imagePath: res.imagePath });
+		}
+		return res;
+	},
 	deleteNovel: (novelId) => rpcInvoke('novels:delete', novelId),
+	onCoverUpdated: (cb) => { coverUpdatedCb = cb; },
 	
-	onCoverUpdated: (cb) => evtSource.addEventListener('novels:cover-updated', (e) => cb({}, JSON.parse(e.data))),
-	
-	// File Dialog Replacements
 	showOpenDocumentDialog: () => new Promise((resolve) => {
 		const input = document.createElement('input');
 		input.type = 'file';
@@ -84,7 +143,7 @@ window.api = {
 			if (!file) return resolve(null);
 			const formData = new FormData();
 			formData.append('file', file);
-			const res = await fetch('/api/upload-temp', { method: 'POST', body: formData });
+			const res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
 			const data = await res.json();
 			resolve(data.filePath);
 		};
@@ -93,20 +152,19 @@ window.api = {
 	readDocumentContent: (filePath) => rpcInvoke('document:read', filePath),
 	importDocumentAsNovel: async (data) => {
 		const result = await rpcInvoke('document:import', data);
-		// Redirect the browser to the editor once import is complete
 		if (result && result.success && result.novelId) {
-			window.location.href = `/chapter-editor.html?novelId=${result.novelId}`;
+			window.location.href = `chapter-editor.html?novelId=${result.novelId}`;
 		}
 		return result;
 	},
-	onImportStatusUpdate: (cb) => evtSource.addEventListener('import:status-update', (e) => cb({}, JSON.parse(e.data))),
+	onImportStatusUpdate: (cb) => { /* Stub for compatibility */ },
 	
 	getTemplate: (templateName) => rpcInvoke('templates:get', templateName),
 	getRawChapterContent: (data) => rpcInvoke('chapters:getRawContent', data),
 	getTranslationContext: (data) => rpcInvoke('chapters:getTranslationContext', data),
 	
-	openChapterEditor: (data) => { window.location.href = `/chapter-editor.html?novelId=${data.novelId}&chapterId=${data.chapterId}`; },
-	onManuscriptScrollToChapter: (cb) => evtSource.addEventListener('manuscript:scrollToChapter', (e) => cb({}, JSON.parse(e.data))),
+	openChapterEditor: (data) => { window.location.href = `chapter-editor.html?novelId=${data.novelId}&chapterId=${data.chapterId}`; },
+	onManuscriptScrollToChapter: (cb) => { /* Stub for compatibility */ },
 	
 	updateChapterField: (data) => rpcInvoke('chapters:updateField', data),
 	renameChapter: (data) => rpcInvoke('chapters:rename', data),
@@ -119,36 +177,10 @@ window.api = {
 	generateCoverPrompt: (data) => rpcInvoke('ai:generate-cover-prompt', data),
 	generateCover: (data) => rpcInvoke('ai:generate-cover', data),
 	
-	getAvailableSpellCheckerLanguages: () => rpcInvoke('session:getAvailableSpellCheckerLanguages'),
-	getCurrentSpellCheckerLanguage: () => rpcInvoke('session:getCurrentSpellCheckerLanguage'),
-	setSpellCheckerLanguage: (lang) => rpcInvoke('session:setSpellCheckerLanguage', lang),
+	getAvailableSpellCheckerLanguages: () => Promise.resolve(['en-US']),
+	getCurrentSpellCheckerLanguage: () => Promise.resolve('en-US'),
+	setSpellCheckerLanguage: (lang) => Promise.resolve({ success: true }),
 	getSupportedLanguages: () => rpcInvoke('languages:get-supported'),
-	
-	getNovelForBackup: (novelId) => rpcInvoke('novels:getForBackup', novelId),
-	restoreNovelFromBackup: (backupData) => rpcInvoke('novels:restoreFromBackup', backupData),
-	saveBackupToFile: async (defaultFileName, jsonString) => {
-		const result = await rpcInvoke('dialog:saveBackup', defaultFileName, jsonString);
-		if (result && result.success && result.downloadUrl) {
-			const a = document.createElement('a');
-			a.href = result.downloadUrl;
-			a.download = result.filename;
-			a.click();
-		}
-		return result;
-	},
-	openBackupFile: () => new Promise((resolve) => {
-		const input = document.createElement('input');
-		input.type = 'file';
-		input.accept = '.json';
-		input.onchange = (e) => {
-			const file = e.target.files[0];
-			if (!file) return resolve(null);
-			const reader = new FileReader();
-			reader.onload = (ev) => resolve(ev.target.result);
-			reader.readAsText(file);
-		};
-		input.click();
-	}),
 	
 	getNovelDictionary: (novelId) => rpcInvoke('dictionary:get', novelId),
 	getDictionaryContentForAI: (novelId, type) => rpcInvoke('dictionary:getContentForAI', novelId, type),
@@ -166,9 +198,9 @@ window.api = {
 			if (!file) return resolve(null);
 			const formData = new FormData();
 			formData.append('file', file);
-			const res = await fetch('/api/upload-temp', { method: 'POST', body: formData });
+			const res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
 			const data = await res.json();
-			resolve(data); // Returns { filePath, url }
+			resolve(data);
 		};
 		input.click();
 	})

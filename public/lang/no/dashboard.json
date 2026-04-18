@@ -1,7 +1,6 @@
 {
   "title": "Mine oversettelsesprosjekter",
   "importDocument": "Importer dokument",
-  "restoreBackup": "Gjenopprett sikkerhetskopi",
   "loadingProjects": "Laster prosjekter...",
   "noProjects": "Du har ikke startet noen oversettelsesprosjekter ennå.",
   "errorLoading": "Feil ved lasting av prosjekter.",
@@ -9,9 +8,6 @@
   "signOut": "Logg ut",
   "signIn": "Logg inn",
   "signInPrompt": "Vennligst logg inn for å se prosjektene dine.",
-  "backupFailed": "Sikkerhetskopiering mislyktes: {message}",
-  "restoreSuccess": "Prosjektet '{title}' ble gjenopprettet. Siden vil nå lastes på nytt.",
-  "restoreFailed": "Gjenoppretting mislyktes: {message}",
   "toggleView": "Bytt visning",
   "newProject": "Nytt tomt prosjekt",
   "newProjectModal": {
@@ -77,8 +73,7 @@
     "targetWords": "Mål",
     "chapters": "Kapitler",
     "created": "Opprettet:",
-    "updated": "Oppdatert:",
-    "backupProject": "Sikkerhetskopier prosjekt"
+    "updated": "Oppdatert:"
   },
   "update": {
     "title": "Oppdatering tilgjengelig",

@@ -1,8 +1,8 @@
 {
   "name": "parallel-leaves-web",
   "version": "0.1.2",
-  "description": "A standalone translation application.",
-  "main": "server.js",
+  "description": "A standalone translation application frontend.",
+  "private": true,
   "scripts": {
     "build:css": "tailwindcss -i ./src/css/input.css -o ./dist/styles.css",
     "build:js:chapter-editor": "esbuild src/js/novel-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser",
@@ -11,9 +11,7 @@
     "watch:css": "tailwindcss -i ./src/css/input.css -o ./dist/styles.css --watch",
     "watch:js:chapter-editor": "esbuild src/js/novel-planner/chapter-main.js --bundle --outfile=dist/chapter-editor-bundle.js --platform=browser --watch",
     "watch:js:editor-iframe": "esbuild src/js/novel-planner/editor-iframe-main.js --bundle --outfile=dist/editor-iframe-bundle.js --platform=browser --watch",
-    "watch": "concurrently \"npm:watch:css\" \"npm:watch:js:chapter-editor\" \"npm:watch:js:editor-iframe\"",
-    "start": "npm run build && node server.js",
-    "dev": "npm run build && concurrently \"npm:watch\" \"nodemon server.js\""
+    "watch": "concurrently \"npm:watch:css\" \"npm:watch:js:chapter-editor\" \"npm:watch:js:editor-iframe\""
   },
   "author": "Ekim Emre Yardimli",
   "license": "ISC",
@@ -24,19 +22,11 @@
     "concurrently": "^8.2.2",
     "daisyui": "^4.10.2",
     "esbuild": "^0.25.9",
-    "nodemon": "^3.1.10",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4"
   },
   "dependencies": {
-    "better-sqlite3": "^12.2.0",
     "bootstrap-icons": "^1.13.1",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "html-to-docx": "^1.8.0",
-    "mammoth": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
     "prosemirror-commands": "^1.7.1",
     "prosemirror-history": "^1.4.1",
     "prosemirror-keymap": "^1.2.3",

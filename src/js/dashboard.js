@@ -1,6 +1,5 @@
 import { initI18n, t, applyTranslationsTo, setLanguage, appLanguages } from './i18n.js';
 import { exportNovel } from './exporter.js';
-import { backupNovel, restoreNovel } from './backup-restore.js';
 
 /**
  * Compares two semantic version strings (e.g., '1.10.2' vs '1.2.0').
@@ -56,7 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const newProjectForm = document.getElementById('new-project-form');
 	const newProjectSourceLangSelect = document.getElementById('new-project-source-language');
 	const newProjectTargetLangSelect = document.getElementById('new-project-target-language');
-	const restoreBackupBtn = document.getElementById('restore-backup-btn-menu');
 	const authMenuSection = document.getElementById('auth-menu-section');
 	const loginModal = document.getElementById('login-modal');
 	const loginForm = document.getElementById('login-form');
@@ -214,38 +212,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 	}
 	
-	/**
-	 * Checks for application updates on startup and shows a modal if a new version is available.
-	 */
-	async function checkForUpdates() {
-		try {
-			// Note: splashGetInitData is a generic init data getter.
-			const { version: currentVersion, websiteUrl } = await window.api.splashGetInitData();
-			const latestVersion = await window.api.splashCheckForUpdates();
-			
-			if (latestVersion && compareVersions(latestVersion, currentVersion) > 0) {
-				const modal = document.getElementById('update-modal');
-				const content = document.getElementById('update-modal-content');
-				const link = document.getElementById('update-modal-link');
-				
-				if (modal && content && link) {
-					// Populate the modal with details about the new version.
-					content.textContent = t('dashboard.update.description', { latestVersion, currentVersion });
-					
-					// Set up the link to open the project website.
-					link.addEventListener('click', (e) => {
-						e.preventDefault();
-						window.api.openExternalUrl(websiteUrl);
-					});
-					
-					modal.showModal();
-				}
-			}
-		} catch (error) {
-			console.error('Failed to check for updates:', error);
-		}
-	}
-	
 	function setButtonLoading(button, isLoading) {
 		const content = button.querySelector('.js-btn-content');
 		const spinner = button.querySelector('.js-btn-spinner');
@@ -391,9 +357,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="btn btn-ghost btn-sm js-export-docx" data-i18n-title="export.exportDocx">
                             <i class="bi bi-file-earmark-word text-lg"></i>
                         </button>
-                        <button class="btn btn-ghost btn-sm js-backup-novel" data-i18n-title="dashboard.card.backupProject">
-                            <i class="bi bi-download text-lg"></i>
-                        </button>
                     </div>
                 </div>
             `;
@@ -436,7 +399,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 			novelCard.querySelector('.js-prose-settings').addEventListener('click', () => openProseSettingsModal(novel));
 			novelCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(novel));
 			novelCard.querySelector('.js-export-docx').addEventListener('click', () => exportNovel(novel.id));
-			novelCard.querySelector('.js-backup-novel').addEventListener('click', () => backupNovel(novel.id, novel.title));
 			
 			novelList.appendChild(novelCard);
 		});
@@ -493,12 +455,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 				console.error('Failed to create blank project:', error);
 				showAlert(t('dashboard.newProjectModal.errorCreate', { message: error.message }));
 			}
-		});
-	}
-	
-	if (restoreBackupBtn) {
-		restoreBackupBtn.addEventListener('click', () => {
-			restoreNovel();
 		});
 	}
 	
@@ -662,7 +618,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 	// --- Initializations ---
 	populateLanguages();
 	initAuth();
-	checkForUpdates();
 	
 	window.addEventListener('focus', () => {
 		// Only refresh if the user is logged in (auth container has a logout button).

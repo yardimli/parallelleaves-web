@@ -1,7 +1,6 @@
 {
   "title": "My Translation Projects",
   "importDocument": "Import Document",
-  "restoreBackup": "Restore Backup",
   "loadingProjects": "Loading projects...",
   "noProjects": "You haven't started any translation projects yet.",
   "errorLoading": "Error loading projects.",
@@ -9,9 +8,6 @@
   "signOut": "Sign Out",
   "signIn": "Sign In",
   "signInPrompt": "Please sign in to view your projects.",
-  "backupFailed": "Backup failed: {message}",
-  "restoreSuccess": "Successfully restored project '{title}'. The page will now reload.",
-  "restoreFailed": "Restore failed: {message}",
   "toggleView": "Toggle View",
   "newProject": "New Blank Project",
   "newProjectModal": {
@@ -77,8 +73,7 @@
     "targetWords": "Target",
     "chapters": "Chapters",
     "created": "Created:",
-    "updated": "Updated:",
-    "backupProject": "Backup Project"
+    "updated": "Updated:"
   },
   "update": {
     "title": "Update Available",

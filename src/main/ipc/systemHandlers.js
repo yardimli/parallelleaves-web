@@ -21,25 +21,6 @@ function registerSystemHandlers(db, sessionManager, windowManager) {
 		};
 	});
 	
-	ipcMain.handle('splash:check-for-updates', async () => {
-		try {
-			if (!config.VERSION_CHECK_URL) {
-				console.log('VERSION_CHECK_URL not configured. Skipping update check.');
-				return null;
-			}
-			const response = await fetch(config.VERSION_CHECK_URL);
-			if (!response.ok) {
-				throw new Error(`Update server returned status ${response.status}`);
-			}
-			const data = await response.json();
-			console.log('Latest version from server:', data.latest_version, 'Current version:', config.APP_VERSION);
-			return data.latest_version;
-		} catch (error) {
-			console.error('Failed to check for updates:', error);
-			return null;
-		}
-	});
-	
 	ipcMain.on('splash:close', (event) => {
 		const splashWindow = event.sender.getOwnerBrowserWindow();
 		if (splashWindow && !splashWindow.isDestroyed()) {

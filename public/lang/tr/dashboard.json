@@ -1,7 +1,6 @@
 {
   "title": "Çeviri Projelerim",
   "importDocument": "Yeni Çeviri Projesi İçin Belge Yükle",
-  "restoreBackup": "Yedekten Geri Yükle",
   "loadingProjects": "Projeler yükleniyor...",
   "noProjects": "Henüz hiç çeviri projeniz yok.",
   "errorLoading": "Projeler yüklenirken bir hata oluştu.",
@@ -9,9 +8,6 @@
   "signOut": "Çıkış Yap",
   "signIn": "Giriş Yap",
   "signInPrompt": "Projelerinizi görmek için lütfen giriş yapın.",
-  "backupFailed": "Yedekleme başarısız: {message}",
-  "restoreSuccess": "'{title}' projesi başarıyla geri yüklendi. Sayfa şimdi yeniden yüklenecek.",
-  "restoreFailed": "Geri yükleme başarısız: {message}",
   "toggleView": "Görünümü Değiştir",
   "newProject": "Yeni Boş Proje",
   "newProjectModal": {
@@ -77,8 +73,7 @@
     "targetWords": "Hedef",
     "chapters": "Bölümler",
     "created": "Oluşturuldu:",
-    "updated": "Güncellendi:",
-    "backupProject": "Projeyi Yedekle"
+    "updated": "Güncellendi:"
   },
   "update": {
     "title": "Güncelleme Mevcut",
