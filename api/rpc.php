@@ -556,7 +556,7 @@ api/rpc.php:
 									"SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 									"FROM user_books_translation_memory tm " .
 									"JOIN user_books b ON tm.book_id = b.id " .
-									"WHERE b.user_id = ? AND b.id = ? AND tm.source_sentence REGEXP ?"
+									"WHERE (b.user_id = ? OR ? = 1) AND b.id = ? AND tm.source_sentence REGEXP ?"
 								);
 
 								foreach ($uniqueWords as $word) {
@@ -585,7 +585,7 @@ api/rpc.php:
 								$sql = "SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 									"FROM user_books_translation_memory tm " .
 									"JOIN user_books b ON tm.book_id = b.id " .
-									"WHERE b.user_id = ? ";
+									"WHERE (b.user_id = ? OR ? = 1) ";
 								if ($bookId) {
 									$sql .= "AND b.id != ? ";
 								}
