@@ -62,6 +62,62 @@
 				$result = json_encode($merged);
 				break;
 
+			// --- Languages ---
+			case 'languages:get-supported':
+				$result = [
+					'af' => 'Afrikaans',
+					'bg' => 'Bulgarian',
+					'ca' => 'Catalan',
+					'zh-CN' => 'Chinese (Simplified)',
+					'zh-TW' => 'Chinese (Traditional)',
+					'cs' => 'Czech',
+					'cy' => 'Welsh',
+					'da' => 'Danish',
+					'de' => 'German',
+					'el' => 'Greek',
+					'en-GB' => 'English (UK)',
+					'en-US' => 'English (US)',
+					'es-419' => 'Spanish (Latin America)',
+					'es-AR' => 'Spanish (Argentina)',
+					'es-ES' => 'Spanish (Spain)',
+					'es-MX' => 'Spanish (Mexico)',
+					'es-US' => 'Spanish (US)',
+					'et' => 'Estonian',
+					'fa' => 'Persian',
+					'fo' => 'Faroese',
+					'fr' => 'French',
+					'he' => 'Hebrew',
+					'hi' => 'Hindi',
+					'hr' => 'Croatian',
+					'hu' => 'Hungarian',
+					'hy' => 'Armenian',
+					'id' => 'Indonesian',
+					'it' => 'Italian',
+					'ja' => 'Japanese',
+					'ko' => 'Korean',
+					'lt' => 'Lithuanian',
+					'lv' => 'Latvian',
+					'nb' => 'Norwegian (Bokmål)',
+					'nl' => 'Dutch',
+					'pl' => 'Polish',
+					'pt-BR' => 'Portuguese (Brazil)',
+					'pt-PT' => 'Portuguese (Portugal)',
+					'ro' => 'Romanian',
+					'ru' => 'Russian',
+					'sh' => 'Serbo-Croatian',
+					'sk' => 'Slovak',
+					'sl' => 'Slovenian',
+					'sq' => 'Albanian',
+					'sr' => 'Serbian',
+					'sv' => 'Swedish',
+					'ta' => 'Tamil',
+					'tg' => 'Tajik',
+					'tr' => 'Turkish',
+					'uk' => 'Ukrainian',
+					'vi' => 'Vietnamese',
+				];
+				break;
+
 			// --- Novels ---
 			case 'novels:getAllWithCovers':
 				$stmt = $db->prepare("
@@ -292,15 +348,14 @@
 				break;
 
 			default:
-				$result = ['success' => false, 'message' => "Channel '$channel' not implemented in PHP backend."];
-				break;
+				// MODIFIED: Throw an exception so the frontend rpcInvoke catches it as an error
+				throw new Exception("Channel '$channel' not implemented in PHP backend.");
 		}
 
-		if (is_array($result) && isset($result['success'])) {
-			echo json_encode($result);
-		} else {
-			echo json_encode(['success' => true, 'data' => $result]);
-		}
+		// MODIFIED: Always wrap the successful handler result in 'data'.
+		// This perfectly mirrors Electron's ipcMain.handle returning data to ipcRenderer.invoke,
+		// preventing 'undefined' errors when the frontend expects an object with a 'success' property.
+		echo json_encode(['success' => true, 'data' => $result]);
 
 	} catch (Exception $e) {
 		echo json_encode(['success' => false, 'message' => $e->getMessage()]);

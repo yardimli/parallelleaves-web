@@ -182,16 +182,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
-	// MODIFIED: This function now triggers a full application reset.
+	// MODIFIED: This function now simply logs the user out without deleting data or showing a warning.
 	async function handleLogout() {
-		// Use a native confirm dialog to warn the user about data deletion.
-		// The title of the confirm box is not customizable, so we include it in the message.
-		const confirmationMessage = `${t('dashboard.resetWarningTitle')}\n\n${t('dashboard.resetWarningMessage')}`;
-		const confirmed = window.confirm(confirmationMessage);
-		
-		if (confirmed) {
-			// Call the new IPC handler to clear all data and quit the app.
-			await window.api.appReset();
+		try {
+			await window.api.logout();
+			// Reload the page to reset the UI to the logged-out state
+			window.location.reload();
+		} catch (error) {
+			console.error('Logout failed:', error);
+			window.showAlert(t('common.error') + ': ' + error.message);
 		}
 	}
 	
