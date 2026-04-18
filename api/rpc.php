@@ -179,7 +179,7 @@
         SELECT n.*, i.image_local_path as cover_path, 
         (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
         FROM user_books n
-        LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
+        LEFT JOIN images i ON n.id = i.book_id
         WHERE n.user_id = ? ORDER BY n.updated_at DESC
     ");
 				$stmt->execute([$userId]);
