@@ -5,23 +5,22 @@
 // Include Composer autoloader
 	require_once __DIR__ . '/../vendor/autoload.php';
 
-// MODIFIED: Initialize Dotenv to load variables from the .env file located in the root directory.
+// Initialize Dotenv to load variables from the .env file located in the root directory.
 // We use safeLoad() so the application doesn't crash if the .env file is missing
 // (e.g., in production environments where environment variables might be set at the server level).
 	$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 	$dotenv->safeLoad();
 
-// MODIFIED: Database Configuration loaded from .env with fallbacks
+// Database Configuration loaded from .env with fallbacks
 	define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
 	define('DB_NAME', $_ENV['DB_NAME'] ?? 'parallel_leaves');
 	define('DB_USER', $_ENV['DB_USER'] ?? 'root');
 	define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 
-// MODIFIED: API Keys loaded from .env
-	define('OPEN_ROUTER_API_KEY', $_ENV['OPEN_ROUTER_API_KEY'] ?? '');
+// MODIFIED: Removed OPEN_ROUTER_API_KEY as it is now user-specific and stored in the database
 	define('FAL_API_KEY', $_ENV['FAL_API_KEY'] ?? '');
 
-// MODIFIED: Application Settings loaded from .env with fallbacks
+// Application Settings loaded from .env with fallbacks
 	define('APP_VERSION', $_ENV['APP_VERSION'] ?? '0.1.7');
 	define('OPEN_ROUTER_MODEL', $_ENV['OPEN_ROUTER_MODEL'] ?? 'openai/gpt-oss-120b');
 

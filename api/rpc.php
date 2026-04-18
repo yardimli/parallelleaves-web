@@ -10,7 +10,7 @@
 
 	header('Content-Type: application/json');
 
-// MODIFIED: Safely decode input to prevent TypeError if file_get_contents returns false
+// Safely decode input to prevent TypeError if file_get_contents returns false
 	$rawInput = file_get_contents('php://input');
 	$input = $rawInput ? json_decode($rawInput, true) : [];
 	$channel = $input['channel'] ?? '';
@@ -18,6 +18,8 @@
 
 	$db = getDB();
 	$userId = $_SESSION['user']['id'] ?? 1;
+// MODIFIED: Fetch the user's API key from the session
+	$userApiKey = $_SESSION['user']['openrouter_api_key'] ?? '';
 
 	try {
 		$result = null;
@@ -29,7 +31,8 @@
 				break;
 			case 'auth:login':
 				$creds = $args[0];
-				$stmt = $db->prepare('SELECT id, username, password_hash FROM users WHERE username = ?');
+				// MODIFIED: Select openrouter_api_key as well
+				$stmt = $db->prepare('SELECT id, username, password_hash, openrouter_api_key FROM users WHERE username = ?');
 				$stmt->execute([$creds['username']]);
 				$user = $stmt->fetch();
 				if ($user && password_verify($creds['password'], $user['password_hash'])) {
@@ -59,6 +62,14 @@
 			case 'auth:get-session':
 				$result = isset($_SESSION['user']) ? ['user' => $_SESSION['user'], 'token' => session_id()] : null;
 				break;
+			case 'user:set-api-key':
+				// MODIFIED: Added endpoint to update the user's API key
+				$newKey = $args[0] ?? '';
+				$stmt = $db->prepare('UPDATE users SET openrouter_api_key = ? WHERE id = ?');
+				$stmt->execute([$newKey, $userId]);
+				$_SESSION['user']['openrouter_api_key'] = $newKey;
+				$result = ['success' => true];
+				break;
 			case 'templates:get':
 				$path = BASE_DIR . '/public/templates/' . $args[0] . '.html';
 				$result = file_exists($path) ? file_get_contents($path) : '';
@@ -70,7 +81,6 @@
 				if (is_dir($dir)) {
 					foreach (glob($dir . '/*.json') as $file) {
 						$key = basename($file, '.json');
-						// MODIFIED: Safely decode file contents
 						$fileContent = file_get_contents($file);
 						$merged[$key] = $fileContent ? json_decode($fileContent, true) : [];
 					}
@@ -168,12 +178,12 @@
 			// --- Books ---
 			case 'books:getAllWithCovers':
 				$stmt = $db->prepare("
-            SELECT n.*, i.image_local_path as cover_path, 
-            (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
-            FROM user_books n
-            LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
-            WHERE n.user_id = ? ORDER BY n.updated_at DESC
-        ");
+        SELECT n.*, i.image_local_path as cover_path, 
+        (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+        FROM user_books n
+        LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
+        WHERE n.user_id = ? ORDER BY n.updated_at DESC
+    ");
 				$stmt->execute([$userId]);
 				$books = $stmt->fetchAll();
 				foreach ($books as &$book) {
@@ -442,7 +452,8 @@
 						'response_format' => ['type' => 'json_object'],
 						'temperature' => 0.7
 					];
-					$res = callOpenRouter($promptPayload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt']);
+					// MODIFIED: Passed $userApiKey
+					$res = callOpenRouter($promptPayload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt'], $userApiKey);
 					$content = json_decode($res['choices'][0]['message']['content'] ?? '{}', true);
 					$prompt = $content['prompt'] ?? null;
 
@@ -460,7 +471,6 @@
 						$response = curl_exec($ch);
 						curl_close($ch);
 
-						// MODIFIED: Safely decode the response to prevent TypeError if cURL fails
 						$falData = $response ? json_decode($response, true) : [];
 
 						if (isset($falData['images'][0]['url'])) {
@@ -585,7 +595,8 @@
 					'temperature' => $data['temperature'] ?? 0.7
 				];
 				$logCtx = ['db' => $db, 'userId' => $userId, 'action' => 'llm_process_text'];
-				$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx)];
+				// MODIFIED: Passed $userApiKey
+				$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx, $userApiKey)];
 				break;
 			case 'ai:getModels':
 				$ch = curl_init('https://openrouter.ai/api/v1/models');
@@ -595,7 +606,6 @@
 				$response = curl_exec($ch);
 				curl_close($ch);
 
-				// MODIFIED: Safely decode the response
 				$liveModelsData = $response ? json_decode($response, true) : [];
 
 				$availableModelIds = array_flip(array_column($liveModelsData['data'] ?? [], 'id'));
@@ -626,7 +636,8 @@
 					'response_format' => ['type' => 'json_object'],
 					'temperature' => 0.7
 				];
-				$res = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt']);
+				// MODIFIED: Passed $userApiKey
+				$res = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt'], $userApiKey);
 				$content = json_decode($res['choices'][0]['message']['content'] ?? '{}', true);
 				$result = ['success' => true, 'prompt' => $content['prompt'] ?? null];
 				break;
@@ -677,7 +688,6 @@
 			case 'dictionary:get':
 				$bookId = $args[0];
 				$path = DICTS_DIR . '/' . $bookId . '.json';
-				// MODIFIED: Safely decode file contents
 				$fileContent = file_exists($path) ? file_get_contents($path) : false;
 				$result = $fileContent ? json_decode($fileContent, true) : [];
 				break;
@@ -693,7 +703,6 @@
 				$path = DICTS_DIR . '/' . $bookId . '.json';
 				$content = '';
 				if (file_exists($path)) {
-					// MODIFIED: Safely decode file contents
 					$fileContent = file_get_contents($path);
 					$entries = $fileContent ? (json_decode($fileContent, true) ?? []) : [];
 					foreach ($entries as $entry) {
@@ -779,7 +788,8 @@
 						'response_format' => ['type' => 'json_object']
 					];
 
-					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'tm_llm_call']);
+					// MODIFIED: Passed $userApiKey
+					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'tm_llm_call'], $userApiKey);
 					$content = json_decode($aiResponse['choices'][0]['message']['content'] ?? '{}', true);
 
 					if (isset($content['pairs'])) {
@@ -866,7 +876,8 @@
 						'temperature' => 0.5
 					];
 
-					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'codex_llm_call']);
+					// MODIFIED: Passed $userApiKey
+					$aiResponse = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'codex_llm_call'], $userApiKey);
 					$updatedCodexText = trim($aiResponse['choices'][0]['message']['content'] ?? '');
 
 					if ($updatedCodexText) {

@@ -60,6 +60,7 @@ window.api = {
 	register: (credentials) => rpcInvoke('auth:register', credentials),
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
+	setApiKey: (key) => rpcInvoke('user:set-api-key', key), // MODIFIED: Added setApiKey method
 	openExternalRegister: () => { window.location.href = 'register.html'; },
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),

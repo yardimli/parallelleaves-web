@@ -123,15 +123,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
+	// MODIFIED: Added API key prompt logic
+	function promptForApiKey(currentKey) {
+		const modal = document.getElementById('input-modal');
+		if (!modal) {
+			window.showAlert('Input modal not found.');
+			return;
+		}
+		
+		const title = document.getElementById('input-modal-title');
+		const label = document.getElementById('input-modal-label');
+		const input = document.getElementById('input-modal-input');
+		const form = document.getElementById('input-modal-form');
+		
+		title.textContent = t('dashboard.setApiKeyTitle');
+		label.textContent = t('dashboard.setApiKeyLabel');
+		input.value = currentKey || '';
+		input.type = 'password';
+		
+		// Clone form to remove previous event listeners
+		const newForm = form.cloneNode(true);
+		form.parentNode.replaceChild(newForm, form);
+		
+		newForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const newKey = newForm.elements[0].value.trim();
+			try {
+				await window.api.setApiKey(newKey);
+				const session = await window.api.getSession();
+				updateAuthUI(session);
+				modal.close();
+				window.showAlert(t('dashboard.apiKeySaved'), t('common.information'));
+			} catch (error) {
+				window.showAlert(error.message);
+			}
+		});
+		
+		modal.showModal();
+	}
+	
 	function updateAuthUI(session) {
 		const authDivider = document.getElementById('auth-divider');
 		
 		if (session && session.user) {
+			// MODIFIED: Added API Key settings button to auth menu
 			authMenuSection.innerHTML = `
                 <li class="menu-title"><span>${t('dashboard.welcome', { username: session.user.username })}</span></li>
+                <li><a id="api-key-btn"><i class="bi bi-key"></i>${t('dashboard.setApiKey')}</a></li>
                 <li><a id="logout-btn"><i class="bi bi-box-arrow-right"></i>${t('dashboard.signOut')}</a></li>
             `;
 			document.getElementById('logout-btn').addEventListener('click', handleLogout);
+			document.getElementById('api-key-btn').addEventListener('click', () => promptForApiKey(session.user.openrouter_api_key));
+			
 			if (authDivider) authDivider.classList.remove('hidden');
 			
 			loadInitialData(); // Load projects only when logged in
@@ -182,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
-	// MODIFIED: This function now simply logs the user out without deleting data or showing a warning.
 	async function handleLogout() {
 		try {
 			await window.api.logout();

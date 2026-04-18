@@ -59,10 +59,10 @@
 			$html = preg_replace('/style="\s*"/i', '', $html);
 			$html = preg_replace('/class="\s*"/i', '', $html);
 
-			// MODIFIED: Remove soft hyphens (&shy;) which Word often inserts and breaks words in the editor
+			// Remove soft hyphens (&shy;) which Word often inserts and breaks words in the editor
 			$html = str_replace(['&shy;', "\xC2\xAD"], '', $html);
 
-			// MODIFIED: Safely unwrap useless <span> tags using DOMDocument
+			// Safely unwrap useless <span> tags using DOMDocument
 			if (trim($html) !== '') {
 				$dom = new DOMDocument();
 				// Suppress warnings for malformed HTML
@@ -117,9 +117,13 @@
 		}
 	}
 
-// Call OpenRouter API
-	function callOpenRouter(array $payload, ?array $logContext = null): array
+// MODIFIED: Added $apiKey parameter to use the user's specific OpenRouter API Key
+	function callOpenRouter(array $payload, ?array $logContext = null, string $apiKey = ''): array
 	{
+		if (empty($apiKey)) {
+			throw new Exception('OpenRouter API key is missing. Please set it in your account settings.');
+		}
+
 		$ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -127,7 +131,7 @@
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
-			'Authorization: Bearer ' . OPEN_ROUTER_API_KEY,
+			'Authorization: Bearer ' . $apiKey,
 			'HTTP-Referer: https://paralleleaves.com',
 			'X-Title: Parallel Leaves',
 			'Content-Type: application/json'

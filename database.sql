@@ -27,8 +27,6 @@ CREATE TABLE IF NOT EXISTS `api_logs` (
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2556 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.chapters
 CREATE TABLE IF NOT EXISTS `chapters` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -42,8 +40,6 @@ CREATE TABLE IF NOT EXISTS `chapters` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Data exporting was unselected.
 
 -- Dumping structure for table parallel_leaves.images
 CREATE TABLE IF NOT EXISTS `images` (
@@ -60,8 +56,6 @@ CREATE TABLE IF NOT EXISTS `images` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.tm_generation_jobs
 CREATE TABLE IF NOT EXISTS `tm_generation_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -76,8 +70,6 @@ CREATE TABLE IF NOT EXISTS `tm_generation_jobs` (
   KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1212 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.tm_jobs
 CREATE TABLE IF NOT EXISTS `tm_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -90,8 +82,6 @@ CREATE TABLE IF NOT EXISTS `tm_jobs` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Data exporting was unselected.
 
 -- Dumping structure for table parallel_leaves.translation_logs
 CREATE TABLE IF NOT EXISTS `translation_logs` (
@@ -109,8 +99,6 @@ CREATE TABLE IF NOT EXISTS `translation_logs` (
   KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=468 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.translation_memory_blocks
 CREATE TABLE IF NOT EXISTS `translation_memory_blocks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -123,21 +111,18 @@ CREATE TABLE IF NOT EXISTS `translation_memory_blocks` (
   UNIQUE KEY `novel_marker` (`book_id`,`marker_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.users
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `openrouter_api_key` varchar(255) DEFAULT NULL, -- MODIFIED: Added column for user API key
   `session_token` varchar(64) DEFAULT NULL,
   `token_expires_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Data exporting was unselected.
 
 -- Dumping structure for table parallel_leaves.user_books
 CREATE TABLE IF NOT EXISTS `user_books` (
@@ -159,8 +144,6 @@ CREATE TABLE IF NOT EXISTS `user_books` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10186 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.user_books_translation_memory
 CREATE TABLE IF NOT EXISTS `user_books_translation_memory` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -173,8 +156,6 @@ CREATE TABLE IF NOT EXISTS `user_books_translation_memory` (
   KEY `user_book_id` (`book_id`) USING BTREE,
   FULLTEXT KEY `source_sentence` (`source_sentence`)
 ) ENGINE=InnoDB AUTO_INCREMENT=19879 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Data exporting was unselected.
 
 -- Dumping structure for table parallel_leaves.user_book_blocks
 CREATE TABLE IF NOT EXISTS `user_book_blocks` (
@@ -189,8 +170,6 @@ CREATE TABLE IF NOT EXISTS `user_book_blocks` (
   KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1515 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Data exporting was unselected.
-
 -- Dumping structure for table parallel_leaves.user_book_codex_chunks
 CREATE TABLE IF NOT EXISTS `user_book_codex_chunks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -202,8 +181,6 @@ CREATE TABLE IF NOT EXISTS `user_book_codex_chunks` (
   UNIQUE KEY `user_book_id_chunk_index` (`book_id`,`chunk_index`) USING BTREE,
   KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Data exporting was unselected.
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
