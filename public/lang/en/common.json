@@ -28,8 +28,4 @@
   "target": "Target",
   "unknownAuthor": "Unknown Author",
   "stop": "Stop",
-  "dashboard.setApiKey": "Set API Key",
-  "dashboard.setApiKeyTitle": "OpenRouter API Key",
-  "dashboard.setApiKeyLabel": "Enter your OpenRouter API Key:",
-  "dashboard.apiKeySaved": "API Key saved successfully."
 }
