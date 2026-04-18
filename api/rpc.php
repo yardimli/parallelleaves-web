@@ -68,12 +68,12 @@
 				$result = ['success' => true];
 				break;
 			case 'templates:get':
-				$path = BASE_DIR . '/public/templates/' . $args[0] . '.html';
+				$path = BASE_DIR . '/templates/' . $args[0] . '.html';
 				$result = file_exists($path) ? file_get_contents($path) : '';
 				break;
 			case 'i18n:get-lang-file':
 				$lang = $args[0];
-				$dir = BASE_DIR . '/public/lang/' . $lang;
+				$dir = BASE_DIR . '/lang/' . $lang;
 				$merged = [];
 				if (is_dir($dir)) {
 					foreach (glob($dir . '/*.json') as $file) {

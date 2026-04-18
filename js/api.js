@@ -3,8 +3,8 @@ let codexFinishedCb = null;
 let tmUpdateCb = null;
 let coverUpdatedCb = null;
 
-const RPC_ENDPOINT = '../api/rpc.php';
-const UPLOAD_ENDPOINT = '../api/upload.php';
+const RPC_ENDPOINT = 'api/rpc.php';
+const UPLOAD_ENDPOINT = 'api/upload.php';
 
 async function rpcInvoke(channel, ...args) {
 	const res = await fetch(RPC_ENDPOINT, {
