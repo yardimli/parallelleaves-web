@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title data-i18n="import.title">Parallel Leaves - Import Document</title>
+	<link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="../dist/styles.css">
+</head>
+<body class="h-full bg-base-100 text-base-content overflow-hidden flex flex-col">
+<!-- Header -->
+<div class="flex-shrink-0 p-4 border-b border-base-300 space-y-4">
+	<div class="flex justify-between items-center">
+		<h1 class="text-2xl font-bold" data-i18n="import.title">Import Document for Translation</h1>
+		<div class="flex items-center gap-2">
+			<button id="js-search-btn" class="btn btn-ghost btn-square" data-i18n-title="editor.search">
+				<i class="bi bi-search text-lg"></i>
+			</button>
+			<div class="join">
+				<button id="prev-mark-btn" class="btn btn-neutral join-item" disabled data-i18n-title="import.prevMark">
+					<i class="bi bi-arrow-up"></i>
+				</button>
+				<button id="next-mark-btn" class="btn btn-neutral join-item" disabled data-i18n-title="import.nextMark">
+					<i class="bi bi-arrow-down"></i>
+				</button>
+			</div>
+			<button id="auto-detect-btn" class="btn btn-neutral" disabled>
+				<i class="bi bi-magic"></i> <span data-i18n="import.autoDetect">Auto-detect Chapters</span>
+			</button>
+			<button id="auto-split-btn" class="btn btn-neutral" disabled>
+				<i class="bi bi-scissors"></i> <span data-i18n="import.autoSplit">Auto-split Chapters</span>
+			</button>
+			<button id="select-file-btn" class="btn btn-primary">
+				<i class="bi bi-file-earmark-text"></i> <span data-i18n="import.selectFile">Select File (.txt, .docx)</span>
+			</button>
+		</div>
+	</div>
+	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+		<div class="form-control">
+			<label for="title" class="label"><span class="label-text" data-i18n="import.projectTitle">Project Title</span></label>
+			<input type="text" id="title" name="title" class="input input-bordered" required>
+		</div>
+		<div class="form-control">
+			<label for="source_language" class="label"><span class="label-text" data-i18n="import.sourceLanguage">Source Language</span></label>
+			<select id="source_language" name="source_language" class="select select-bordered" required>
+				<!-- Options populated by JS -->
+			</select>
+		</div>
+		<div class="form-control">
+			<label for="target_language" class="label"><span class="label-text" data-i18n="import.targetLanguage">Target Language</span></label>
+			<select id="target_language" name="target_language" class="select select-bordered" required>
+				<!-- Options populated by JS -->
+			</select>
+		</div>
+	</div>
+</div>
+
+<div id="js-search-bar" class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
+	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs" data-i18n-placeholder="editor.searchBar.placeholder">
+	<div class="flex items-center gap-1">
+		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous" disabled>
+			<i class="bi bi-chevron-up"></i>
+		</button>
+		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next" disabled>
+			<i class="bi bi-chevron-down"></i>
+		</button>
+	</div>
+	<span id="js-search-results-count" class="text-sm text-base-content/70 w-24 text-center"></span>
+	<div class="flex-grow"></div>
+	<button id="js-search-close-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.close">
+		<i class="bi bi-x-lg"></i>
+	</button>
+</div>
+
+<!-- Main Content -->
+<div id="document-content-wrapper" class="flex-grow overflow-y-auto p-8 prose max-w-none">
+	<div id="document-content" class="space-y-4">
+		<div class="text-center text-base-content/60 py-16">
+			<i class="bi bi-book text-6xl"></i>
+			<p class="mt-4" data-i18n="import.begin">Select a file to begin.</p>
+		</div>
+	</div>
+</div>
+
+<!-- Footer -->
+<div class="flex-shrink-0 p-4 border-t border-base-300 flex justify-between items-center">
+	<div class="text-sm text-base-content/70">
+		<p><i class="bi bi-info-circle-fill"></i> <span data-i18n="import.instructions">Click any paragraph to mark it as the start of a new chapter.</span></p>
+		<p id="js-import-status" class="font-bold mt-1" data-i18n="import.status">No content to import.</p>
+	</div>
+	<button id="start-import-btn" class="btn btn-accent w-48" disabled>
+		<span class="js-btn-content" data-i18n="import.startImport">Start Import</span>
+		<span class="js-btn-spinner animate-spin hidden">
+                <i class="bi bi-arrow-repeat"></i>
+            </span>
+	</button>
+</div>
+
+<!-- Pop-up menu for selecting break type -->
+<div id="break-type-popover" class="hidden absolute z-50">
+	<ul class="menu p-2 shadow-lg bg-base-200 rounded-box w-48">
+		<li><button data-action="set-chapter"><i class="bi bi-card-text"></i> <span data-i18n="import.newChapter">New Chapter</span></button></li>
+		<div class="divider my-1"></div>
+		<li data-action="remove-break"><button><i class="bi bi-x-circle"></i> <span data-i18n="import.removeBreak">Remove Break</span></button></li>
+	</ul>
+</div>
+
+<dialog id="alert-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-md">
+		<h3 id="alert-modal-title" class="font-bold text-lg text-error" data-i18n="common.information">Information</h3>
+		<p id="alert-modal-content" class="py-4"></p>
+		<div class="modal-action">
+			<form method="dialog">
+				<button class="btn" data-i18n="common.close">Close</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<dialog id="auto-detect-modal" class="modal">
+	<div class="modal-box">
+		<h3 class="font-bold text-lg" data-i18n="import.autoDetectModal.title">Auto-detection Options</h3>
+		<div id="auto-detect-form" class="py-4 space-y-4">
+			<div class="form-control">
+				<label class="label cursor-pointer">
+					<div>
+						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.numericLabel">Numeric or Roman Numerals</span>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.numericDesc">Detects lines containing only a number (e.g., "2", "IV").</p>
+					</div>
+					<input type="checkbox" id="detect-numeric" class="toggle toggle-primary" checked />
+				</label>
+			</div>
+			<div class="form-control">
+				<label class="label cursor-pointer">
+					<div>
+						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.keywordLabel">Keywords (Chapter)</span>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.keywordDesc">Detects lines starting with "Chapter".</p>
+					</div>
+					<input type="checkbox" id="detect-keyword" class="toggle toggle-primary" checked />
+				</label>
+			</div>
+			<div class="form-control">
+				<label class="label cursor-pointer">
+					<div>
+						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.allCapsLabel">All-Caps Lines</span>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.allCapsDesc">Detects short lines (under 50 chars) written entirely in uppercase.</p>
+					</div>
+					<input type="checkbox" id="detect-all-caps" class="toggle toggle-primary" />
+				</label>
+			</div>
+		</div>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-2">
+				<button class="btn" data-i18n="common.cancel">Cancel</button>
+				<button id="run-detection-btn" type="button" class="btn btn-primary" data-i18n="import.autoDetectModal.runDetection">Run Detection</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<div id="import-overlay" class="hidden fixed inset-0 bg-base-100/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
+	<span class="loading loading-spinner loading-lg"></span>
+	<p id="import-overlay-status" class="text-lg font-semibold"></p>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/src/js/theme.js"></script>
+<script type="module" src="/src/js/import-document.js"></script>
+</body>
+</html>

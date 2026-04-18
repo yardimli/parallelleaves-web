@@ -1,0 +1,17 @@
+/node_modules
+public/styles.css
+package-lock.json
+.env
+server/.env
+/.idea
+.scp/settings.yaml
+/dist
+/release
+parallelleaves.code-workspace
+/.vscode
+/userData/documents/ParallelLeaves/Backups
+userData/app.db
+userData/app.db-shm
+userData/app.db-wal
+userData/session.json
+/userData

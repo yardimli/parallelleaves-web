@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title id="app-title">Parallel Leaves</title>
+	<link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="../dist/styles.css">
+</head>
+<body>
+<div class="container mx-auto p-8">
+	<div class="flex justify-between items-center mb-8">
+		<h1 class="text-2xl font-bold" data-i18n="dashboard.title">My Translation Projects</h1>
+		
+		<div class="flex items-center gap-2">
+			<!-- Refresh Page Button -->
+			<button id="js-refresh-page-btn" class="btn btn-ghost btn-circle" data-i18n-title="common.refresh">
+				<i class="bi bi-arrow-clockwise text-2xl"></i>
+			</button>
+			
+			<!-- Theme Toggle Button -->
+			<button id="theme-toggle" class="btn btn-ghost btn-circle" data-i18n-title="common.changeTheme">
+				<i class="bi bi-sun-fill text-2xl"></i>
+			</button>
+			
+			<!-- Hamburger Menu Dropdown -->
+			<div class="dropdown dropdown-end">
+				<button tabindex="0" role="button" class="btn btn-ghost btn-circle">
+					<i class="bi bi-list text-3xl"></i>
+				</button>
+				<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-56 mt-4">
+					<!-- Auth section is populated by JS -->
+					<div id="auth-menu-section"></div>
+					
+					<!-- Divider is shown/hidden by JS -->
+					<div class="divider my-1" id="auth-divider"></div>
+					
+					<!-- Project Creation -->
+					<li>
+						<a id="new-project-btn-menu">
+							<i class="bi bi-file-earmark-plus"></i>
+							<span data-i18n="dashboard.newProject">New Blank Project</span>
+						</a>
+					</li>
+					<li>
+						<a id="import-doc-btn-menu">
+							<i class="bi bi-file-earmark-arrow-up"></i>
+							<span data-i18n="dashboard.importDocument">Import Document</span>
+						</a>
+					</li>
+					
+					<div class="divider my-1"></div>
+					
+					<!-- Restore Backup -->
+					<li>
+						<a id="restore-backup-btn-menu">
+							<i class="bi bi-upload"></i>
+							<span data-i18n="dashboard.restoreBackup">Restore Backup</span>
+						</a>
+					</li>
+					
+					<div class="divider my-1"></div>
+					
+					<!-- Language Switcher Submenu -->
+					<li>
+						<a>
+							<i class="bi bi-translate"></i>
+							<span data-i18n="common.changeLanguage">Change Language</span>
+							<i class="bi bi-chevron-right ml-auto"></i>
+						</a>
+						<ul id="js-lang-switcher-menu" class="p-2 bg-base-300">
+							<!-- Populated by i18n.js -->
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	
+	<div id="novel-list" class="flex flex-col gap-6">
+		<p id="loading-message" data-i18n="dashboard.loadingProjects">Loading projects...</p>
+	</div>
+</div>
+
+<dialog id="prose-settings-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-2xl">
+		<h3 class="font-bold text-lg" data-i18n="dashboard.proseSettings.title">Language Settings</h3>
+		<p class="py-4 text-sm text-base-content/70" data-i18n="dashboard.proseSettings.description">These settings define the source and target languages for the project and AI tools.</p>
+		<form id="prose-settings-form" class="space-y-4">
+			<input type="hidden" id="prose-novel-id" name="novelId">
+			
+			<div class="form-control">
+				<label for="prose_source_language" class="label"><span class="label-text" data-i18n="dashboard.proseSettings.sourceLanguage">Source Language</span></label>
+				<select id="prose_source_language" name="prose_source_language" class="select select-bordered">
+					<!-- Options populated by JS -->
+				</select>
+				<div class="label">
+					<span class="label-text-alt" data-i18n="dashboard.proseSettings.sourceLanguageHelp">The original language of the document.</span>
+				</div>
+			</div>
+			
+			<div class="form-control">
+				<label for="prose_target_language" class="label"><span class="label-text" data-i18n="dashboard.proseSettings.targetLanguage">Target Language</span></label>
+				<select id="prose_target_language" name="prose_target_language" class="select select-bordered">
+					<!-- Options populated by JS -->
+				</select>
+				<div class="label">
+					<span class="label-text-alt" data-i18n="dashboard.proseSettings.targetLanguageHelp">The language to translate into. Used for spell checking and AI generation.</span>
+				</div>
+			</div>
+		
+		</form>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-3">
+				<button class="btn" data-i18n="common.cancel">Cancel</button>
+				<button id="save-prose-settings-btn" class="btn btn-primary" data-i18n="dashboard.proseSettings.saveButton">Save Settings</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<dialog id="meta-settings-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-3xl">
+		<h3 class="font-bold text-lg" data-i18n="dashboard.metaSettings.title">Edit Project Details</h3>
+		
+		<div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
+			<div class="space-y-4 md:col-span-7">
+				<form id="meta-settings-form">
+					<input type="hidden" id="meta-novel-id" name="novelId">
+					
+					<!-- Title -->
+					<div class="form-control">
+						<label for="meta-title" class="label"><span class="label-text" data-i18n="dashboard.metaSettings.projectTitle">Title</span></label>
+						<input type="text" id="meta-title" name="title" class="input input-bordered" required>
+					</div>
+					
+					<!-- Author -->
+					<div class="form-control">
+						<label for="meta-author" class="label"><span class="label-text" data-i18n="dashboard.metaSettings.author">Author</span></label>
+						<input type="text" id="meta-author" name="author" class="input input-bordered" required>
+					</div>
+				</form>
+				
+				<!-- AI Generation controls (hidden by default) -->
+				<div id="meta-ai-gen-controls" class="hidden space-y-2">
+					<div class="form-control">
+						<label for="meta-ai-prompt" class="label"><span class="label-text" data-i18n="dashboard.generateCover.prompt">Image Prompt</span></label>
+						<textarea id="meta-ai-prompt" class="textarea textarea-bordered h-24" placeholder="A lone astronaut on a red planet..."></textarea>
+					</div>
+					<div class="flex gap-2 justify-start">
+						<button id="cancel-generate-cover-btn" type="button" class="btn btn-ghost" data-i18n="common.cancel">Cancel</button>
+						<button id="run-generate-cover-btn" type="button" class="btn btn-accent w-40">
+							<span class="js-btn-content flex items-center gap-2"><i class="bi bi-stars"></i> <span data-i18n="dashboard.generateCover.generate">Generate</span></span>
+							<span class="js-btn-spinner animate-spin hidden"><i class="bi bi-arrow-repeat"></i></span>
+						</button>
+					</div>
+				</div>
+			</div>
+			
+			<!-- Right Column: Cover Art (2/5 width) -->
+			<div class="space-y-4 md:col-span-5 relative">
+				<div id="meta-cover-actions" class="absolute top-2 left-2 z-10 flex gap-2">
+					<button id="generate-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Generate AI Cover" data-i18n-title="dashboard.metaSettings.generateCover">
+						<i class="bi bi-magic text-xl"></i>
+					</button>
+					<button id="upload-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Upload Cover" data-i18n-title="dashboard.metaSettings.uploadCover">
+						<i class="bi bi-upload text-xl"></i>
+					</button>
+				</div>
+				
+				<div id="meta-cover-preview" class="rounded-lg overflow-hidden w-full mx-auto bg-base-300 flex items-center justify-center min-h-48 text-base-content/50">
+					<!-- Preview image will be inserted here by JS -->
+					<span data-i18n="dashboard.metaSettings.noCover">No new cover selected</span>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Danger Zone (Full Width) -->
+		<div class="divider" data-i18n="dashboard.metaSettings.dangerZone">Danger Zone</div>
+		<div class="flex justify-between items-center bg-error/10 p-4 rounded-lg">
+			<p class="text-sm" data-i18n="dashboard.metaSettings.dangerZoneDesc">Permanently delete this project and all its content.</p>
+			<button id="delete-novel-btn" class="btn btn-error" data-i18n="dashboard.metaSettings.deleteProject">Delete Project</button>
+		</div>
+		
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-3">
+				<button class="btn" data-i18n="common.cancel">Cancel</button>
+				<button id="save-meta-settings-btn" class="btn btn-primary" data-i18n="dashboard.metaSettings.saveButton">Save Changes</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<!-- NEW MODAL: For creating a new blank project -->
+<dialog id="new-project-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-lg">
+		<h3 class="font-bold text-lg" data-i18n="dashboard.newProjectModal.title">Create New Blank Project</h3>
+		<p class="py-4 text-sm text-base-content/70" data-i18n="dashboard.newProjectModal.description">Provide a title and languages for your new project. It will be created with a default structure of 3 acts and 10 chapters per act.</p>
+		<form id="new-project-form" class="space-y-4">
+			<div class="form-control">
+				<label for="new-project-title" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.projectTitle">Project Title</span></label>
+				<input type="text" id="new-project-title" name="title" class="input input-bordered" required>
+			</div>
+			<div class="form-control">
+				<label for="new-project-source-language" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.sourceLanguage">Source Language</span></label>
+				<select id="new-project-source-language" name="source_language" class="select select-bordered" required>
+					<!-- Options populated by JS -->
+				</select>
+			</div>
+			<div class="form-control">
+				<label for="new-project-target-language" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.targetLanguage">Target Language</span></label>
+				<select id="new-project-target-language" name="target_language" class="select select-bordered" required>
+					<!-- Options populated by JS -->
+				</select>
+			</div>
+		</form>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-3 w-full">
+				<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
+				<button id="create-project-btn" type="submit" form="new-project-form" class="btn btn-primary flex-1" data-i18n="dashboard.newProjectModal.createButton">Create Project</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<dialog id="alert-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-md">
+		<h3 id="alert-modal-title" class="font-bold text-lg text-error" data-i18n="common.error">Error</h3>
+		<p id="alert-modal-content" class="py-4"></p>
+		<div class="modal-action">
+			<form method="dialog">
+				<button class="btn" data-i18n="common.close">Close</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<dialog id="update-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-md">
+		<h3 id="update-modal-title" class="font-bold text-lg" data-i18n="dashboard.update.title">Update Available</h3>
+		<p id="update-modal-content" class="py-4"></p>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-3 w-full">
+				<button class="btn flex-1" data-i18n="common.close">Later</button>
+				<a id="update-modal-link" href="#" class="btn btn-primary flex-1" data-i18n="dashboard.update.updateNow">Update Now</a>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<dialog id="login-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-sm">
+		<h3 class="font-bold text-lg" data-i18n="dashboard.login.title">Sign In</h3>
+		<form id="login-form" class="space-y-4 py-4">
+			<div class="form-control">
+				<label for="login-username" class="label"><span class="label-text" data-i18n="dashboard.login.username">Username</span></label>
+				<input type="text" id="login-username" name="username" class="input input-bordered" required>
+			</div>
+			<div class="form-control">
+				<label for="login-password" class="label"><span class="label-text" data-i18n="dashboard.login.password">Password</span></label>
+				<input type="password" id="login-password" name="password" class="input input-bordered" required>
+			</div>
+			<div class="form-control">
+				<label for="login-language" class="label"><span class="label-text" data-i18n="common.changeLanguage">Change Language</span></label>
+				<select id="login-language" name="language" class="select select-bordered">
+					<!-- Populated by JS -->
+				</select>
+			</div>
+			<p id="login-error-message" class="text-error text-sm hidden"></p>
+		</form>
+		<div class="text-center text-sm mt-4">
+			<span data-i18n="dashboard.login.noAccount">Don't have an account?</span>
+			<a id="signup-link" href="#" class="link link-primary" data-i18n="dashboard.login.signUp">Sign Up</a>
+		</div>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-3 w-full">
+				<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
+				<button id="login-submit-btn" type="submit" form="login-form" class="btn btn-primary flex-1" data-i18n="dashboard.login.signIn">Sign In</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
+<script src="/js/api.js"></script>
+<script src="/src/js/theme.js"></script>
+<script type="module" src="/src/js/dashboard.js"></script>
+</body>
+</html>

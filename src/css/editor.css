@@ -1,0 +1,196 @@
+i[class^="bi-"], i[class*=" bi-"] {
+    display: inline-flex;
+    align-items: center;
+}
+
+.ai-suggestion {
+    @apply text-sky-600 dark:text-sky-400 bg-sky-500/10;
+}
+
+#ai-floating-toolbar {
+    @apply absolute z-50 bg-gray-800 text-white rounded-md shadow-lg p-1 flex items-center gap-1 text-xs;
+    user-select: none;
+}
+
+#ai-floating-toolbar button {
+    @apply btn btn-ghost btn-xs text-white hover:bg-gray-700 normal-case font-normal flex items-center gap-1;
+}
+
+#ai-floating-toolbar .divider-vertical {
+    @apply w-px h-4 bg-gray-600 mx-1;
+}
+
+#top-toolbar .js-toolbar-btn {
+    @apply p-2 rounded text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors;
+}
+
+#top-toolbar .js-toolbar-btn:disabled {
+    @apply text-gray-400 dark:text-gray-500 bg-transparent cursor-not-allowed hover:bg-transparent dark:hover:bg-transparent;
+}
+
+#top-toolbar .js-toolbar-btn.active {
+    @apply bg-gray-300 dark:bg-gray-600;
+}
+
+#top-toolbar .js-toolbar-btn svg {
+    @apply w-4 h-4;
+}
+
+.highlight-yellow {
+    background-color: #fef08a;
+    color: #713f12;
+}
+.highlight-green {
+    background-color: #a7f3d0;
+    color: #14532d;
+}
+.highlight-blue {
+    background-color: #bfdbfe;
+    color: #1e3a8a;
+}
+.highlight-red {
+    background-color: #fecaca;
+    color: #7f1d1d;
+}
+
+.search-highlight {
+    @apply bg-primary/30 text-primary-content rounded px-0.5;
+}
+
+.search-highlight-active {
+    @apply bg-accent text-accent-content;
+}
+
+.search-replace-highlight {
+    @apply bg-amber-400/30 text-amber-900 dark:text-amber-100 rounded px-0.5;
+}
+
+.search-replace-highlight-active {
+    @apply bg-amber-500 text-white dark:text-black;
+}
+
+#js-search-replace-bar #js-case-sensitive-btn.active {
+    @apply bg-primary/20 text-primary;
+}
+
+
+.ProseMirror {
+    @apply min-h-full focus:outline-none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    @apply text-gray-400 dark:text-gray-500 italic pointer-events-none h-0;
+}
+
+.prose .ProseMirror {
+    @apply p-0 focus:ring-0;
+}
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    @apply w-3 h-3;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded-full border-2 border-solid border-gray-800;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+/* Styles for the Import Document page */
+#document-content-wrapper.prose, .js-pm-container.prose { /* Override to make the content area full-width */
+    max-width: none !important;
+}
+
+#document-content p {
+    @apply cursor-pointer px-2 py-1 rounded-md transition-colors duration-200 ease-in-out;
+}
+
+#document-content p:hover {
+    @apply bg-base-200;
+}
+
+.chapter-break-marker {
+    @apply relative py-2 my-4 cursor-pointer;
+}
+
+.chapter-break-marker {
+    @apply border-t-2 border-dashed border-accent;
+}
+
+.chapter-break-marker::before {
+    @apply block font-bold uppercase mb-1;
+}
+
+.chapter-break-marker::before {
+    content: 'New Chapter';
+    @apply text-xs text-accent;
+}
+
+.break-title {
+    @apply font-semibold text-lg text-base-content;
+}
+
+
+/* Styles for the pop-up menu */
+#break-type-popover .menu button {
+    @apply w-full flex justify-start;
+}
+
+/* OPTIONAL: If performance issues arise, consider re-adding this rule with caution.
+   This rule was preventing off-screen iframes from rendering their content,
+   leading to incorrect height calculations and breaking scroll synchronization.
+   Removing it ensures the full content height is available on load. */
+/*
+.ProseMirror > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto;
+}
+*/
+
+.translation-marker-link {
+    @apply text-purple-600 dark:text-purple-400 font-mono border-b border-dotted border-purple-600/50 dark:border-purple-400/50 hover:bg-purple-500/10;
+    text-decoration: none !important; /* Override prose styles */
+    cursor: pointer;
+}
+
+.floating-translate-btn {
+    @apply btn btn-circle btn-sm btn-outline btn-accent z-50 bg-base-100/80 backdrop-blur-sm;
+}
+
+/* Style for the "active" but read-only source content div */
+.source-content-readonly[contenteditable="true"] {
+    @apply ring-2 ring-accent focus:outline-none rounded-md p-2 -m-2;
+}
+
+@layer base {
+    .prose {
+        font-family: var(--editor-font-family, 'Noto Serif', serif);
+        font-size: var(--editor-font-size, 1.1rem) !important;
+        max-width: var(--editor-page-width, 48rem) !important;
+        text-align: var(--editor-text-align, left) !important;
+    }
+
+    .prose p {
+        margin-top: var(--editor-paragraph-spacing, 0.75em);
+        margin-bottom: var(--editor-paragraph-spacing, 0.75em);
+        line-height: var(--editor-line-height, 1.65);
+    }
+
+    .prose p + p {
+        text-indent: var(--editor-text-indent, 1.5em);
+    }
+}
+
+i[class^="bi-"], i[class*=" bi-"] {
+    display: inline-flex;
+    align-items: center;
+}

@@ -1,0 +1,17 @@
+<dialog id="confirmation-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-md">
+		<h3 id="confirmation-modal-title" class="font-bold text-lg"></h3>
+		<p id="confirmation-modal-content" class="py-4"></p>
+		<div class="modal-action">
+			<form method="dialog" class="w-full flex justify-between items-center gap-3">
+				<button id="confirmation-modal-decline-btn" class="btn btn-ghost hidden" data-i18n="editor.declineSession">Don't ask again</button>
+				<!-- This div groups the primary actions to the right. -->
+				<div class="flex gap-3">
+					<button id="confirmation-modal-cancel-btn" class="btn flex-1" data-i18n="common.cancel">Cancel</button>
+					<button id="confirmation-modal-confirm-btn" class="btn btn-error flex-1" data-i18n="editor.confirmModalBtn">Confirm</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</dialog>
+
