@@ -2,13 +2,13 @@
 
 @font-face {
     font-family: 'Noto Serif';
-    src: url('../public/fonts/NotoSerif-VariableFont_wdth,wght.ttf') format('truetype');
+    src: url('../fonts/NotoSerif-VariableFont_wdth,wght.ttf') format('truetype');
     font-weight: 100 900;
     font-style: normal;
 }
 @font-face {
     font-family: 'Noto Serif';
-    src: url('../public/fonts/NotoSerif-Italic-VariableFont_wdth,wght.ttf') format('truetype');
+    src: url('../fonts/NotoSerif-Italic-VariableFont_wdth,wght.ttf') format('truetype');
     font-weight: 100 900;
     font-style: italic;
 }
@@ -17,25 +17,25 @@
 /* Zilla Slab is a static font, so we define each style separately. */
 @font-face {
     font-family: 'Zilla Slab';
-    src: url('../public/fonts/ZillaSlab-Regular.ttf') format('truetype');
+    src: url('../fonts/ZillaSlab-Regular.ttf') format('truetype');
     font-weight: normal; /* or 400 */
     font-style: normal;
 }
 @font-face {
     font-family: 'Zilla Slab';
-    src: url('../public/fonts/ZillaSlab-Italic.ttf') format('truetype');
+    src: url('../fonts/ZillaSlab-Italic.ttf') format('truetype');
     font-weight: normal; /* or 400 */
     font-style: italic;
 }
 @font-face {
     font-family: 'Zilla Slab';
-    src: url('../public/fonts/ZillaSlab-Bold.ttf') format('truetype');
+    src: url('../fonts/ZillaSlab-Bold.ttf') format('truetype');
     font-weight: bold; /* or 700 */
     font-style: normal;
 }
 @font-face {
     font-family: 'Zilla Slab';
-    src: url('../public/fonts/ZillaSlab-BoldItalic.ttf') format('truetype');
+    src: url('../fonts/ZillaSlab-BoldItalic.ttf') format('truetype');
     font-weight: bold; /* or 700 */
     font-style: italic;
 }
@@ -44,7 +44,7 @@
 /* Roboto Serif is a variable font. */
 @font-face {
     font-family: 'Roboto Serif';
-    src: url('../public/fonts/RobotoSerif-VariableFont_GRAD,opsz,wdth,wght.ttf') format('truetype');
+    src: url('../fonts/RobotoSerif-VariableFont_GRAD,opsz,wdth,wght.ttf') format('truetype');
     font-weight: 100 900;
     font-style: normal;
 }
@@ -52,7 +52,7 @@
 /* Literata is a variable font. */
 @font-face {
     font-family: 'Literata';
-    src: url('../public/fonts/Literata-VariableFont_opsz,wght.ttf') format('truetype');
+    src: url('../fonts/Literata-VariableFont_opsz,wght.ttf') format('truetype');
     font-weight: 200 900;
     font-style: normal;
 }
@@ -62,25 +62,25 @@
 /* Barlow is a static font. */
 @font-face {
     font-family: 'Barlow';
-    src: url('../public/fonts/Barlow-Regular.ttf') format('truetype');
+    src: url('../fonts/Barlow-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'Barlow';
-    src: url('../public/fonts/Barlow-Italic.ttf') format('truetype');
+    src: url('../fonts/Barlow-Italic.ttf') format('truetype');
     font-weight: normal;
     font-style: italic;
 }
 @font-face {
     font-family: 'Barlow';
-    src: url('../public/fonts/Barlow-Bold.ttf') format('truetype');
+    src: url('../fonts/Barlow-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }
 @font-face {
     font-family: 'Barlow';
-    src: url('../public/fonts/Barlow-BoldItalic.ttf') format('truetype');
+    src: url('../fonts/Barlow-BoldItalic.ttf') format('truetype');
     font-weight: bold;
     font-style: italic;
 }
@@ -89,7 +89,7 @@
 /* Exo 2 is a variable font. */
 @font-face {
     font-family: 'Exo 2';
-    src: url('../public/fonts/Exo2-VariableFont_wght.ttf') format('truetype');
+    src: url('../fonts/Exo2-VariableFont_wght.ttf') format('truetype');
     font-weight: 100 900;
     font-style: normal;
 }
@@ -97,25 +97,25 @@
 /* Atkinson Hyperlegible is a static font. */
 @font-face {
     font-family: 'Atkinson Hyperlegible';
-    src: url('../public/fonts/AtkinsonHyperlegible-Regular.ttf') format('truetype');
+    src: url('../fonts/AtkinsonHyperlegible-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'Atkinson Hyperlegible';
-    src: url('../public/fonts/AtkinsonHyperlegible-Italic.ttf') format('truetype');
+    src: url('../fonts/AtkinsonHyperlegible-Italic.ttf') format('truetype');
     font-weight: normal;
     font-style: italic;
 }
 @font-face {
     font-family: 'Atkinson Hyperlegible';
-    src: url('../public/fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
+    src: url('../fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }
 @font-face {
     font-family: 'Atkinson Hyperlegible';
-    src: url('../public/fonts/AtkinsonHyperlegible-BoldItalic.ttf') format('truetype');
+    src: url('../fonts/AtkinsonHyperlegible-BoldItalic.ttf') format('truetype');
     font-weight: bold;
     font-style: italic;
 }
@@ -126,25 +126,25 @@
 /* iA Writer Duospace is a static font. */
 @font-face {
     font-family: 'iA Writer Duospace';
-    src: url('../public/fonts/iAWriterDuoS-Regular.ttf') format('truetype');
+    src: url('../fonts/iAWriterDuoS-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'iA Writer Duospace';
-    src: url('../public/fonts/iAWriterDuoS-Italic.ttf') format('truetype');
+    src: url('../fonts/iAWriterDuoS-Italic.ttf') format('truetype');
     font-weight: normal;
     font-style: italic;
 }
 @font-face {
     font-family: 'iA Writer Duospace';
-    src: url('../public/fonts/iAWriterDuoS-Bold.ttf') format('truetype');
+    src: url('../fonts/iAWriterDuoS-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }
 @font-face {
     font-family: 'iA Writer Duospace';
-    src: url('../public/fonts/iAWriterDuoS-BoldItalic.ttf') format('truetype');
+    src: url('../fonts/iAWriterDuoS-BoldItalic.ttf') format('truetype');
     font-weight: bold;
     font-style: italic;
 }
@@ -153,7 +153,7 @@
 /* Recursive is a variable font. */
 @font-face {
     font-family: 'Recursive';
-    src: url('../public/fonts/Recursive-VariableFont_CASL,CRSV,MONO,slnt,wght.ttf') format('truetype');
+    src: url('../fonts/Recursive-VariableFont_CASL,CRSV,MONO,slnt,wght.ttf') format('truetype');
     font-weight: 300 1000;
     font-style: normal;
 }
@@ -161,25 +161,25 @@
 /* Courier Prime is a static font. */
 @font-face {
     font-family: 'Courier Prime';
-    src: url('../public/fonts/CourierPrime-Regular.ttf') format('truetype');
+    src: url('../fonts/CourierPrime-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
 @font-face {
     font-family: 'Courier Prime';
-    src: url('../public/fonts/CourierPrime-Italic.ttf') format('truetype');
+    src: url('../fonts/CourierPrime-Italic.ttf') format('truetype');
     font-weight: normal;
     font-style: italic;
 }
 @font-face {
     font-family: 'Courier Prime';
-    src: url('../public/fonts/CourierPrime-Bold.ttf') format('truetype');
+    src: url('../fonts/CourierPrime-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }
 @font-face {
     font-family: 'Courier Prime';
-    src: url('../public/fonts/CourierPrime-BoldItalic.ttf') format('truetype');
+    src: url('../fonts/CourierPrime-BoldItalic.ttf') format('truetype');
     font-weight: bold;
     font-style: italic;
 }
