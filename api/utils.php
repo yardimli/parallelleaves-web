@@ -106,7 +106,7 @@
 	}
 
 // Log API interactions to the database
-	function logInteraction(PDO $db, int $userId, string $action, ?array $requestPayload, string $responseBody, int $responseCode): void
+	function logInteraction($db, int $userId, string $action, ?array $requestPayload, string $responseBody, int $responseCode): void
 	{
 		try {
 			$stmt = $db->prepare('INSERT INTO api_logs (user_id, action, request_payload, response_body, response_code) VALUES (?, ?, ?, ?, ?)');
