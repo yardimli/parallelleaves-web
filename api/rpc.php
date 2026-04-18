@@ -830,29 +830,58 @@
 			case 'codex:reset':
 				$bookId = $args[0];
 				$db->prepare("UPDATE user_books SET codex_content = NULL, codex_status = 'none', codex_chunks_total = 0, codex_chunks_processed = 0 WHERE id = ? AND user_id = ?")->execute([$bookId, $userId]);
+
+				// MODIFIED: Added deletion of chunks to ensure a fresh start on reset
+				$db->prepare("DELETE FROM user_book_codex_chunks WHERE book_id = ?")->execute([$bookId]);
+
 				$result = ['success' => true];
 				break;
 			case 'codex:start':
 				$bookId = $args[0];
-				$stmt = $db->prepare('SELECT source_content FROM chapters WHERE book_id = ?');
+
+				// MODIFIED: Check if chunks already exist to prevent overwriting progress
+				$stmt = $db->prepare('SELECT COUNT(*) as total, SUM(is_processed) as processed FROM user_book_codex_chunks WHERE book_id = ?');
 				$stmt->execute([$bookId]);
-				$chapters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-				$fullText = '';
-				foreach ($chapters as $c) {
-					$fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
-				}
-				$words = preg_split('/\s+/', $fullText);
-				$chunks = array_chunk($words, 8000);
-				$totalChunks = count($chunks);
+				$chunkStats = $stmt->get_result()->fetch_assoc();
 
-				$db->prepare('DELETE FROM user_book_codex_chunks WHERE book_id = ?')->execute([$bookId]);
-				$stmt = $db->prepare('INSERT INTO user_book_codex_chunks (book_id, chunk_index, chunk_text, is_processed) VALUES (?, ?, ?, 0)');
-				foreach ($chunks as $i => $chunk) {
-					$stmt->execute([$bookId, $i, implode(' ', $chunk)]);
-				}
+				if ($chunkStats && $chunkStats['total'] > 0) {
+					// Chunks exist, resume processing
+					$totalChunks = (int)$chunkStats['total'];
+					$processedChunks = (int)$chunkStats['processed'];
 
-				$db->prepare("UPDATE user_books SET codex_status = 'generating', codex_chunks_total = ?, codex_chunks_processed = 0 WHERE id = ?")->execute([$totalChunks, $bookId]);
-				$result = ['status' => 'generating'];
+					if ($processedChunks >= $totalChunks) {
+						$db->prepare("UPDATE user_books SET codex_status = 'complete', codex_chunks_total = ?, codex_chunks_processed = ? WHERE id = ?")->execute([$totalChunks, $processedChunks, $bookId]);
+						$result = ['status' => 'complete'];
+					} else {
+						$db->prepare("UPDATE user_books SET codex_status = 'generating', codex_chunks_total = ?, codex_chunks_processed = ? WHERE id = ?")->execute([$totalChunks, $processedChunks, $bookId]);
+						$result = ['status' => 'generating'];
+					}
+				} else {
+					// No chunks exist, create them
+					$stmt = $db->prepare('SELECT source_content FROM chapters WHERE book_id = ?');
+					$stmt->execute([$bookId]);
+					$chapters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+					$fullText = '';
+					foreach ($chapters as $c) {
+						$fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
+					}
+					$words = preg_split('/\s+/', $fullText);
+					$chunks = array_chunk($words, 8000);
+					$totalChunks = count($chunks);
+
+					if ($totalChunks > 0) {
+						$stmt = $db->prepare('INSERT INTO user_book_codex_chunks (book_id, chunk_index, chunk_text, is_processed) VALUES (?, ?, ?, 0)');
+						foreach ($chunks as $i => $chunk) {
+							$stmt->execute([$bookId, $i, implode(' ', $chunk)]);
+						}
+
+						$db->prepare("UPDATE user_books SET codex_status = 'generating', codex_chunks_total = ?, codex_chunks_processed = 0 WHERE id = ?")->execute([$totalChunks, $bookId]);
+						$result = ['status' => 'generating'];
+					} else {
+						$db->prepare("UPDATE user_books SET codex_status = 'complete', codex_chunks_total = 0, codex_chunks_processed = 0 WHERE id = ?")->execute([$bookId]);
+						$result = ['status' => 'complete'];
+					}
+				}
 				break;
 			case 'codex:process-batch':
 				$bookId = $args[0];
