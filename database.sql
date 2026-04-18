@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `images` (
 -- Dumping structure for table parallel_leaves.tm_generation_jobs
 CREATE TABLE IF NOT EXISTS `tm_generation_jobs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_book_id` int(11) NOT NULL,
+  `book_id` int(11) NOT NULL,
   `status` enum('pending','running','complete','error') NOT NULL DEFAULT 'pending',
   `total_blocks` int(11) NOT NULL DEFAULT 0,
   `processed_blocks` int(11) NOT NULL DEFAULT 0,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS `tm_generation_jobs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `user_book_id` (`user_book_id`)
+  KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1212 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
@@ -164,13 +164,13 @@ CREATE TABLE IF NOT EXISTS `user_books` (
 -- Dumping structure for table parallel_leaves.user_books_translation_memory
 CREATE TABLE IF NOT EXISTS `user_books_translation_memory` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_book_id` int(11) NOT NULL,
+  `book_id` int(11) NOT NULL,
   `block_id` int(11) NOT NULL,
   `source_sentence` text NOT NULL,
   `target_sentence` text NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `user_book_id` (`user_book_id`),
   KEY `block_id` (`block_id`),
+  KEY `user_book_id` (`book_id`) USING BTREE,
   FULLTEXT KEY `source_sentence` (`source_sentence`)
 ) ENGINE=InnoDB AUTO_INCREMENT=19879 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -179,14 +179,14 @@ CREATE TABLE IF NOT EXISTS `user_books_translation_memory` (
 -- Dumping structure for table parallel_leaves.user_book_blocks
 CREATE TABLE IF NOT EXISTS `user_book_blocks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_book_id` int(11) NOT NULL,
+  `book_id` int(11) NOT NULL,
   `marker_id` int(11) NOT NULL,
   `source_text` text NOT NULL,
   `target_text` text NOT NULL,
   `is_analyzed` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_book_id_marker_id` (`user_book_id`,`marker_id`),
-  KEY `user_book_id` (`user_book_id`)
+  UNIQUE KEY `user_book_id_marker_id` (`book_id`,`marker_id`) USING BTREE,
+  KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1515 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
@@ -194,13 +194,13 @@ CREATE TABLE IF NOT EXISTS `user_book_blocks` (
 -- Dumping structure for table parallel_leaves.user_book_codex_chunks
 CREATE TABLE IF NOT EXISTS `user_book_codex_chunks` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_book_id` int(11) NOT NULL,
+  `book_id` int(11) NOT NULL,
   `chunk_index` int(11) NOT NULL,
   `chunk_text` mediumtext NOT NULL,
   `is_processed` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `user_book_id_chunk_index` (`user_book_id`,`chunk_index`),
-  KEY `user_book_id` (`user_book_id`)
+  UNIQUE KEY `user_book_id_chunk_index` (`book_id`,`chunk_index`) USING BTREE,
+  KEY `user_book_id` (`book_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.

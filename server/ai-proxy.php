@@ -62,31 +62,31 @@
 	 *
 	 * CREATE TABLE `user_book_blocks` (
 	 *   `id` int(11) NOT NULL AUTO_INCREMENT,
-	 *   `user_book_id` int(11) NOT NULL,
+	 *   `book_id` int(11) NOT NULL,
 	 *   `marker_id` int(11) NOT NULL,
 	 *   `source_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *   `target_text` text COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *   `is_analyzed` tinyint(1) NOT NULL DEFAULT 0,
 	 *   PRIMARY KEY (`id`),
-	 *   UNIQUE KEY `user_book_id_marker_id` (`user_book_id`,`marker_id`),
-	 *   KEY `user_book_id` (`user_book_id`)
+	 *   UNIQUE KEY `book_id_marker_id` (`book_id`,`marker_id`),
+	 *   KEY `book_id` (`book_id`)
 	 * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	 *
 	 * CREATE TABLE `user_books_translation_memory` (
 	 *   `id` int(11) NOT NULL AUTO_INCREMENT,
-	 *   `user_book_id` int(11) NOT NULL,
+	 *   `book_id` int(11) NOT NULL,
 	 *   `block_id` int(11) NOT NULL,
 	 *   `source_sentence` text COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *   `target_sentence` text COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *   PRIMARY KEY (`id`),
-	 *   KEY `user_book_id` (`user_book_id`),
+	 *   KEY `book_id` (`book_id`),
 	 *   KEY `block_id` (`block_id`)
 	 * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	 *
 	 * -- NEW: SQL for the new TM generation jobs table
      * CREATE TABLE `tm_generation_jobs` (
      *  `id` int(11) NOT NULL AUTO_INCREMENT,
-     *  `user_book_id` int(11) NOT NULL,
+     *  `book_id` int(11) NOT NULL,
      *  `status` enum('pending','running','complete','error') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
      *  `total_blocks` int(11) NOT NULL DEFAULT 0,
      *  `processed_blocks` int(11) NOT NULL DEFAULT 0,
@@ -94,7 +94,7 @@
      *  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
      *  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
      *  PRIMARY KEY (`id`),
-     *  KEY `user_book_id` (`user_book_id`)
+     *  KEY `book_id` (`book_id`)
      * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
      *
      * -- NEW: SQL for server-side codex generation
@@ -105,13 +105,13 @@
 	 *
 	 * CREATE TABLE `user_book_codex_chunks` (
 	 *  `id` int(11) NOT NULL AUTO_INCREMENT,
-	 *  `user_book_id` int(11) NOT NULL,
+	 *  `book_id` int(11) NOT NULL,
 	 *  `chunk_index` int(11) NOT NULL,
 	 *  `chunk_text` MEDIUMTEXT COLLATE utf8mb4_unicode_ci NOT NULL,
 	 *  `is_processed` tinyint(1) NOT NULL DEFAULT 0,
 	 *  PRIMARY KEY (`id`),
-	 *  UNIQUE KEY `user_book_id_chunk_index` (`user_book_id`,`chunk_index`),
-	 *  KEY `user_book_id` (`user_book_id`)
+	 *  UNIQUE KEY `book_id_chunk_index` (`book_id`,`chunk_index`),
+	 *  KEY `book_id` (`book_id`)
 	 * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 	 */
 
@@ -430,7 +430,7 @@
 					$stmt = $db->prepare(
 						"SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 						"FROM user_books_translation_memory tm " .
-						"JOIN user_books b ON tm.user_book_id = b.id " .
+						"JOIN user_books b ON tm.book_id = b.id " .
 						"WHERE (b.user_id = ? OR ? = 1) AND b.book_id = ? AND tm.source_sentence REGEXP ?"
 					);
 
@@ -463,7 +463,7 @@
 				if (count($allMemories) < $maxPairs) {
 					$sql = "SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
 						"FROM user_books_translation_memory tm " .
-						"JOIN user_books b ON tm.user_book_id = b.id " .
+						"JOIN user_books b ON tm.book_id = b.id " .
 						"WHERE (b.user_id = ? OR ? = 1) ";
 					if ($currentBookId) {
 						$sql .= "AND b.book_id != ? ";

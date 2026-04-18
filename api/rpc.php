@@ -74,6 +74,17 @@
 				$result = json_encode($merged);
 				break;
 
+			// --- Session (Electron fallbacks) ---
+			case 'session:getAvailableSpellCheckerLanguages':
+				$result = ['en-US'];
+				break;
+			case 'session:getCurrentSpellCheckerLanguage':
+				$result = 'en-US';
+				break;
+			case 'session:setSpellCheckerLanguage':
+				$result = ['success' => true];
+				break;
+
 			// --- API Logs ---
 			case 'logs:get':
 				$page = max(1, (int)($args[0] ?? 1));
@@ -93,19 +104,18 @@
 			case 'languages:get-supported':
 				$result = [
 					'en-US' => 'English (US)', 'tr' => 'Turkish', 'no' => 'Norwegian', 'es-ES' => 'Spanish'
-					// Add remaining languages as needed...
 				];
 				break;
 
 			// --- Books ---
 			case 'books:getAllWithCovers':
 				$stmt = $db->prepare("
-            SELECT n.*, i.image_local_path as cover_path, 
-            (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
-            FROM user_books n
-            LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
-            WHERE n.user_id = ? ORDER BY n.updated_at DESC
-        ");
+                SELECT n.*, i.image_local_path as cover_path, 
+                (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+                FROM user_books n
+                LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
+                WHERE n.user_id = ? ORDER BY n.updated_at DESC
+            ");
 				$stmt->execute([$userId]);
 				$books = $stmt->fetchAll();
 				foreach ($books as &$book) {
@@ -119,6 +129,11 @@
 					}
 				}
 				$result = $books;
+				break;
+			case 'books:getAllWithTranslationMemory':
+				$stmt = $db->prepare('SELECT DISTINCT b.id, b.title FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? ORDER BY b.title ASC');
+				$stmt->execute([$userId]);
+				$result = $stmt->fetchAll();
 				break;
 			case 'books:getOne':
 			case 'books:getFullManuscript':
@@ -136,6 +151,17 @@
 					}
 				}
 				$result = $book;
+				break;
+			case 'books:getAllBookContent':
+				$bookId = $args[0];
+				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
+				$stmt->execute([$bookId]);
+				$chapters = $stmt->fetchAll();
+				$combined = '';
+				foreach ($chapters as $c) {
+					$combined .= ($c['source_content'] ?? '') . ($c['target_content'] ?? '');
+				}
+				$result = ['success' => true, 'combinedHtml' => $combined];
 				break;
 			case 'books:createBlank':
 				$data = $args[0];
@@ -168,10 +194,47 @@
 				$stmt->execute([json_encode($data['settings']), $data['bookId'], $userId]);
 				$result = ['success' => true];
 				break;
+			case 'books:updateBookCover':
+				$data = $args[0];
+				$bookId = $data['bookId'];
+				$coverInfo = $data['coverInfo'];
+				$localPath = null;
+				$imageType = 'unknown';
+
+				if ($coverInfo['type'] === 'remote') {
+					$paths = storeImageFromUrl($coverInfo['data'], $bookId, 'cover');
+					$localPath = $paths['original_path'] ?? null;
+					$imageType = 'generated';
+				} elseif ($coverInfo['type'] === 'local') {
+					$paths = storeImageFromPath($coverInfo['data'], $bookId, 'cover-upload');
+					$localPath = $paths['original_path'] ?? null;
+					$imageType = 'upload';
+				}
+
+				if (!$localPath) throw new Exception('Failed to store the new cover image.');
+
+				$oldImage = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
+				$oldImage->execute([$bookId]);
+				$old = $oldImage->fetch();
+				if ($old && $old['image_local_path']) {
+					@unlink(IMAGES_DIR . '/' . $old['image_local_path']);
+				}
+
+				$db->prepare('DELETE FROM images WHERE book_id = ?')->execute([$bookId]);
+				$db->prepare('INSERT INTO images (user_id, book_id, image_local_path, thumbnail_local_path, image_type) VALUES (?, ?, ?, ?, ?)')
+					->execute([$userId, $bookId, $localPath, $localPath, $imageType]);
+
+				$result = ['success' => true, 'imagePath' => '/userData/images/' . $localPath];
+				break;
 			case 'books:delete':
 				$bookId = $args[0];
-				$stmt = $db->prepare('DELETE FROM user_books WHERE id = ? AND user_id = ?');
-				$stmt->execute([$bookId, $userId]);
+				$images = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
+				$images->execute([$bookId]);
+				foreach ($images->fetchAll() as $img) {
+					@unlink(IMAGES_DIR . '/' . $img['image_local_path']);
+				}
+				$db->prepare('DELETE FROM images WHERE book_id = ?')->execute([$bookId]);
+				$db->prepare('DELETE FROM user_books WHERE id = ? AND user_id = ?')->execute([$bookId, $userId]);
 				$result = ['success' => true];
 				break;
 			case 'books:exportToDocx':
@@ -181,6 +244,9 @@
 				$html = "<html><head><meta charset='utf-8'></head><body>" . $data['htmlContent'] . "</body></html>";
 				file_put_contents($filePath, $html);
 				$result = ['success' => true, 'downloadUrl' => '/userData/downloads/' . $filename, 'filename' => $filename];
+				break;
+			case 'books:findHighestMarkerNumber':
+				$result = findHighestMarkerNumber($args[0], $args[1]);
 				break;
 
 			// --- Chapters ---
@@ -195,6 +261,74 @@
 				$stmt = $db->prepare("SELECT {$data['field']} FROM chapters WHERE id = ?");
 				$stmt->execute([$data['chapterId']]);
 				$result = $stmt->fetchColumn();
+				break;
+			case 'chapters:rename':
+				$data = $args[0];
+				$db->prepare('UPDATE chapters SET title = ? WHERE id = ?')->execute([$data['newTitle'], $data['chapterId']]);
+				$result = ['success' => true];
+				break;
+			case 'chapters:delete':
+				$data = $args[0];
+				$chapterId = $data['chapterId'];
+				$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
+				$stmt->execute([$chapterId]);
+				$chapter = $stmt->fetch();
+				if ($chapter) {
+					$db->prepare('DELETE FROM chapters WHERE id = ?')->execute([$chapterId]);
+					$db->prepare('UPDATE chapters SET chapter_order = chapter_order - 1 WHERE book_id = ? AND chapter_order > ?')->execute([$chapter['book_id'], $chapter['chapter_order']]);
+				}
+				$result = ['success' => true];
+				break;
+			case 'chapters:insert':
+				$data = $args[0];
+				$chapterId = $data['chapterId'];
+				$direction = $data['direction'];
+				$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
+				$stmt->execute([$chapterId]);
+				$ref = $stmt->fetch();
+				if ($ref) {
+					$newOrder = $direction === 'above' ? $ref['chapter_order'] : $ref['chapter_order'] + 1;
+					$db->prepare('UPDATE chapters SET chapter_order = chapter_order + 1 WHERE book_id = ? AND chapter_order >= ?')->execute([$ref['book_id'], $newOrder]);
+					$db->prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)')->execute([$ref['book_id'], 'New Chapter', $newOrder, '<p></p>', '<p></p>']);
+				}
+				$result = ['success' => true];
+				break;
+			case 'chapters:getTranslationContext':
+				$data = $args[0];
+				$chapterId = $data['chapterId'];
+				$pairCount = $data['pairCount'];
+				$selectedText = $data['selectedText'] ?? null;
+
+				if ($pairCount <= 0) {
+					$result = [];
+					break;
+				}
+
+				$stmt = $db->prepare('SELECT book_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?');
+				$stmt->execute([$chapterId]);
+				$current = $stmt->fetch();
+				if (!$current) throw new Exception('Chapter not found.');
+
+				$currentPairs = extractMarkerPairsFromHtmlForContext($current['source_content'] ?? '', $current['target_content'] ?? '', $selectedText);
+
+				if (count($currentPairs) >= $pairCount) {
+					$result = array_slice($currentPairs, -$pairCount);
+					break;
+				}
+
+				$needed = $pairCount - count($currentPairs);
+				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ? AND chapter_order < ? ORDER BY chapter_order DESC LIMIT 1');
+				$stmt->execute([$current['book_id'], $current['chapter_order']]);
+				$prev = $stmt->fetch();
+
+				if (!$prev) {
+					$result = $currentPairs;
+					break;
+				}
+
+				$prevPairs = extractMarkerPairsFromHtmlForContext($prev['source_content'] ?? '', $prev['target_content'] ?? '');
+				$lastPrev = array_slice($prevPairs, -$needed);
+				$result = array_merge($lastPrev, $currentPairs);
 				break;
 
 			// --- Documents ---
@@ -226,6 +360,85 @@
 					if (!empty($data['prompt']['context_pairs'])) $messages = array_merge($messages, $data['prompt']['context_pairs']);
 					if (!empty($data['prompt']['user'])) $messages[] = ['role' => 'user', 'content' => $data['prompt']['user']];
 				}
+
+				// TM and Codex injection logic
+				$bookId = $data['bookId'] ?? null;
+				$tmContent = '';
+				$codexContent = '';
+
+				if ($bookId) {
+					$hasTmPlaceholder = false;
+					$hasCodexPlaceholder = false;
+					foreach ($messages as $msg) {
+						if ($msg['role'] === 'system') {
+							if (strpos($msg['content'], '##TRANSLATION_MEMORY##') !== false) $hasTmPlaceholder = true;
+							if (strpos($msg['content'], '##CODEX_BLOCK##') !== false) $hasCodexPlaceholder = true;
+						}
+					}
+
+					if ($hasTmPlaceholder) {
+						$lastUserMessage = '';
+						for ($i = count($messages) - 1; $i >= 0; $i--) {
+							if ($messages[$i]['role'] === 'user') {
+								$lastUserMessage = $messages[$i]['content'];
+								break;
+							}
+						}
+						$words = array_filter(array_unique(preg_split('/[\s,.;:!?()"-]+/', strtolower($lastUserMessage))), fn($w) => mb_strlen($w) > 2);
+
+						if (!empty($words)) {
+							$tmPairs = [];
+							$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? AND tm.source_sentence LIKE ? LIMIT 10");
+							foreach ($words as $word) {
+								$stmt->execute([$userId, "%$word%"]);
+								$matches = $stmt->fetchAll();
+								foreach ($matches as $m) {
+									$key = $m['source_sentence'];
+									if (!isset($tmPairs[$key])) {
+										$tmPairs[$key] = $m;
+										if (count($tmPairs) >= 100) break 2;
+									}
+								}
+							}
+							foreach ($tmPairs as $mem) {
+								$tmContent .= "<{$mem['source_language']}>{$mem['source_sentence']}</{$mem['source_language']}>\n";
+								$tmContent .= "<{$mem['target_language']}>{$mem['target_sentence']}</{$mem['target_language']}>\n";
+							}
+						}
+					}
+
+					if ($hasCodexPlaceholder) {
+						$stmt = $db->prepare("SELECT codex_content FROM user_books WHERE id = ? AND user_id = ?");
+						$stmt->execute([$bookId, $userId]);
+						$row = $stmt->fetch();
+						if ($row && !empty($row['codex_content'])) {
+							$codexContent = "Use the following glossary for consistent translation:\n<glossary>\n" . $row['codex_content'] . "\n</glossary>";
+						}
+					}
+
+					// Inject into messages
+					foreach ($messages as &$msg) {
+						if ($msg['role'] === 'system') {
+							if ($hasTmPlaceholder) {
+								if ($tmContent) {
+									$msg['content'] = str_replace('##TRANSLATION_MEMORY##', $tmContent, $msg['content']);
+								} else {
+									$msg['content'] = preg_replace("/Use the following translation examples to guide the translation:\n##TRANSLATION_MEMORY##\n*/", '', $msg['content']);
+								}
+							}
+							if ($hasCodexPlaceholder) {
+								if ($codexContent) {
+									$msg['content'] = str_replace('##CODEX_BLOCK##', $codexContent, $msg['content']);
+								} else {
+									$msg['content'] = str_replace("##CODEX_BLOCK##\n", '', $msg['content']);
+								}
+							}
+							$msg['content'] = trim(preg_replace('/\n{3,}/', "\n\n", $msg['content']));
+						}
+					}
+					unset($msg);
+				}
+
 				$payload = [
 					'model' => $data['model'] ?? OPEN_ROUTER_MODEL,
 					'messages' => $messages,
@@ -240,9 +453,64 @@
 				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 				curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 				$response = curl_exec($ch);
-				//curl_close($ch);
-				$models = json_decode($response, true)['data'] ?? [];
-				$result = ['success' => true, 'models' => [['group' => 'Available Models', 'models' => array_slice($models, 0, 20)]]];
+				curl_close($ch);
+				$liveModelsData = json_decode($response, true);
+
+				$availableModelIds = array_flip(array_column($liveModelsData['data'] ?? [], 'id'));
+				$staticGroupedModels = getStaticGroupedModels();
+				$verifiedGroupedModels = [];
+				foreach ($staticGroupedModels as $group) {
+					$verifiedModelsInGroup = [];
+					foreach ($group['models'] as $model) {
+						if (isset($availableModelIds[$model['id']])) {
+							$verifiedModelsInGroup[] = $model;
+						}
+					}
+					if (!empty($verifiedModelsInGroup)) {
+						$verifiedGroupedModels[] = [
+							'group' => $group['group'],
+							'models' => $verifiedModelsInGroup,
+						];
+					}
+				}
+				$result = ['success' => true, 'models' => $verifiedGroupedModels];
+				break;
+			case 'ai:generate-cover-prompt':
+				$bookTitle = $args[0]['bookTitle'] ?? '';
+				$prompt = "Using the book title \"$bookTitle\", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the \"$bookTitle\" in the prompt Return the result as a JSON with one key \"prompt\". Example: with title \"Blue Scape\" {\"prompt\": \"An astronaut on a red planet looking at a big cosmic cloud, realistic, add the title \\\"Blue Scape\\\" to the image.\"}";
+				$payload = [
+					'model' => OPEN_ROUTER_MODEL,
+					'messages' => [['role' => 'user', 'content' => $prompt]],
+					'response_format' => ['type' => 'json_object'],
+					'temperature' => 0.7
+				];
+				$res = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt']);
+				$content = json_decode($res['choices'][0]['message']['content'] ?? '{}', true);
+				$result = ['success' => true, 'prompt' => $content['prompt'] ?? null];
+				break;
+			case 'ai:generate-cover':
+				$bookId = $args[0]['bookId'];
+				$prompt = $args[0]['prompt'];
+				$falPayload = ['prompt' => $prompt, 'image_size' => 'portrait_4_3'];
+				$ch = curl_init('https://fal.run/fal-ai/qwen-image');
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($ch, CURLOPT_POST, true);
+				curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($falPayload));
+				curl_setopt($ch, CURLOPT_HTTPHEADER, [
+					'Authorization: Key ' . FAL_API_KEY,
+					'Content-Type: application/json',
+					'Accept: application/json'
+				]);
+				$response = curl_exec($ch);
+				curl_close($ch);
+				$falData = json_decode($response, true);
+				if (!isset($falData['images'][0]['url'])) throw new Exception('Image generation failed.');
+
+				$localPaths = storeImageFromUrl($falData['images'][0]['url'], $bookId, 'generated-fal');
+				if (!$localPaths) throw new Exception('Failed to save generated cover.');
+
+				$fullPath = '/userData/images/' . $localPaths['original_path'];
+				$result = ['success' => true, 'filePath' => $fullPath, 'localPath' => $localPaths['original_path']];
 				break;
 			case 'log:translation':
 				$data = $args[0];

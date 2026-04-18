@@ -152,9 +152,9 @@
 
 			$receivedMarkerIds = [];
 
-			$selectStmt = $db->prepare('SELECT source_text, target_text FROM user_book_blocks WHERE user_book_id = ? AND marker_id = ?');
-			$insertStmt = $db->prepare('INSERT INTO user_book_blocks (user_book_id, marker_id, source_text, target_text, is_analyzed) VALUES (?, ?, ?, ?, 0)');
-			$updateStmt = $db->prepare('UPDATE user_book_blocks SET source_text = ?, target_text = ?, is_analyzed = 0 WHERE user_book_id = ? AND marker_id = ?');
+			$selectStmt = $db->prepare('SELECT source_text, target_text FROM user_book_blocks WHERE book_id = ? AND marker_id = ?');
+			$insertStmt = $db->prepare('INSERT INTO user_book_blocks (book_id, marker_id, source_text, target_text, is_analyzed) VALUES (?, ?, ?, ?, 0)');
+			$updateStmt = $db->prepare('UPDATE user_book_blocks SET source_text = ?, target_text = ?, is_analyzed = 0 WHERE book_id = ? AND marker_id = ?');
 
 			foreach ($pairs as $pair) {
 				$markerId = $pair['marker'];
@@ -187,12 +187,12 @@
 				$types = 'i' . str_repeat('i', count($receivedMarkerIds));
 				$params = array_merge([$userBookId], $receivedMarkerIds);
 
-				$deleteStmt = $db->prepare("DELETE FROM user_book_blocks WHERE user_book_id = ? AND marker_id NOT IN ($placeholders)");
+				$deleteStmt = $db->prepare("DELETE FROM user_book_blocks WHERE book_id = ? AND marker_id NOT IN ($placeholders)");
 				$deleteStmt->bind_param($types, ...$params);
 				$deleteStmt->execute();
 				$deleteStmt->close();
 			} else {
-				$deleteStmt = $db->prepare("DELETE FROM user_book_blocks WHERE user_book_id = ?");
+				$deleteStmt = $db->prepare("DELETE FROM user_book_blocks WHERE book_id = ?");
 				$deleteStmt->bind_param('i', $userBookId);
 				$deleteStmt->execute();
 				$deleteStmt->close();
@@ -233,7 +233,7 @@
 		}
 		$userBookId = $userBook['id'];
 
-		$stmt = $db->prepare('SELECT COUNT(*) as count FROM user_book_blocks WHERE user_book_id = ? AND is_analyzed = 0');
+		$stmt = $db->prepare('SELECT COUNT(*) as count FROM user_book_blocks WHERE book_id = ? AND is_analyzed = 0');
 		$stmt->bind_param('i', $userBookId);
 		$stmt->execute();
 		$totalBlocks = $stmt->get_result()->fetch_assoc()['count'];
@@ -244,7 +244,7 @@
 			return;
 		}
 
-		$stmt = $db->prepare('INSERT INTO tm_generation_jobs (user_book_id, total_blocks) VALUES (?, ?)');
+		$stmt = $db->prepare('INSERT INTO tm_generation_jobs (book_id, total_blocks) VALUES (?, ?)');
 		$stmt->bind_param('ii', $userBookId, $totalBlocks);
 		$stmt->execute();
 		$jobId = $stmt->insert_id;
@@ -282,7 +282,7 @@
 		}
 
 		$stmt = $db->prepare('SELECT id FROM user_books WHERE id = ? AND user_id = ?');
-		$stmt->bind_param('ii', $job['user_book_id'], $userId);
+		$stmt->bind_param('ii', $job['book_id'], $userId);
 		$stmt->execute();
 		if (!$stmt->get_result()->fetch_assoc()) {
 			$db->rollback();
@@ -299,15 +299,15 @@
 		$db->commit();
 
 		$stmt = $db->prepare('SELECT source_language, target_language FROM user_books WHERE id = ?');
-		$stmt->bind_param('i', $job['user_book_id']);
+		$stmt->bind_param('i', $job['book_id']);
 		$stmt->execute();
 		$userBook = $stmt->get_result()->fetch_assoc();
 		$stmt->close();
 		$sourceLanguage = $userBook['source_language'];
 		$targetLanguage = $userBook['target_language'];
 
-		$stmt = $db->prepare('SELECT id, source_text, target_text FROM user_book_blocks WHERE user_book_id = ? AND is_analyzed = 0 ORDER BY marker_id ASC LIMIT 1');
-		$stmt->bind_param('i', $job['user_book_id']);
+		$stmt = $db->prepare('SELECT id, source_text, target_text FROM user_book_blocks WHERE book_id = ? AND is_analyzed = 0 ORDER BY marker_id ASC LIMIT 1');
+		$stmt->bind_param('i', $job['book_id']);
 		$stmt->execute();
 		$block = $stmt->get_result()->fetch_assoc();
 		$stmt->close();
@@ -369,10 +369,10 @@
 			$deleteStmt->execute();
 			$deleteStmt->close();
 
-			$insertStmt = $db->prepare('INSERT INTO user_books_translation_memory (user_book_id, block_id, source_sentence, target_sentence) VALUES (?, ?, ?, ?)');
+			$insertStmt = $db->prepare('INSERT INTO user_books_translation_memory (book_id, block_id, source_sentence, target_sentence) VALUES (?, ?, ?, ?)');
 			foreach ($contentJson['pairs'] as $pair) {
 				if (isset($pair['source']) && isset($pair['target'])) {
-					$insertStmt->bind_param('iiss', $job['user_book_id'], $block['id'], $pair['source'], $pair['target']);
+					$insertStmt->bind_param('iiss', $job['book_id'], $block['id'], $pair['source'], $pair['target']);
 					$insertStmt->execute();
 				}
 			}
@@ -416,7 +416,7 @@
 			sendJsonError(400, 'Missing job_id for status check.');
 		}
 
-		$stmt = $db->prepare('SELECT j.status, j.total_blocks, j.processed_blocks, j.error_message FROM tm_generation_jobs j JOIN user_books b ON j.user_book_id = b.id WHERE j.id = ? AND b.user_id = ?');
+		$stmt = $db->prepare('SELECT j.status, j.total_blocks, j.processed_blocks, j.error_message FROM tm_generation_jobs j JOIN user_books b ON j.book_id = b.id WHERE j.id = ? AND b.user_id = ?');
 		$stmt->bind_param('ii', $jobId, $userId);
 		$stmt->execute();
 		$job = $stmt->get_result()->fetch_assoc();
@@ -461,7 +461,7 @@
 		$sourceLang = $userBook['source_language'];
 		$targetLang = $userBook['target_language'];
 
-		$stmt = $db->prepare('SELECT tm.source_sentence, tm.target_sentence, bb.marker_id FROM user_books_translation_memory tm JOIN user_book_blocks bb ON tm.block_id = bb.id WHERE tm.user_book_id = ? ORDER BY bb.marker_id ASC, tm.id ASC');
+		$stmt = $db->prepare('SELECT tm.source_sentence, tm.target_sentence, bb.marker_id FROM user_books_translation_memory tm JOIN user_book_blocks bb ON tm.block_id = bb.id WHERE tm.book_id = ? ORDER BY bb.marker_id ASC, tm.id ASC');
 		$stmt->bind_param('i', $userBookId);
 		$stmt->execute();
 		$result = $stmt->get_result();
@@ -509,7 +509,7 @@
 			return;
 		}
 
-		$stmt = $db->prepare('SELECT COUNT(*) as count FROM user_books_translation_memory WHERE user_book_id = ?');
+		$stmt = $db->prepare('SELECT COUNT(*) as count FROM user_books_translation_memory WHERE book_id = ?');
 		$stmt->bind_param('i', $userBook['id']);
 		$stmt->execute();
 		$result = $stmt->get_result();
@@ -538,7 +538,7 @@
 		$placeholders = implode(',', array_fill(0, count($bookIds), '?'));
 		$types = str_repeat('i', count($bookIds));
 
-		$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.user_book_id = b.id WHERE b.user_id = ? AND b.book_id IN ($placeholders)");
+		$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? AND b.book_id IN ($placeholders)");
 		$stmt->bind_param("i" . $types, $userId, ...$bookIds);
 		$stmt->execute();
 		$result = $stmt->get_result();
@@ -563,7 +563,7 @@
 	 */
 	function getAllBooksWithMemory(mysqli $db, int $userId): void
 	{
-		$stmt = $db->prepare('SELECT DISTINCT b.book_id FROM user_books_translation_memory tm JOIN user_books b ON tm.user_book_id = b.id WHERE b.user_id = ?');
+		$stmt = $db->prepare('SELECT DISTINCT b.book_id FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ?');
 		$stmt->bind_param('i', $userId);
 		$stmt->execute();
 		$result = $stmt->get_result();

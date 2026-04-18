@@ -29,9 +29,9 @@
 	$updateMessageType = ''; // 'success' or 'error'
 
 // Handle POST request for deleting TM for a book
-	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['user_book_id'])) {
+	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['book_id'])) {
 		if ($_POST['action'] === 'delete_tm') {
-			$userBookId = (int)$_POST['user_book_id'];
+			$userBookId = (int)$_POST['book_id'];
 			// Verify the user owns this book before deleting
 			$stmt = $db->prepare('SELECT id FROM user_books WHERE id = ? AND user_id = ?');
 			$stmt->bind_param('ii', $userBookId, $userId);
@@ -41,13 +41,13 @@
 				$db->begin_transaction();
 				try {
 					// 1. Delete all entries from the translation memory table for this book
-					$deleteStmt = $db->prepare('DELETE FROM user_books_translation_memory WHERE user_book_id = ?');
+					$deleteStmt = $db->prepare('DELETE FROM user_books_translation_memory WHERE book_id = ?');
 					$deleteStmt->bind_param('i', $userBookId);
 					$deleteStmt->execute();
 					$deleteStmt->close();
 
 					// 2. Reset the analysis status on all blocks for this book so they can be re-processed
-					$updateStmt = $db->prepare('UPDATE user_book_blocks SET is_analyzed = 0 WHERE user_book_id = ?');
+					$updateStmt = $db->prepare('UPDATE user_book_blocks SET is_analyzed = 0 WHERE book_id = ?');
 					$updateStmt->bind_param('i', $userBookId);
 					$updateStmt->execute();
 					$updateStmt->close();
@@ -84,7 +84,7 @@
 		// If the book exists and belongs to the user, fetch its TM entries
 		if ($selectedBook) {
 			$stmt = $db->prepare(
-				'SELECT source_sentence, target_sentence FROM user_books_translation_memory WHERE user_book_id = ? ORDER BY id ASC'
+				'SELECT source_sentence, target_sentence FROM user_books_translation_memory WHERE book_id = ? ORDER BY id ASC'
 			);
 			$stmt->bind_param('i', $userBookId);
 			$stmt->execute();
@@ -100,7 +100,7 @@
 		$view = 'list';
 		$stmt = $db->prepare(
 			'SELECT ub.id, ub.book_id, ub.title, ub.author, ub.source_language, ub.target_language, ' .
-			'(SELECT COUNT(*) FROM user_books_translation_memory WHERE user_book_id = ub.id) as tm_count ' .
+			'(SELECT COUNT(*) FROM user_books_translation_memory WHERE book_id = ub.id) as tm_count ' .
 			'FROM user_books ub WHERE ub.user_id = ? ORDER BY ub.updated_at DESC'
 		);
 		$stmt->bind_param('i', $userId);
@@ -174,7 +174,7 @@
 										<form action="translation_memory.php" method="POST" class="inline"
 										      onsubmit="return confirm('Are you sure you want to delete all TM entries for this book? This cannot be undone.');">
 											<input type="hidden" name="action" value="delete_tm">
-											<input type="hidden" name="user_book_id" value="<?php
+											<input type="hidden" name="book_id" value="<?php
 												echo $book['id']; ?>">
 											<button type="submit" class="btn btn-sm btn-outline btn-error" <?php
 												if ($book['tm_count'] == 0)

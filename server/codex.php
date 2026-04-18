@@ -28,8 +28,8 @@
 	$updateMessageType = ''; // 'success' or 'error'
 
 // Handle saving codex content OR resetting the codex
-	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_book_id'])) {
-		$userBookId = (int)$_POST['user_book_id'];
+	if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book_id'])) {
+		$userBookId = (int)$_POST['book_id'];
 
 		// Verify the user owns this book before updating
 		$stmt = $db->prepare('SELECT id FROM user_books WHERE id = ? AND user_id = ?');
@@ -164,7 +164,7 @@
 										<form action="codex.php" method="POST" class="inline"
 										      onsubmit="return confirm('Are you sure you want to reset the codex for this book? All content will be deleted and regenerated.');">
 											<input type="hidden" name="action" value="reset_codex">
-											<input type="hidden" name="user_book_id" value="<?php
+											<input type="hidden" name="book_id" value="<?php
 												echo $book['id']; ?>">
 											<button type="submit" class="btn btn-sm btn-outline btn-warning" <?php
 												if ($book['codex_status'] === 'none')
@@ -206,7 +206,7 @@
 
 		<form action="codex.php?book_id=<?php
 			echo $selectedBook['id']; ?>" method="POST">
-			<input type="hidden" name="user_book_id" value="<?php
+			<input type="hidden" name="book_id" value="<?php
 				echo $selectedBook['id']; ?>">
 			<div class="form-control">
 				<label class="label" for="codex_content">

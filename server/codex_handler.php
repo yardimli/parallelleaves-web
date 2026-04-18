@@ -45,7 +45,7 @@
 	}
 
 	/**
-	 * A helper function to get the internal user_book_id.
+	 * A helper function to get the internal book_id.
 	 *
 	 * @param mysqli $db The database connection object.
 	 * @param int $userId The ID of the current user.
