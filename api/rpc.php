@@ -1,3 +1,5 @@
+api/rpc.php:
+
 <?php
 	require_once __DIR__ . '/config.php';
 	require_once __DIR__ . '/db.php';
@@ -7,7 +9,7 @@
 
 	header('Content-Type: application/json');
 
-// Safely decode input to prevent TypeError if file_get_contents returns false
+	// Safely decode input to prevent TypeError if file_get_contents returns false
 	$rawInput = file_get_contents('php://input');
 	$input = $rawInput ? json_decode($rawInput, true) : [];
 	$channel = $input['channel'] ?? '';
@@ -15,7 +17,7 @@
 
 	$db = getDB();
 	$userId = $_SESSION['user']['id'] ?? 1;
-// MODIFIED: Fetch the user's API key from the session
+	// MODIFIED: Fetch the user's API key from the session
 	$userApiKey = $_SESSION['user']['openrouter_api_key'] ?? '';
 
 	try {
@@ -529,6 +531,7 @@
 						}
 					}
 
+					// MODIFIED: Replaced the old TM logic with the advanced two-pass REGEXP logic
 					if ($hasTmPlaceholder) {
 						$lastUserMessage = '';
 						for ($i = count($messages) - 1; $i >= 0; $i--) {
@@ -537,28 +540,93 @@
 								break;
 							}
 						}
-						$words = array_filter(array_unique(preg_split('/[\s,.;:!?()"-]+/', strtolower($lastUserMessage))), fn($w) => mb_strlen($w) > 2);
 
-						if (!empty($words)) {
-							$tmPairs = [];
-							$stmt = $db->prepare("SELECT tm.source_sentence, tm.target_sentence, b.source_language, b.target_language FROM user_books_translation_memory tm JOIN user_books b ON tm.book_id = b.id WHERE b.user_id = ? AND tm.source_sentence LIKE ? LIMIT 10");
-							foreach ($words as $word) {
-								$stmt->execute([$userId, "%$word%"]);
-								$matches = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-								foreach ($matches as $m) {
-									$key = $m['source_sentence'];
-									if (!isset($tmPairs[$key])) {
-										$tmPairs[$key] = $m;
-										if (count($tmPairs) >= 100) {
+						// Split into words, filter length > 2
+						$words = preg_split('/[\s,.;:!?()"-]+/', strtolower($lastUserMessage), -1, PREG_SPLIT_NO_EMPTY);
+						$uniqueWords = array_unique($words);
+						$uniqueWords = array_filter($uniqueWords, fn($w) => mb_strlen($w) > 2);
+
+						if (!empty($uniqueWords)) {
+							$allMemories = [];
+							$maxPairs = 100;
+
+							// First pass - get memories from the current novel first.
+							if ($bookId) {
+								$stmt = $db->prepare(
+									"SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
+									"FROM user_books_translation_memory tm " .
+									"JOIN user_books b ON tm.book_id = b.id " .
+									"WHERE b.user_id = ? AND b.id = ? AND tm.source_sentence REGEXP ?"
+								);
+
+								foreach ($uniqueWords as $word) {
+									if (count($allMemories) >= $maxPairs) {
+										break;
+									}
+									$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
+									$stmt->execute([$userId, $bookId, $regexpPattern]);
+									$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+									if (count($memoriesForWord) > 3) {
+										continue;
+									}
+
+									foreach ($memoriesForWord as $memory) {
+										if (count($allMemories) >= $maxPairs) {
 											break 2;
+										}
+										$allMemories[$memory['id']] = $memory;
+									}
+								}
+							}
+
+							// Second pass - fill remaining slots with memories from other novels.
+							if (count($allMemories) < $maxPairs) {
+								$sql = "SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
+									"FROM user_books_translation_memory tm " .
+									"JOIN user_books b ON tm.book_id = b.id " .
+									"WHERE b.user_id = ? ";
+								if ($bookId) {
+									$sql .= "AND b.id != ? ";
+								}
+								$sql .= "AND tm.source_sentence REGEXP ?";
+								$stmt = $db->prepare($sql);
+
+								foreach ($uniqueWords as $word) {
+									if (count($allMemories) >= $maxPairs) {
+										break;
+									}
+									$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
+
+									if ($bookId) {
+										$stmt->execute([$userId, $bookId, $regexpPattern]);
+									} else {
+										$stmt->execute([$userId, $regexpPattern]);
+									}
+
+									$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+									if (count($memoriesForWord) > 3) {
+										continue;
+									}
+
+									foreach ($memoriesForWord as $memory) {
+										if (count($allMemories) >= $maxPairs) {
+											break 2;
+										}
+										if (!isset($allMemories[$memory['id']])) {
+											$allMemories[$memory['id']] = $memory;
 										}
 									}
 								}
 							}
-							foreach ($tmPairs as $mem) {
+
+							// Format the unique TM pairs for injection
+							foreach ($allMemories as $mem) {
 								$tmContent .= "<{$mem['source_language']}>{$mem['source_sentence']}</{$mem['source_language']}>\n";
 								$tmContent .= "<{$mem['target_language']}>{$mem['target_sentence']}</{$mem['target_language']}>\n";
 							}
+							$tmContent = trim($tmContent);
 						}
 					}
 
@@ -591,6 +659,18 @@
 						}
 					}
 					unset($msg);
+				}
+
+				// MODIFIED: Added prompt length check to prevent exceeding API limits
+				$promptLength = 0;
+				foreach ($messages as $msg) {
+					if (isset($msg['content'])) {
+						$promptLength += strlen($msg['content']);
+					}
+				}
+
+				if ($promptLength > 100000) {
+					throw new Exception('The total length of the prompt is more than 100000 characters.');
 				}
 
 				$payload = [
