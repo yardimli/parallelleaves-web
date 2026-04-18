@@ -1,7 +1,5 @@
 <?php
 
-	declare(strict_types=1);
-
 	function htmlToPlainText(string $html): string
 	{
 		if (!$html) {
