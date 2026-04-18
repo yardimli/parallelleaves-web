@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		try {
 			const details = await window.api.getTmDetails(bookId);
 			// MODIFIED: Determine back action based on how the page was loaded
-			const backAction = urlBookId ? "window.location.href='index.html'" : "window.location.reload()";
+			const backAction = urlBookId ? "window.location.href='index.php'" : "window.location.reload()";
 			
 			let html = `
 				<div class="mb-4"><button class="btn btn-sm btn-outline" onclick="${backAction}">&larr; Back</button></div>

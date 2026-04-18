@@ -477,10 +477,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			// MODIFIED: Added event listeners to navigate directly to the specific book's Codex and TM pages
 			bookCard.querySelector('.js-open-codex').addEventListener('click', () => {
-				window.location.href = `codex-editor.html?bookId=${book.id}`;
+				window.location.href = `codex-editor.php?bookId=${book.id}`;
 			});
 			bookCard.querySelector('.js-open-tm').addEventListener('click', () => {
-				window.location.href = `translation-memory.html?bookId=${book.id}`;
+				window.location.href = `translation-memory.php?bookId=${book.id}`;
 			});
 			
 			bookList.appendChild(bookCard);

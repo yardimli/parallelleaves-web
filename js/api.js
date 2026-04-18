@@ -26,8 +26,8 @@ function rpcSend(channel, ...args) {
 }
 
 window.api = {
-	openImportWindow: () => { window.location.href = 'import-document.html'; },
-	openChatWindow: (bookId) => { window.open(`chat-window.html?bookId=${bookId}`, '_blank'); },
+	openImportWindow: () => { window.location.href = 'import-document.php'; },
+	openChatWindow: (bookId) => { window.open(`chat-window.php?bookId=${bookId}`, '_blank'); },
 	
 	translationMemoryGenerateInBackground: async (bookId) => {
 		try {
@@ -61,11 +61,11 @@ window.api = {
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
 	setApiKey: (key) => rpcInvoke('user:set-api-key', key), // MODIFIED: Added setApiKey method
-	openExternalRegister: () => { window.location.href = 'register.html'; },
+	openExternalRegister: () => { window.location.href = 'register.php'; },
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),
-	splashClose: () => { window.location.href = 'index.html'; },
-	splashFinished: () => { window.location.href = 'index.html'; },
+	splashClose: () => { window.location.href = 'index.php'; },
+	splashFinished: () => { window.location.href = 'index.php'; },
 	openExternalUrl: (url) => window.open(url, '_blank'),
 	appReset: () => rpcSend('app:reset'),
 	
@@ -87,7 +87,7 @@ window.api = {
 		return result;
 	},
 	
-	openEditor: (bookId) => { window.location.href = `chapter-editor.html?bookId=${bookId}`; },
+	openEditor: (bookId) => { window.location.href = `chapter-editor.php?bookId=${bookId}`; },
 	
 	codex: {
 		startGeneration: async (bookId) => {
@@ -152,7 +152,7 @@ window.api = {
 	importDocumentAsBook: async (data) => {
 		const result = await rpcInvoke('document:import', data);
 		if (result && result.success && result.bookId) {
-			window.location.href = `chapter-editor.html?bookId=${result.bookId}`;
+			window.location.href = `chapter-editor.php?bookId=${result.bookId}`;
 		}
 		return result;
 	},
@@ -162,7 +162,7 @@ window.api = {
 	getRawChapterContent: (data) => rpcInvoke('chapters:getRawContent', data),
 	getTranslationContext: (data) => rpcInvoke('chapters:getTranslationContext', data),
 	
-	openChapterEditor: (data) => { window.location.href = `chapter-editor.html?bookId=${data.bookId}&chapterId=${data.chapterId}`; },
+	openChapterEditor: (data) => { window.location.href = `chapter-editor.php?bookId=${data.bookId}&chapterId=${data.chapterId}`; },
 	onManuscriptScrollToChapter: (cb) => { },
 	
 	updateChapterField: (data) => rpcInvoke('chapters:updateField', data),

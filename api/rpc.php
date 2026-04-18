@@ -70,7 +70,7 @@ api/rpc.php:
 				$result = ['success' => true];
 				break;
 			case 'templates:get':
-				$path = BASE_DIR . '/templates/' . $args[0] . '.html';
+				$path = BASE_DIR . '/templates/' . $args[0] . '.php';
 				$result = file_exists($path) ? file_get_contents($path) : '';
 				break;
 			case 'i18n:get-lang-file':

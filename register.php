@@ -30,7 +30,7 @@
 				<button type="submit" class="btn btn-primary" id="register-btn">Register</button>
 			</div>
 			<div class="text-center mt-4">
-				<a href="index.html" class="link link-hover text-sm">Back to Login</a>
+				<a href="index.php" class="link link-hover text-sm">Back to Login</a>
 			</div>
 		</form>
 	</div>

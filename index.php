@@ -54,7 +54,7 @@
 					<!-- NEW DASHBOARD LINKS -->
 					<!-- MODIFIED: Removed Translation Memory and Codex Editor from the main menu -->
 					<li>
-						<a href="api-logs.html">
+						<a href="api-logs.php">
 							<i class="bi bi-terminal-fill"></i>
 							<span data-i18n="">API Logs</span>
 						</a>

@@ -1,6 +1,6 @@
 /**
  * Loads HTML templates for modals and injects them into a container element.
- * @param {string[]} modalNames - An array of template names (without .html extension).
+ * @param {string[]} modalNames - An array of template names (without .php extension).
  * @param {string} containerId - The ID of the DOM element to inject the modals into.
  */
 export async function loadModals (modalNames, containerId) {

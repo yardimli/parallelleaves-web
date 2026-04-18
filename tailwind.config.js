@@ -6,7 +6,7 @@ module.exports = {
 	darkMode: ['selector', '[data-theme="dark"]'],
 	
 	content: [
-		'./**/*.html',
+		'./**/*.php',
 		'./src/js/**/*.js',
 	],
 	

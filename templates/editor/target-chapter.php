@@ -5,5 +5,5 @@
 			<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
 		</div>
 	</div>
-	<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="editor-iframe.html" data-chapter-id="{{id}}"></iframe>
+	<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="editor-iframe.php" data-chapter-id="{{id}}"></iframe>
 </div>
