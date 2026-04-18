@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
 	const container = document.getElementById('codex-container');
+	// MODIFIED: Parse URL parameters to check for direct book loading
+	const urlParams = new URLSearchParams(window.location.search);
+	const urlBookId = urlParams.get('bookId');
 	
 	async function loadList() {
 		container.innerHTML = '<p>Loading books...</p>';
@@ -56,8 +59,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const book = await window.api.getCodexDetails(bookId);
 			if (!book) throw new Error("Book not found.");
 			
+			// MODIFIED: Determine back action based on how the page was loaded
+			const backAction = urlBookId ? "window.location.href='index.html'" : "window.location.reload()";
+			
 			let html = `
-				<div class="mb-4"><button class="btn btn-sm btn-outline" onclick="window.location.reload()">&larr; Back to Book List</button></div>
+				<div class="mb-4"><button class="btn btn-sm btn-outline" onclick="${backAction}">&larr; Back</button></div>
 				<h2 class="text-2xl font-semibold mb-4">Editing Codex for: <span class="italic">${book.title}</span></h2>
 				<div class="form-control">
 					<label class="label"><span class="label-text">Codex HTML Content</span></label>
@@ -94,5 +100,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	};
 	
-	loadList();
+	// MODIFIED: Load specific book if ID is present, otherwise load the list
+	if (urlBookId) {
+		window.editCodex(urlBookId);
+	} else {
+		loadList();
+	}
 });

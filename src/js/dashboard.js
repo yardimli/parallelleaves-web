@@ -373,6 +373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', { title: book.title })}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 			
+			// MODIFIED: Added Codex and Translation Memory buttons directly to the book card actions
 			bookCard.innerHTML = `
                 <figure class="cursor-pointer js-open-editor">${coverHtml}</figure>
                 <div class="card-body flex flex-col flex-grow">
@@ -422,6 +423,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="btn btn-ghost btn-sm js-prose-settings" data-i18n-title="dashboard.proseSettings.title">
                             <i class="bi bi-translate text-lg"></i>
                         </button>
+                        <button class="btn btn-ghost btn-sm js-open-codex" data-i18n-title="dashboard.codexEditor" title="Codex Editor">
+                            <i class="bi bi-journal-bookmark-fill text-lg"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-sm js-open-tm" data-i18n-title="dashboard.translationMemory" title="Translation Memory">
+                            <i class="bi bi-book-fill text-lg"></i>
+                        </button>
                         <button class="btn btn-ghost btn-sm js-export-docx" data-i18n-title="export.exportDocx">
                             <i class="bi bi-file-earmark-word text-lg"></i>
                         </button>
@@ -467,6 +474,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 			bookCard.querySelector('.js-prose-settings').addEventListener('click', () => openProseSettingsModal(book));
 			bookCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(book));
 			bookCard.querySelector('.js-export-docx').addEventListener('click', () => exportBook(book.id));
+			
+			// MODIFIED: Added event listeners to navigate directly to the specific book's Codex and TM pages
+			bookCard.querySelector('.js-open-codex').addEventListener('click', () => {
+				window.location.href = `codex-editor.html?bookId=${book.id}`;
+			});
+			bookCard.querySelector('.js-open-tm').addEventListener('click', () => {
+				window.location.href = `translation-memory.html?bookId=${book.id}`;
+			});
 			
 			bookList.appendChild(bookCard);
 		});
@@ -692,7 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	window.addEventListener('focus', () => {
 		// Only refresh if the user is logged in (auth container has a logout button).
 		if (document.getElementById('logout-btn')) {
-			loadInitialData();
+			//loadInitialData();
 		}
 	});
 });

@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
 	const container = document.getElementById('tm-container');
+	// MODIFIED: Parse URL parameters to check for direct book loading
+	const urlParams = new URLSearchParams(window.location.search);
+	const urlBookId = urlParams.get('bookId');
 	
 	async function loadList() {
 		container.innerHTML = '<p>Loading books...</p>';
@@ -54,8 +57,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 		container.innerHTML = '<p>Loading details...</p>';
 		try {
 			const details = await window.api.getTmDetails(bookId);
+			// MODIFIED: Determine back action based on how the page was loaded
+			const backAction = urlBookId ? "window.location.href='index.html'" : "window.location.reload()";
+			
 			let html = `
-				<div class="mb-4"><button class="btn btn-sm btn-outline" onclick="window.location.reload()">&larr; Back to Book List</button></div>
+				<div class="mb-4"><button class="btn btn-sm btn-outline" onclick="${backAction}">&larr; Back</button></div>
 				<h2 class="text-2xl font-semibold mb-4">Translation Memory for: <span class="italic">${title}</span></h2>
 			`;
 			
@@ -89,5 +95,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	};
 	
-	loadList();
+	// MODIFIED: Load specific book if ID is present, otherwise load the list
+	if (urlBookId) {
+		try {
+			const book = await window.api.getOneBook(urlBookId);
+			if (book) {
+				window.viewTmDetails(urlBookId, book.title.replace(/'/g, "\\'"));
+			} else {
+				container.innerHTML = '<p class="text-error">Book not found.</p>';
+			}
+		} catch (e) {
+			container.innerHTML = `<p class="text-error">Error: ${e.message}</p>`;
+		}
+	} else {
+		loadList();
+	}
 });
