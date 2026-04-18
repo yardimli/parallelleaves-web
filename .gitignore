@@ -15,3 +15,5 @@ userData/app.db-shm
 userData/app.db-wal
 userData/session.json
 /userData
+/vendor
+composer.lock

@@ -32,18 +32,29 @@
 		return count($words);
 	}
 
+// MODIFIED: Rewritten to use PHPWord to preserve text and paragraph formatting
 	function readDocx(string $filePath): string
 	{
-		$zip = new ZipArchive();
-		if ($zip->open($filePath) === true) {
-			if (($index = $zip->locateName('word/document.xml')) !== false) {
-				$data = $zip->getFromIndex($index);
-				$zip->close();
-				return strip_tags(str_replace(['<w:p>', '<w:p '], "\n\n<w:p>", $data));
+		try {
+			$phpWord = \PhpOffice\PhpWord\IOFactory::load($filePath);
+			$htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
+
+			// Save HTML to a temporary file and read it back
+			$tempFile = tempnam(sys_get_temp_dir(), 'docx_html');
+			$htmlWriter->save($tempFile);
+			$html = file_get_contents($tempFile);
+			unlink($tempFile);
+
+			// Extract only the body content to avoid injecting <html> and <head> tags into the frontend
+			if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $html, $matches)) {
+				$html = $matches[1];
 			}
-			$zip->close();
+
+			return trim($html);
+		} catch (Exception $e) {
+			error_log('PHPWord Error: ' . $e->getMessage());
+			return "";
 		}
-		return "";
 	}
 
 // Log API interactions to the database
@@ -82,7 +93,7 @@
 			logInteraction($logContext['db'], $logContext['userId'], $logContext['action'], $payload, (string)$response, $httpCode);
 		}
 
-		return json_decode($response, true) ?? [];
+		return json_decode((string)$response, true) ?? [];
 	}
 
 // Extract translation pairs from HTML for Translation Memory
@@ -126,7 +137,6 @@
 		return $pairs;
 	}
 
-// NEW: Extract marker pairs with selection truncation for context
 	function extractMarkerPairsFromHtmlForContext(string $sourceHtml, string $targetHtml, ?string $selectedText = null): array
 	{
 		$pairs = extractAllMarkerPairs($sourceHtml, $targetHtml);
@@ -146,7 +156,6 @@
 		return $pairs;
 	}
 
-// NEW: Find highest marker number
 	function findHighestMarkerNumber(string $sourceHtml, string $targetHtml): int
 	{
 		$regex = '/\[\[#(\d+)\]\]|\{\{#(\d+)\}\}/';
@@ -162,7 +171,6 @@
 		return $highest;
 	}
 
-// NEW: Store image from URL
 	function storeImageFromUrl(string $url, int $bookId, string $filenameBase): ?array
 	{
 		$ch = curl_init($url);
@@ -173,10 +181,14 @@
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
-		if ($httpCode !== 200 || !$data) return null;
+		if ($httpCode !== 200 || !$data) {
+			return null;
+		}
 
 		$bookDir = IMAGES_DIR . '/books/' . $bookId;
-		if (!is_dir($bookDir)) mkdir($bookDir, 0755, true);
+		if (!is_dir($bookDir)) {
+			mkdir($bookDir, 0755, true);
+		}
 
 		$ext = 'png';
 		$pathInfo = pathinfo(parse_url($url, PHP_URL_PATH));
@@ -193,16 +205,21 @@
 		return ['original_path' => $relativePath, 'thumbnail_path' => $relativePath];
 	}
 
-// NEW: Store image from Local Path
 	function storeImageFromPath(string $sourcePath, int $bookId, string $filenameBase): ?array
 	{
-		if (!file_exists($sourcePath)) return null;
+		if (!file_exists($sourcePath)) {
+			return null;
+		}
 
 		$bookDir = IMAGES_DIR . '/books/' . $bookId;
-		if (!is_dir($bookDir)) mkdir($bookDir, 0755, true);
+		if (!is_dir($bookDir)) {
+			mkdir($bookDir, 0755, true);
+		}
 
 		$ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
-		if (!$ext) $ext = 'png';
+		if (!$ext) {
+			$ext = 'png';
+		}
 
 		$filename = $filenameBase . '-' . time() . '.' . $ext;
 		$localPath = $bookDir . '/' . $filename;
@@ -213,7 +230,6 @@
 		return ['original_path' => $relativePath, 'thumbnail_path' => $relativePath];
 	}
 
-// NEW: Static grouped models
 	function getStaticGroupedModels(): array
 	{
 		return [

@@ -52,10 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	const WORD_LIMIT = 12000; // Word count limit per chapter
 	
-	let currentFilePath = null;
-	let currentMarkIndex = -1;
-	let targetedParagraph = null;
-	
 	/**
 	 * Counts the words in a given string.
 	 * @param {string} text - The string to count words in.
@@ -67,6 +63,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 		return text.trim().split(/\s+/).filter(Boolean).length;
 	}
+	
+	let currentFilePath = null;
+	let currentMarkIndex = -1;
+	let targetedParagraph = null;
 	
 	async function populateLanguages() {
 		const supportedLanguages = await window.api.getSupportedLanguages();
@@ -284,15 +284,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 			documentContent.innerHTML = `<div class="text-center"><span class="loading loading-spinner loading-lg"></span><p>${t('import.readingFile')}</p></div>`;
 			
 			try {
-				const text = await window.api.readDocumentContent(filePath);
-				const paragraphs = text.split(/\n+/).filter(p => p.trim() !== '');
-				
+				const content = await window.api.readDocumentContent(filePath);
 				documentContent.innerHTML = '';
-				paragraphs.forEach(pText => {
-					const p = document.createElement('p');
-					p.textContent = pText.trim();
-					documentContent.appendChild(p);
-				});
+				
+				// MODIFIED: Parse HTML returned by PHPWord to preserve formatting
+				if (filePath.toLowerCase().endsWith('.docx')) {
+					const parser = new DOMParser();
+					const doc = parser.parseFromString(content, 'text/html');
+					
+					Array.from(doc.body.childNodes).forEach(node => {
+						if (node.nodeType === Node.ELEMENT_NODE) {
+							// Force everything into <p> tags for consistent editor behavior
+							const p = document.createElement('p');
+							p.innerHTML = node.innerHTML;
+							
+							// Clean up empty paragraphs
+							if (p.textContent.trim() !== '' || p.querySelector('img')) {
+								documentContent.appendChild(p);
+							}
+						} else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+							const p = document.createElement('p');
+							p.textContent = node.textContent.trim();
+							documentContent.appendChild(p);
+						}
+					});
+				} else {
+					// Fallback for plain text (.txt)
+					const paragraphs = content.split(/\n+/).filter(p => p.trim() !== '');
+					paragraphs.forEach(pText => {
+						const p = document.createElement('p');
+						p.textContent = pText.trim();
+						documentContent.appendChild(p);
+					});
+				}
 				
 				autoDetectModal.showModal();
 				
@@ -307,8 +331,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 	
 	documentContent.addEventListener('click', (event) => {
-		if (event.target.tagName === 'P') {
-			showPopover(event);
+		// MODIFIED: Allow clicking on formatted text inside paragraphs to trigger the popover
+		const p = event.target.closest('p');
+		if (p && documentContent.contains(p)) {
+			showPopover({ target: p, clientX: event.clientX, clientY: event.clientY });
 		}
 	});
 	
@@ -344,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 	
 	document.addEventListener('click', (event) => {
-		if (!popover.contains(event.target) && event.target !== targetedParagraph) {
+		if (!popover.contains(event.target) && event.target !== targetedParagraph && !event.target.closest('p')) {
 			hidePopover();
 		}
 	});
@@ -504,6 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		const allNodes = documentContent.childNodes;
 		
+		// Validation Loop
 		for (const node of allNodes) {
 			if (node.nodeType !== Node.ELEMENT_NODE) continue;
 			
@@ -515,6 +542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 				currentChapter = { title: node.dataset.title || `Chapter ${chaptersForValidation.length + 1}`, content: [] };
 			} else if (node.tagName === 'P') {
+				// MODIFIED: Use textContent for accurate word counting (ignores HTML tags)
 				currentChapter.content.push(node.textContent.trim());
 			}
 		}
@@ -548,6 +576,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const chapters = [];
 		currentChapter = { title: 'Chapter 1', content: [] };
 		
+		// Final Import Loop
 		for (const node of allNodes) {
 			if (node.nodeType !== Node.ELEMENT_NODE) continue;
 			
@@ -555,27 +584,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (isChapterBreak) {
 				if (currentChapter.content.length > 0) {
-					currentChapter.content = `<p>${currentChapter.content.join('</p><p>')}</p>`;
+					// MODIFIED: Join outerHTML with newlines
+					currentChapter.content = currentChapter.content.join('\n');
 					chapters.push(currentChapter);
 				}
 				currentChapter = { title: node.dataset.title || `Chapter ${chapters.length + 1}`, content: [] };
 			} else if (node.tagName === 'P') {
-				currentChapter.content.push(node.textContent.trim());
+				// MODIFIED: Push outerHTML to preserve formatting (<b>, <i>, etc.)
+				currentChapter.content.push(node.outerHTML);
 			}
 		}
 		
 		if (currentChapter.content.length > 0) {
-			currentChapter.content = `<p>${currentChapter.content.join('</p><p>')}</p>`;
+			// MODIFIED: Join outerHTML with newlines
+			currentChapter.content = currentChapter.content.join('\n');
 			chapters.push(currentChapter);
 		}
 		
 		if (chapters.length === 0 && allNodes.length > 0) {
 			const allContent = Array.from(allNodes)
 				.filter(node => node.tagName === 'P')
-				.map(p => p.textContent.trim());
+				.map(p => p.outerHTML); // MODIFIED: Push outerHTML
 			
 			if (allContent.length > 0) {
-				currentChapter.content = `<p>${allContent.join('</p><p>')}</p>`;
+				currentChapter.content = allContent.join('\n'); // MODIFIED: Join with newlines
 				chapters.push(currentChapter);
 			}
 		}
