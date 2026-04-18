@@ -579,7 +579,7 @@
 										break;
 									}
 									$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
-									$stmt->execute([$userId, $bookId, $regexpPattern]);
+									$stmt->execute([$userId, $userId, $bookId, $regexpPattern]);
 									$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 									if (count($memoriesForWord) > 3) {
@@ -614,9 +614,9 @@
 									$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
 
 									if ($bookId) {
-										$stmt->execute([$userId, $bookId, $regexpPattern]);
+										$stmt->execute([$userId, $userId, $bookId, $regexpPattern]);
 									} else {
-										$stmt->execute([$userId, $regexpPattern]);
+										$stmt->execute([$userId, $userId, $regexpPattern]);
 									}
 
 									$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
