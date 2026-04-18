@@ -292,6 +292,10 @@
 					$paths = storeImageFromPath($coverInfo['data'], $bookId, 'cover-upload');
 					$localPath = $paths['original_path'] ?? null;
 					$imageType = 'upload';
+				} elseif ($coverInfo['type'] === 'existing') {
+					// MODIFIED: Handle existing local path (e.g. from ai:generate-cover)
+					$localPath = $coverInfo['data'];
+					$imageType = 'generated';
 				}
 
 				if (!$localPath) {
@@ -301,7 +305,8 @@
 				$oldImage = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
 				$oldImage->execute([$bookId]);
 				$old = $oldImage->get_result()->fetch_assoc();
-				if ($old && $old['image_local_path']) {
+				// MODIFIED: Only delete old image if it's different from the new one
+				if ($old && $old['image_local_path'] && $old['image_local_path'] !== $localPath) {
 					@unlink(IMAGES_DIR . '/' . $old['image_local_path']);
 				}
 

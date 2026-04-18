@@ -618,7 +618,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		try {
 			const result = await window.api.generateCover({ bookId, prompt });
 			if (result.success && result.filePath) {
-				stagedCover = { type: 'local', data: result.filePath };
+				// MODIFIED: Use 'existing' type and localPath for already saved generated images
+				stagedCover = { type: 'existing', data: result.localPath };
 				metaCoverPreview.innerHTML = `<img src="${result.filePath}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
 			} else {
 				throw new Error(result.message || 'Failed to generate cover.');
@@ -638,10 +639,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 	
 	uploadCoverBtn.addEventListener('click', async () => {
-		const filePath = await window.api.showOpenImageDialog();
-		if (filePath) {
-			stagedCover = { type: 'local', data: filePath };
-			metaCoverPreview.innerHTML = `<img src="${filePath}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
+		const result = await window.api.showOpenImageDialog();
+		// MODIFIED: Handle the result object properly
+		if (result && result.success) {
+			stagedCover = { type: 'local', data: result.filePath };
+			metaCoverPreview.innerHTML = `<img src="${result.url}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
 		}
 	});
 	
