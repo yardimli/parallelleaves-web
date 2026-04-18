@@ -123,11 +123,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
-	// MODIFIED: Added API key prompt logic
-	function promptForApiKey(currentKey) {
-		const modal = document.getElementById('input-modal');
+	// MODIFIED: Dynamically fetch the modal template if it's missing, with a native prompt fallback
+	async function promptForApiKey(currentKey) {
+		let modal = document.getElementById('input-modal');
+		
+		// If the modal isn't in the DOM, fetch the template and inject it
 		if (!modal) {
-			window.showAlert('Input modal not found.');
+			try {
+				const templateHtml = await window.api.getTemplate('modals/input-modal');
+				if (templateHtml) {
+					const wrapper = document.createElement('div');
+					wrapper.innerHTML = templateHtml;
+					document.body.appendChild(wrapper.firstElementChild);
+					modal = document.getElementById('input-modal');
+					applyTranslationsTo(modal);
+				}
+			} catch (e) {
+				console.error('Failed to load input modal template', e);
+			}
+		}
+		
+		// Fallback to native browser prompt if template loading fails
+		if (!modal) {
+			const newKey = prompt(t('dashboard.setApiKeyLabel'), currentKey || '');
+			if (newKey !== null) {
+				try {
+					await window.api.setApiKey(newKey.trim());
+					const session = await window.api.getSession();
+					updateAuthUI(session);
+					window.showAlert(t('dashboard.apiKeySaved'), t('common.information'));
+				} catch (error) {
+					window.showAlert(error.message);
+				}
+			}
 			return;
 		}
 		
@@ -166,7 +194,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const authDivider = document.getElementById('auth-divider');
 		
 		if (session && session.user) {
-			// MODIFIED: Added API Key settings button to auth menu
 			authMenuSection.innerHTML = `
                 <li class="menu-title"><span>${t('dashboard.welcome', { username: session.user.username })}</span></li>
                 <li><a id="api-key-btn"><i class="bi bi-key"></i>${t('dashboard.setApiKey')}</a></li>
