@@ -1,6 +1,5 @@
-api/rpc.php:
-
 <?php
+
 	require_once __DIR__ . '/config.php';
 	require_once __DIR__ . '/db.php';
 	require_once __DIR__ . '/utils.php';
@@ -9,16 +8,32 @@ api/rpc.php:
 
 	header('Content-Type: application/json');
 
-	// Safely decode input to prevent TypeError if file_get_contents returns false
+// Safely decode input to prevent TypeError if file_get_contents returns false
 	$rawInput = file_get_contents('php://input');
 	$input = $rawInput ? json_decode($rawInput, true) : [];
 	$channel = $input['channel'] ?? '';
 	$args = $input['args'] ?? [];
 
 	$db = getDB();
-	$userId = $_SESSION['user']['id'] ?? 1;
-	// MODIFIED: Fetch the user's API key from the session
+
+// MODIFIED: Default to null instead of 1 to enforce session check
+	$userId = $_SESSION['user']['id'] ?? null;
+// MODIFIED: Fetch the user's API key from the session
 	$userApiKey = $_SESSION['user']['openrouter_api_key'] ?? '';
+
+// MODIFIED: Add session check to prevent unauthorized API access
+	$publicChannels = [
+		'splash:get-init-data',
+		'auth:login',
+		'auth:register',
+		'auth:get-session',
+		'i18n:get-lang-file'
+	];
+
+	if ($userId === null && !in_array($channel, $publicChannels)) {
+		echo json_encode(['success' => false, 'message' => 'Unauthorized', 'redirect' => 'login.php']);
+		exit;
+	}
 
 	try {
 		$result = null;
@@ -178,12 +193,12 @@ api/rpc.php:
 			// --- Books ---
 			case 'books:getAllWithCovers':
 				$stmt = $db->prepare("
-        SELECT n.*, i.image_local_path as cover_path, 
-        (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
-        FROM user_books n
-        LEFT JOIN images i ON n.id = i.book_id
-        WHERE n.user_id = ? ORDER BY n.updated_at DESC
-    ");
+                SELECT n.*, i.image_local_path as cover_path, 
+                (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+                FROM user_books n
+                LEFT JOIN images i ON n.id = i.book_id
+                WHERE n.user_id = ? ORDER BY n.updated_at DESC
+            ");
 				$stmt->execute([$userId]);
 				$books = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 				foreach ($books as &$book) {

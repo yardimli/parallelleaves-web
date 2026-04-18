@@ -6,22 +6,34 @@ let coverUpdatedCb = null;
 const RPC_ENDPOINT = 'api/rpc.php';
 const UPLOAD_ENDPOINT = 'api/upload.php';
 
-async function rpcInvoke(channel, ...args) {
+async function rpcInvoke (channel, ...args) {
 	const res = await fetch(RPC_ENDPOINT, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ channel, args })
 	});
 	const json = await res.json();
+	
+	// MODIFIED: Handle unauthorized redirect
+	if (json.redirect) {
+		window.location.href = json.redirect;
+		return;
+	}
+	
 	if (!json.success && json.message) throw new Error(json.message);
 	return json.data;
 }
 
-function rpcSend(channel, ...args) {
+function rpcSend (channel, ...args) {
 	fetch(RPC_ENDPOINT, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ channel, args })
+	}).then(res => res.json()).then(json => {
+		// MODIFIED: Handle unauthorized redirect for background calls
+		if (json.redirect) {
+			window.location.href = json.redirect;
+		}
 	}).catch(console.error);
 }
 
@@ -60,7 +72,7 @@ window.api = {
 	register: (credentials) => rpcInvoke('auth:register', credentials),
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
-	setApiKey: (key) => rpcInvoke('user:set-api-key', key), // MODIFIED: Added setApiKey method
+	setApiKey: (key) => rpcInvoke('user:set-api-key', key),
 	openExternalRegister: () => { window.location.href = 'register.php'; },
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),

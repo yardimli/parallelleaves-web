@@ -1,5 +1,14 @@
 <?php
+
 	require_once __DIR__ . '/config.php';
+
+// MODIFIED: Added session check to upload endpoint
+	session_start();
+	if (!isset($_SESSION['user'])) {
+		http_response_code(401);
+		echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+		exit;
+	}
 
 // MODIFIED: Added CORS headers to prevent preflight failures on cross-origin requests
 	header('Access-Control-Allow-Origin: *');

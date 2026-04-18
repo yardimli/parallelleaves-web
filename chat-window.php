@@ -1,4 +1,12 @@
-<!doctype html>
+<?php
+	// MODIFIED: Added session check to protect the page
+	session_start();
+	if (!isset($_SESSION['user'])) {
+		header('Location: login.php');
+		exit;
+	}
+?>
+<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
 	<meta charset="UTF-8"/>

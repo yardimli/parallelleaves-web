@@ -1,3 +1,11 @@
+<?php
+	// MODIFIED: Added session check to protect the page
+	session_start();
+	if (!isset($_SESSION['user'])) {
+		header('Location: login.php');
+		exit;
+	}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -249,38 +257,7 @@
 	</div>
 </dialog>
 
-<dialog id="login-modal" class="modal">
-	<div class="modal-box w-11/12 max-w-sm">
-		<h3 class="font-bold text-lg" data-i18n="dashboard.login.title">Sign In</h3>
-		<form id="login-form" class="space-y-4 py-4">
-			<div class="form-control">
-				<label for="login-username" class="label"><span class="label-text" data-i18n="dashboard.login.username">Username</span></label>
-				<input type="text" id="login-username" name="username" class="input input-bordered" required>
-			</div>
-			<div class="form-control">
-				<label for="login-password" class="label"><span class="label-text" data-i18n="dashboard.login.password">Password</span></label>
-				<input type="password" id="login-password" name="password" class="input input-bordered" required>
-			</div>
-			<div class="form-control">
-				<label for="login-language" class="label"><span class="label-text" data-i18n="common.changeLanguage">Change Language</span></label>
-				<select id="login-language" name="language" class="select select-bordered">
-					<!-- Populated by JS -->
-				</select>
-			</div>
-			<p id="login-error-message" class="text-error text-sm hidden"></p>
-		</form>
-		<div class="text-center text-sm mt-4">
-			<span data-i18n="dashboard.login.noAccount">Don't have an account?</span>
-			<a id="signup-link" href="#" class="link link-primary" data-i18n="dashboard.login.signUp">Sign Up</a>
-		</div>
-		<div class="modal-action">
-			<form method="dialog" class="flex gap-3 w-full">
-				<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
-				<button id="login-submit-btn" type="submit" form="login-form" class="btn btn-primary flex-1" data-i18n="dashboard.login.signIn">Sign In</button>
-			</form>
-		</div>
-	</div>
-</dialog>
+<!-- MODIFIED: Removed the old login modal from here -->
 
 <script src="js/api.js"></script>
 <script src="src/js/theme.js"></script>
