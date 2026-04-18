@@ -10,7 +10,9 @@
 
 	header('Content-Type: application/json');
 
-	$input = json_decode(file_get_contents('php://input'), true);
+// MODIFIED: Safely decode input to prevent TypeError if file_get_contents returns false
+	$rawInput = file_get_contents('php://input');
+	$input = $rawInput ? json_decode($rawInput, true) : [];
 	$channel = $input['channel'] ?? '';
 	$args = $input['args'] ?? [];
 
@@ -68,13 +70,14 @@
 				if (is_dir($dir)) {
 					foreach (glob($dir . '/*.json') as $file) {
 						$key = basename($file, '.json');
-						$merged[$key] = json_decode(file_get_contents($file), true);
+						// MODIFIED: Safely decode file contents
+						$fileContent = file_get_contents($file);
+						$merged[$key] = $fileContent ? json_decode($fileContent, true) : [];
 					}
 				}
 				$result = json_encode($merged);
 				break;
 
-			// NEW: Added missing app:reset endpoint
 			case 'app:reset':
 				$result = ['success' => true];
 				break;
@@ -141,7 +144,7 @@
 					'lt' => 'Lithuanian',
 					'lv' => 'Latvian',
 					'nb' => 'Norwegian (Bokmål)',
-					'nn' => 'Norwegian (Nynorsk)', // Added Nynorsk
+					'nn' => 'Norwegian (Nynorsk)',
 					'nl' => 'Dutch',
 					'pl' => 'Polish',
 					'pt-BR' => 'Portuguese (Brazil)',
@@ -165,12 +168,12 @@
 			// --- Books ---
 			case 'books:getAllWithCovers':
 				$stmt = $db->prepare("
-                SELECT n.*, i.image_local_path as cover_path, 
-                (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
-                FROM user_books n
-                LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
-                WHERE n.user_id = ? ORDER BY n.updated_at DESC
-            ");
+            SELECT n.*, i.image_local_path as cover_path, 
+            (SELECT COUNT(id) FROM chapters WHERE book_id = n.id) as chapter_count
+            FROM user_books n
+            LEFT JOIN images i ON n.id = i.book_id AND i.image_type LIKE '%cover%'
+            WHERE n.user_id = ? ORDER BY n.updated_at DESC
+        ");
 				$stmt->execute([$userId]);
 				$books = $stmt->fetchAll();
 				foreach ($books as &$book) {
@@ -218,7 +221,6 @@
 				}
 				$result = ['success' => true, 'combinedHtml' => $combined];
 				break;
-			// NEW: Added missing books:getForExport endpoint
 			case 'books:getForExport':
 				$bookId = $args[0];
 				$stmt = $db->prepare('SELECT id, title, author, target_language FROM user_books WHERE id = ? AND user_id = ?');
@@ -258,7 +260,6 @@
 				break;
 			case 'books:updatePromptSettings':
 				$data = $args[0];
-				// MODIFIED: Added field validation to prevent SQL injection
 				$allowedTypes = ['rephrase', 'translate'];
 				if (!in_array($data['promptType'], $allowedTypes)) {
 					throw new Exception('Invalid prompt type.');
@@ -285,7 +286,9 @@
 					$imageType = 'upload';
 				}
 
-				if (!$localPath) throw new Exception('Failed to store the new cover image.');
+				if (!$localPath) {
+					throw new Exception('Failed to store the new cover image.');
+				}
 
 				$oldImage = $db->prepare('SELECT image_local_path FROM images WHERE book_id = ?');
 				$oldImage->execute([$bookId]);
@@ -326,7 +329,6 @@
 			// --- Chapters ---
 			case 'chapters:updateField':
 				$data = $args[0];
-				// MODIFIED: Added field validation to prevent SQL injection
 				$allowedFields = ['title', 'target_content', 'source_content'];
 				if (!in_array($data['field'], $allowedFields)) {
 					throw new Exception('Invalid field specified.');
@@ -337,7 +339,6 @@
 				break;
 			case 'chapters:getRawContent':
 				$data = $args[0];
-				// MODIFIED: Added field validation to prevent SQL injection
 				$allowedFields = ['source_content', 'target_content'];
 				if (!in_array($data['field'], $allowedFields)) {
 					throw new Exception('Invalid field specified.');
@@ -391,7 +392,9 @@
 				$stmt = $db->prepare('SELECT book_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?');
 				$stmt->execute([$chapterId]);
 				$current = $stmt->fetch();
-				if (!$current) throw new Exception('Chapter not found.');
+				if (!$current) {
+					throw new Exception('Chapter not found.');
+				}
 
 				$currentPairs = extractMarkerPairsFromHtmlForContext($current['source_content'] ?? '', $current['target_content'] ?? '', $selectedText);
 
@@ -431,7 +434,7 @@
 					$chStmt->execute([$bookId, $chapter['title'], $chapter['content'], $i + 1]);
 				}
 
-				// NEW: Generate cover automatically on import
+				// Generate cover automatically on import
 				try {
 					$promptPayload = [
 						'model' => OPEN_ROUTER_MODEL,
@@ -456,7 +459,9 @@
 						]);
 						$response = curl_exec($ch);
 						curl_close($ch);
-						$falData = json_decode($response, true);
+
+						// MODIFIED: Safely decode the response to prevent TypeError if cURL fails
+						$falData = $response ? json_decode($response, true) : [];
 
 						if (isset($falData['images'][0]['url'])) {
 							$localPaths = storeImageFromUrl($falData['images'][0]['url'], $bookId, 'cover-autogen');
@@ -481,12 +486,17 @@
 				$messages = $data['messages'] ?? [];
 				if (isset($data['prompt'])) {
 					$messages = [];
-					if (!empty($data['prompt']['system'])) $messages[] = ['role' => 'system', 'content' => $data['prompt']['system']];
-					if (!empty($data['prompt']['context_pairs'])) $messages = array_merge($messages, $data['prompt']['context_pairs']);
-					if (!empty($data['prompt']['user'])) $messages[] = ['role' => 'user', 'content' => $data['prompt']['user']];
+					if (!empty($data['prompt']['system'])) {
+						$messages[] = ['role' => 'system', 'content' => $data['prompt']['system']];
+					}
+					if (!empty($data['prompt']['context_pairs'])) {
+						$messages = array_merge($messages, $data['prompt']['context_pairs']);
+					}
+					if (!empty($data['prompt']['user'])) {
+						$messages[] = ['role' => 'user', 'content' => $data['prompt']['user']];
+					}
 				}
 
-				// TM and Codex injection logic
 				$bookId = $data['bookId'] ?? null;
 				$tmContent = '';
 				$codexContent = '';
@@ -496,8 +506,12 @@
 					$hasCodexPlaceholder = false;
 					foreach ($messages as $msg) {
 						if ($msg['role'] === 'system') {
-							if (strpos($msg['content'], '##TRANSLATION_MEMORY##') !== false) $hasTmPlaceholder = true;
-							if (strpos($msg['content'], '##CODEX_BLOCK##') !== false) $hasCodexPlaceholder = true;
+							if (strpos($msg['content'], '##TRANSLATION_MEMORY##') !== false) {
+								$hasTmPlaceholder = true;
+							}
+							if (strpos($msg['content'], '##CODEX_BLOCK##') !== false) {
+								$hasCodexPlaceholder = true;
+							}
 						}
 					}
 
@@ -521,7 +535,9 @@
 									$key = $m['source_sentence'];
 									if (!isset($tmPairs[$key])) {
 										$tmPairs[$key] = $m;
-										if (count($tmPairs) >= 100) break 2;
+										if (count($tmPairs) >= 100) {
+											break 2;
+										}
 									}
 								}
 							}
@@ -541,7 +557,6 @@
 						}
 					}
 
-					// Inject into messages
 					foreach ($messages as &$msg) {
 						if ($msg['role'] === 'system') {
 							if ($hasTmPlaceholder) {
@@ -579,7 +594,9 @@
 				curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 				$response = curl_exec($ch);
 				curl_close($ch);
-				$liveModelsData = json_decode($response, true);
+
+				// MODIFIED: Safely decode the response
+				$liveModelsData = $response ? json_decode($response, true) : [];
 
 				$availableModelIds = array_flip(array_column($liveModelsData['data'] ?? [], 'id'));
 				$staticGroupedModels = getStaticGroupedModels();
@@ -628,18 +645,25 @@
 				]);
 				$response = curl_exec($ch);
 				curl_close($ch);
+
+				if (!$response) {
+					throw new Exception('Image generation API call failed.');
+				}
 				$falData = json_decode($response, true);
-				if (!isset($falData['images'][0]['url'])) throw new Exception('Image generation failed.');
+				if (!isset($falData['images'][0]['url'])) {
+					throw new Exception('Image generation failed.');
+				}
 
 				$localPaths = storeImageFromUrl($falData['images'][0]['url'], $bookId, 'generated-fal');
-				if (!$localPaths) throw new Exception('Failed to save generated cover.');
+				if (!$localPaths) {
+					throw new Exception('Failed to save generated cover.');
+				}
 
 				$fullPath = '/userData/images/' . $localPaths['original_path'];
 				$result = ['success' => true, 'filePath' => $fullPath, 'localPath' => $localPaths['original_path']];
 				break;
 			case 'log:translation':
 				$data = $args[0];
-				// MODIFIED: Handle marker extraction if it's in [[#number]] format
 				$marker = $data['marker'] ?? null;
 				if ($marker && preg_match('/^\[\[#(\d+)\]\]$/', $marker, $matches)) {
 					$marker = $matches[1];
@@ -653,7 +677,9 @@
 			case 'dictionary:get':
 				$bookId = $args[0];
 				$path = DICTS_DIR . '/' . $bookId . '.json';
-				$result = file_exists($path) ? json_decode(file_get_contents($path), true) : [];
+				// MODIFIED: Safely decode file contents
+				$fileContent = file_exists($path) ? file_get_contents($path) : false;
+				$result = $fileContent ? json_decode($fileContent, true) : [];
 				break;
 			case 'dictionary:save':
 				$bookId = $args[0];
@@ -667,7 +693,9 @@
 				$path = DICTS_DIR . '/' . $bookId . '.json';
 				$content = '';
 				if (file_exists($path)) {
-					$entries = json_decode(file_get_contents($path), true) ?? [];
+					// MODIFIED: Safely decode file contents
+					$fileContent = file_get_contents($path);
+					$entries = $fileContent ? (json_decode($fileContent, true) ?? []) : [];
 					foreach ($entries as $entry) {
 						if (!$type || ($entry['type'] ?? 'translation') === $type) {
 							$content .= "{$entry['source']} = {$entry['target']}\n";
@@ -692,13 +720,11 @@
 			case 'tm:delete':
 				$bookId = $args[0];
 				$db->prepare('DELETE from user_books_translation_memory WHERE book_id = ?')->execute([$bookId]);
-				// MODIFIED: Fixed table name to user_book_blocks
 				$db->prepare('UPDATE user_book_blocks SET is_analyzed = 0 WHERE book_id = ?')->execute([$bookId]);
 				$result = ['success' => true];
 				break;
 			case 'translation-memory:start':
 				$bookId = $args[0];
-				// MODIFIED: Fixed PDO execute fetchAll bug
 				$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ?');
 				$stmt->execute([$bookId]);
 				$chapters = $stmt->fetchAll();
@@ -706,7 +732,6 @@
 				foreach ($chapters as $ch) {
 					$allPairs = array_merge($allPairs, extractAllMarkerPairs($ch['source_content'] ?? '', $ch['target_content'] ?? ''));
 				}
-				// MODIFIED: Fixed table name from user_books_translation_memory_blocks to user_book_blocks
 				$db->prepare('DELETE from user_book_blocks WHERE book_id = ?')->execute([$bookId]);
 				$stmt = $db->prepare('INSERT INTO user_book_blocks (book_id, marker_id, source_text, target_text, is_analyzed) VALUES (?, ?, ?, ?, 0)');
 				foreach ($allPairs as $pair) {
@@ -714,7 +739,6 @@
 				}
 				$count = count($allPairs);
 				if ($count > 0) {
-					// MODIFIED: Fixed table name from tm_jobs to tm_generation_jobs
 					$db->prepare('INSERT INTO tm_generation_jobs (book_id, total_blocks) VALUES (?, ?)')->execute([$bookId, $count]);
 					$result = ['job_id' => $db->lastInsertId(), 'total_blocks' => $count];
 				} else {
@@ -723,7 +747,6 @@
 				break;
 			case 'translation-memory:process-batch':
 				$jobId = $args[0];
-				// MODIFIED: Fixed table name from tm_jobs to tm_generation_jobs and fixed PDO execute fetch bug
 				$stmt = $db->prepare('SELECT * FROM tm_generation_jobs WHERE id = ?');
 				$stmt->execute([$jobId]);
 				$job = $stmt->fetch();
@@ -735,7 +758,6 @@
 				$stmt = $db->prepare('SELECT source_language, target_language FROM user_books WHERE id = ?');
 				$stmt->execute([$bookId]);
 				$book = $stmt->fetch();
-				// MODIFIED: Fixed table name from user_books_translation_memory_blocks to user_book_blocks
 				$blockStmt = $db->prepare('SELECT * from user_book_blocks WHERE book_id = ? AND is_analyzed = 0 LIMIT 1');
 				$blockStmt->execute([$bookId]);
 				$block = $blockStmt->fetch();
@@ -761,14 +783,12 @@
 					$content = json_decode($aiResponse['choices'][0]['message']['content'] ?? '{}', true);
 
 					if (isset($content['pairs'])) {
-						// MODIFIED: Fixed table name to user_books_translation_memory
 						$insertStmt = $db->prepare('INSERT INTO user_books_translation_memory (book_id, block_id, source_sentence, target_sentence) VALUES (?, ?, ?, ?)');
 						foreach ($content['pairs'] as $pair) {
 							$insertStmt->execute([$bookId, $block['id'], $pair['source'], $pair['target']]);
 						}
 					}
 
-					// MODIFIED: Fixed table name to user_book_blocks
 					$db->prepare('UPDATE user_book_blocks SET is_analyzed = 1 WHERE id = ?')->execute([$block['id']]);
 					$db->prepare('UPDATE tm_generation_jobs SET processed_blocks = processed_blocks + 1 WHERE id = ?')->execute([$jobId]);
 					$result = ['status' => 'running', 'processed_blocks' => $job['processed_blocks'] + 1, 'total_blocks' => $job['total_blocks']];
@@ -800,20 +820,20 @@
 				break;
 			case 'codex:start':
 				$bookId = $args[0];
-				// MODIFIED: Fixed PDO execute fetchAll bug
 				$stmt = $db->prepare('SELECT source_content FROM chapters WHERE book_id = ?');
 				$stmt->execute([$bookId]);
 				$chapters = $stmt->fetchAll();
 				$fullText = '';
-				foreach($chapters as $c) $fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
+				foreach ($chapters as $c) {
+					$fullText .= htmlToPlainText($c['source_content'] ?? '') . "\n";
+				}
 				$words = preg_split('/\s+/', $fullText);
 				$chunks = array_chunk($words, 8000);
 				$totalChunks = count($chunks);
 
-				// MODIFIED: Fixed table name to user_book_codex_chunks
 				$db->prepare('DELETE FROM user_book_codex_chunks WHERE book_id = ?')->execute([$bookId]);
 				$stmt = $db->prepare('INSERT INTO user_book_codex_chunks (book_id, chunk_index, chunk_text, is_processed) VALUES (?, ?, ?, 0)');
-				foreach($chunks as $i => $chunk) {
+				foreach ($chunks as $i => $chunk) {
 					$stmt->execute([$bookId, $i, implode(' ', $chunk)]);
 				}
 
@@ -822,12 +842,10 @@
 				break;
 			case 'codex:process-batch':
 				$bookId = $args[0];
-				// MODIFIED: Fixed PDO execute fetch bug
 				$stmt = $db->prepare('SELECT * FROM user_books WHERE id = ?');
 				$stmt->execute([$bookId]);
 				$book = $stmt->fetch();
 
-				// MODIFIED: Fixed table name to user_book_codex_chunks
 				$chunkStmt = $db->prepare('SELECT * FROM user_book_codex_chunks WHERE book_id = ? AND is_processed = 0 ORDER BY chunk_index ASC LIMIT 1');
 				$chunkStmt->execute([$bookId]);
 				$chunk = $chunkStmt->fetch();
@@ -854,7 +872,6 @@
 					if ($updatedCodexText) {
 						$db->prepare('UPDATE user_books SET codex_content = ?, codex_chunks_processed = codex_chunks_processed + 1 WHERE id = ?')->execute([$updatedCodexText, $bookId]);
 					}
-					// MODIFIED: Fixed table name to user_book_codex_chunks
 					$db->prepare('UPDATE user_book_codex_chunks SET is_processed = 1 WHERE id = ?')->execute([$chunk['id']]);
 					$result = ['status' => 'generating', 'processed' => $book['codex_chunks_processed'] + 1, 'total' => $book['codex_chunks_total']];
 				}

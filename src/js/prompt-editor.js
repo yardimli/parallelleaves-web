@@ -365,7 +365,7 @@ async function populateModelDropdown() {
 		}
 		
 		const modelGroups = result.models;
-		const popularDefaultModel = 'openai/gpt-4o';
+		const popularDefaultModel = 'openai/gpt-5.4';
 		
 		select.innerHTML = '';
 		

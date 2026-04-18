@@ -273,6 +273,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 	}
 	
+	// MODIFIED: Recursive function to extract leaf block elements and flatten them into paragraphs
+	function extractParagraphs(node, container) {
+		if (node.nodeType === Node.TEXT_NODE) {
+			const text = node.textContent.trim();
+			if (text !== '') {
+				const p = document.createElement('p');
+				p.textContent = text;
+				container.appendChild(p);
+			}
+			return;
+		}
+		
+		if (node.nodeType === Node.ELEMENT_NODE) {
+			// Ignore scripts and styles
+			if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+			
+			const isBlock = /^(P|H[1-6]|LI|DIV|TD|TH|BLOCKQUOTE|SECTION|ARTICLE)$/i.test(node.tagName);
+			const hasBlockChildren = Array.from(node.children).some(child => /^(P|H[1-6]|LI|DIV|TD|TH|BLOCKQUOTE|SECTION|ARTICLE|TABLE|UL|OL)$/i.test(child.tagName));
+			
+			// If it's a block element and doesn't contain other block elements, it's a leaf paragraph
+			if (isBlock && !hasBlockChildren) {
+				const p = document.createElement('p');
+				p.innerHTML = node.innerHTML;
+				
+				// Preserve alignment for auto-detection
+				if (node.style && node.style.textAlign) {
+					p.style.textAlign = node.style.textAlign;
+				}
+				if (node.getAttribute('align')) {
+					p.setAttribute('align', node.getAttribute('align'));
+				}
+				
+				if (p.textContent.trim() !== '' || p.querySelector('img')) {
+					container.appendChild(p);
+				}
+			} else {
+				// Otherwise, drill down deeper
+				Array.from(node.childNodes).forEach(child => extractParagraphs(child, container));
+			}
+		}
+	}
+	
 	selectFileBtn.addEventListener('click', async () => {
 		const filePath = await window.api.showOpenDocumentDialog();
 		if (filePath) {
@@ -287,27 +329,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 				const content = await window.api.readDocumentContent(filePath);
 				documentContent.innerHTML = '';
 				
-				// MODIFIED: Parse HTML returned by PHPWord to preserve formatting
 				if (filePath.toLowerCase().endsWith('.docx')) {
 					const parser = new DOMParser();
 					const doc = parser.parseFromString(content, 'text/html');
 					
-					Array.from(doc.body.childNodes).forEach(node => {
-						if (node.nodeType === Node.ELEMENT_NODE) {
-							// Force everything into <p> tags for consistent editor behavior
-							const p = document.createElement('p');
-							p.innerHTML = node.innerHTML;
-							
-							// Clean up empty paragraphs
-							if (p.textContent.trim() !== '' || p.querySelector('img')) {
-								documentContent.appendChild(p);
-							}
-						} else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
-							const p = document.createElement('p');
-							p.textContent = node.textContent.trim();
-							documentContent.appendChild(p);
-						}
-					});
+					// MODIFIED: Use the recursive extractor to prevent the entire document from becoming one paragraph
+					extractParagraphs(doc.body, documentContent);
 				} else {
 					// Fallback for plain text (.txt)
 					const paragraphs = content.split(/\n+/).filter(p => p.trim() !== '');
@@ -331,7 +358,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 	
 	documentContent.addEventListener('click', (event) => {
-		// MODIFIED: Allow clicking on formatted text inside paragraphs to trigger the popover
 		const p = event.target.closest('p');
 		if (p && documentContent.contains(p)) {
 			showPopover({ target: p, clientX: event.clientX, clientY: event.clientY });
@@ -361,7 +387,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 			titleSpan.textContent = title;
 			marker.appendChild(titleSpan);
 			
-			documentContent.insertBefore(marker, targetedParagraph);
+			// MODIFIED: Safely insert before the targeted paragraph using parentNode
+			targetedParagraph.parentNode.insertBefore(marker, targetedParagraph);
 		}
 		
 		currentMarkIndex = -1;
@@ -385,6 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const useNumeric = document.getElementById('detect-numeric').checked;
 		const useKeyword = document.getElementById('detect-keyword').checked;
 		const useAllCaps = document.getElementById('detect-all-caps').checked;
+		const useCenteredShort = document.getElementById('detect-centered-short').checked;
 		
 		const paragraphs = Array.from(documentContent.querySelectorAll('p'));
 		
@@ -417,6 +445,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 			}
 			
+			if (!isBreak && useCenteredShort) {
+				const wordCount = countWords(text);
+				if (wordCount > 0 && wordCount <= 3) {
+					const textAlign = p.style.textAlign;
+					const alignAttr = p.getAttribute('align');
+					if (textAlign === 'center' || alignAttr === 'center') {
+						isBreak = true;
+					}
+				}
+			}
+			
 			if (isBreak) {
 				if (lastBreakIndex === -1) {
 					lastBreakIndex = i;
@@ -446,7 +485,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 				titleSpan.textContent = text;
 				marker.appendChild(titleSpan);
 				
-				documentContent.insertBefore(marker, p);
+				// MODIFIED: Safely insert before the paragraph using parentNode
+				p.parentNode.insertBefore(marker, p);
 			}
 		});
 		
@@ -457,6 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	autoSplitBtn.addEventListener('click', () => {
 		let currentWordCount = 0;
+		let splitCount = 1;
 		const nodes = Array.from(documentContent.childNodes);
 		
 		for (const node of nodes) {
@@ -475,14 +516,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 				if (currentWordCount > 0 && currentWordCount + paragraphWordCount > WORD_LIMIT) {
 					const marker = document.createElement('div');
 					marker.className = 'chapter-break-marker not-prose';
-					marker.dataset.title = '';
+					
+					const splitTitle = `Auto-split Part ${splitCount++}`;
+					marker.dataset.title = splitTitle;
 					
 					const titleSpan = document.createElement('span');
 					titleSpan.className = 'break-title';
-					titleSpan.textContent = '';
+					titleSpan.textContent = splitTitle;
 					marker.appendChild(titleSpan);
 					
-					documentContent.insertBefore(marker, node);
+					// MODIFIED: Safely insert before the node using parentNode
+					node.parentNode.insertBefore(marker, node);
 					
 					currentWordCount = paragraphWordCount;
 				} else {
@@ -542,7 +586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 				currentChapter = { title: node.dataset.title || `Chapter ${chaptersForValidation.length + 1}`, content: [] };
 			} else if (node.tagName === 'P') {
-				// MODIFIED: Use textContent for accurate word counting (ignores HTML tags)
 				currentChapter.content.push(node.textContent.trim());
 			}
 		}
@@ -584,19 +627,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (isChapterBreak) {
 				if (currentChapter.content.length > 0) {
-					// MODIFIED: Join outerHTML with newlines
 					currentChapter.content = currentChapter.content.join('\n');
 					chapters.push(currentChapter);
 				}
 				currentChapter = { title: node.dataset.title || `Chapter ${chapters.length + 1}`, content: [] };
 			} else if (node.tagName === 'P') {
-				// MODIFIED: Push outerHTML to preserve formatting (<b>, <i>, etc.)
 				currentChapter.content.push(node.outerHTML);
 			}
 		}
 		
 		if (currentChapter.content.length > 0) {
-			// MODIFIED: Join outerHTML with newlines
 			currentChapter.content = currentChapter.content.join('\n');
 			chapters.push(currentChapter);
 		}
@@ -604,10 +644,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		if (chapters.length === 0 && allNodes.length > 0) {
 			const allContent = Array.from(allNodes)
 				.filter(node => node.tagName === 'P')
-				.map(p => p.outerHTML); // MODIFIED: Push outerHTML
+				.map(p => p.outerHTML);
 			
 			if (allContent.length > 0) {
-				currentChapter.content = allContent.join('\n'); // MODIFIED: Join with newlines
+				currentChapter.content = allContent.join('\n');
 				chapters.push(currentChapter);
 			}
 		}

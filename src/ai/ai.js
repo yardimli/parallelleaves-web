@@ -60,7 +60,7 @@ async function callOpenRouter(payload, token) {
  * @returns {Promise<string|null>} The generated prompt string, or null on failure.
  */
 async function generateCoverPrompt({ title, token }) {
-	const modelId = 'openai/gpt-4o';
+	const modelId = 'openai/gpt-oss-120b';
 	const prompt = `Using the book title "${title}", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the "${title}" in the prompt Return the result as a JSON with one key "prompt". Example: with title "Blue Scape" {"prompt": "An astronaut on a red planet looking at a big cosmic cloud, realistic, add the title "Blue Scape" to the image."}`;
 	
 	try {

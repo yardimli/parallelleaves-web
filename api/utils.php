@@ -32,7 +32,6 @@
 		return count($words);
 	}
 
-// MODIFIED: Rewritten to use PHPWord to preserve text and paragraph formatting
 	function readDocx(string $filePath): string
 	{
 		try {
@@ -48,6 +47,55 @@
 			// Extract only the body content to avoid injecting <html> and <head> tags into the frontend
 			if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $html, $matches)) {
 				$html = $matches[1];
+			}
+
+			// Strip out all color and background-color CSS properties from inline styles
+			$html = preg_replace('/(color|background-color)\s*:\s*[^;"\']+;?/i', '', $html);
+
+			// Strip out legacy color attributes (e.g., <font color="red"> or <td bgcolor="black">)
+			$html = preg_replace('/\s(color|bgcolor)="[^"]*"/i', '', $html);
+
+			// Clean up any empty style or class attributes left behind
+			$html = preg_replace('/style="\s*"/i', '', $html);
+			$html = preg_replace('/class="\s*"/i', '', $html);
+
+			// MODIFIED: Remove soft hyphens (&shy;) which Word often inserts and breaks words in the editor
+			$html = str_replace(['&shy;', "\xC2\xAD"], '', $html);
+
+			// MODIFIED: Safely unwrap useless <span> tags using DOMDocument
+			if (trim($html) !== '') {
+				$dom = new DOMDocument();
+				// Suppress warnings for malformed HTML
+				libxml_use_internal_errors(true);
+
+				// Wrap in a div and specify UTF-8 to prevent encoding issues
+				$dom->loadHTML(
+					'<?xml encoding="utf-8" ?><div>' . $html . '</div>',
+					LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+				);
+				libxml_clear_errors();
+
+				$spans = $dom->getElementsByTagName('span');
+
+				// Iterate backwards because we are modifying the live NodeList
+				for ($i = $spans->length - 1; $i >= 0; $i--) {
+					$span = $spans->item($i);
+
+					// If the span has no attributes left, unwrap it (replace it with its children)
+					if ($span->attributes->length === 0) {
+						$fragment = $dom->createDocumentFragment();
+						while ($span->childNodes->length > 0) {
+							$fragment->appendChild($span->childNodes->item(0));
+						}
+						$span->parentNode->replaceChild($fragment, $span);
+					}
+				}
+
+				// Extract the inner HTML of our wrapper <div>
+				$html = '';
+				foreach ($dom->documentElement->childNodes as $child) {
+					$html .= $dom->saveHTML($child);
+				}
 			}
 
 			return trim($html);
@@ -236,33 +284,28 @@
 			[
 				'group' => 'Popular',
 				'models' => [
-					['id' => 'openai/gpt-5.1', 'name' => 'OpenAI GPT-5.1'],
-					['id' => 'google/gemini-3-pro-preview', 'name' => 'Google: Gemini 3 Pro'],
-					['id' => 'openai/gpt-4o', 'name' => 'OpenAI GPT-4o'],
+					['id' => 'anthropic/claude-sonnet-4.6', 'name' => 'Claude Sonnet 4.6'],
+					['id' => 'anthropic/claude-opus-4.6', 'name' => 'Claude Opus 4.6'],
+					['id' => 'deepseek/deepseek-v3.2', 'name' => 'DeepSeek V3.2'],
+					['id' => 'minimax/minimax-m2.7', 'name' => 'Minimax M2.7'],
+					['id' => 'google/gemini-3.1-pro-preview', 'name' => 'Google: Gemini 3.1 Pro Preview'],
+					['id' => 'openai/gpt-5.4', 'name' => 'OpenAI GPT-5.4'],
 					['id' => 'anthropic/claude-3.7-sonnet', 'name' => 'Claude 3.7 Sonnet'],
 					['id' => 'anthropic/claude-3.7-sonnet:thinking', 'name' => 'Claude 3.7 Sonnet (Thinking)'],
 					['id' => 'google/gemini-2.5-pro', 'name' => 'Google: Gemini 2.5 Pro'],
-					['id' => 'deepseek/deepseek-chat-v3.1', 'name' => 'DeepSeek Chat V3.1'],
 				],
 			],
 			[
 				'group' => 'New',
 				'models' => [
 					['id' => 'anthropic/claude-sonnet-4', 'name' => 'Claude Sonnet 4'],
+					['id' => 'google/gemma-4-26b-a4b-it', 'name' => 'Google: Gemma 4 26b IT'],
+					['id' => 'qwen/qwen3.6-plus', 'name' => 'Qwen 3.6 Plus'],
+					['id' => 'openai/gpt-5.4-mini', 'name' => 'OpenAI GPT-5.4 mini'],
 					['id' => 'openai/gpt-5', 'name' => 'OpenAI GPT-5'],
 					['id' => 'openai/gpt-oss-120b', 'name' => 'OpenAI: gpt-oss-120b'],
-					['id' => 'openai/gpt-5-chat', 'name' => 'OpenAI GPT-5 Chat'],
-					['id' => 'openai/gpt-5-mini', 'name' => 'OpenAI GPT-5 mini'],
-					['id' => 'moonshotai/kimi-k2-0905', 'name' => 'MoonshotAI: Kimi K2 0905'],
+					['id' => 'moonshotai/kimi-k2.5', 'name' => 'MoonshotAI: Kimi K2.5'],
 					['id' => 'z-ai/glm-4.5', 'name' => 'Z.AI: GLM 4.5'],
-				],
-			],
-			[
-				'group' => 'Other',
-				'models' => [
-					['id' => 'google/gemini-2.5-flash', 'name' => 'Gemini 2.5 Flash'],
-					['id' => 'openai/gpt-4.1', 'name' => 'OpenAI GPT-4.1'],
-					['id' => 'openai/gpt-4o-mini', 'name' => 'OpenAI GPT-4o mini'],
 				],
 			],
 			[

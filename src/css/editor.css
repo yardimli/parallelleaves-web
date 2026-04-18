@@ -107,7 +107,8 @@ i[class^="bi-"], i[class*=" bi-"] {
 
 /* Styles for the Import Document page */
 #document-content-wrapper.prose, .js-pm-container.prose { /* Override to make the content area full-width */
-    max-width: none !important;
+    max-width: 1280px !important;
+    margin: 0 auto; /* Center the content */
 }
 
 #document-content p {
