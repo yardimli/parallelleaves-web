@@ -19,7 +19,7 @@
 
 // Application Settings loaded from .env with fallbacks
 	define('APP_VERSION', $_ENV['APP_VERSION'] ?? '0.1.7');
-	define('OPEN_ROUTER_MODEL', $_ENV['OPEN_ROUTER_MODEL'] ?? 'openai/gpt-oss-120b');
+	define('OPEN_ROUTER_MODEL', $_ENV['OPEN_ROUTER_MODEL'] ?? 'openai/gpt-4o-mini');
 
 // Directories
 // Added a fallback in case realpath() returns false (prevents path corruption)
