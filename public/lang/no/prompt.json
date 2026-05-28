@@ -1,0 +1,59 @@
+{
+  "common": {
+    "dictionary": "Ordbok",
+    "useTranslationMemory" : "Bruk Oversettelsesminne",
+    "tense": "Tempus",
+    "past": "Fortid",
+    "present": "Nåtid"
+  },
+  "rephrase": {
+    "title": "Omformuler",
+    "instructions": "Instruksjoner",
+    "instructionsPlaceholder": "f.eks. Gjør tonen mer formell.",
+    "contextInfo": "Kontekstuell informasjon",
+    "system": {
+      "base": "You are an expert prose editor.\n\nWhenever you're given text, rephrase it using the following instructions: {instructions}\n\nuse the {tense} tense\nImitate and keep the current writing style, and leave mannerisms, word choice and sentence structure intact.\nYou are free to remove redundant lines of speech. Use {language} spelling and grammar.\n\nOnly return the rephrased text, nothing else."
+    },
+    "user": {
+      "surroundingTextBlock": "For contextual information, refer to surrounding words in the scene, DO NOT REPEAT THEM:\n<textBefore>\n{wordsBefore}\n</textBefore>\n<textAfter>\n{wordsAfter}\n</textAfter>",
+      "surroundingTextBlockBeforeOnly": "For contextual information, refer to surrounding words in the scene, DO NOT REPEAT THEM:\n<textBefore>\n{wordsBefore}\n</textBefore>",
+      "surroundingTextBlockAfterOnly": "For contextual information, refer to surrounding words in the scene, DO NOT REPEAT THEM:\n<textAfter>\n{wordsAfter}\n</textAfter>",
+      "textToRewrite": "Text to rewrite:\n<text words=\"{wordCount}\">\n{text}\n</text>"
+    }
+  },
+  "translate": {
+    "title": "Oversett",
+    "instructions": "Instruksjoner",
+    "instructionsPlaceholder": "f.eks. Oversett til en formell tone. Behold karakternavn i sin opprinnelige form.",
+    "contextInfo": "Kontekstuell informasjon",
+    "prevPairs": "Forrige oversettelsespar",
+    "prevPairsHelp": "Inkluder N forrige oversettelsesblokker som kontekst for AI-en. (0 for å deaktivere)",
+    "noTranslationMemories" : "Ingen oversettelsesminner tilgjengelig.",
+    "selectTranslationMemories" : "Velg oversettelsesminner",
+    "system": {
+      "base": "You are an expert literary translator. Your task is to translate a text from {sourceLanguage} to {targetLanguage}.\nTranslate in the {tense} tense.\nPreserve the original tone, style, and literary devices as much as possible. Maintain the original paragraph breaks.\n\nFollow these specific instructions: {instructions}\nUse the following custom dictionary:\n{dictionary}\n##TRANSLATION_MEMORY##\n##CODEX_BLOCK##\n\nOnly return the translated text, nothing else."
+    },
+    "user": {
+      "textToTranslate": "Translate the following text from {sourceLanguage} to {targetLanguage}:\n\n{text}"
+    }
+  },
+  "preview": {
+    "title": "Live Prompt-forhåndsvisning",
+    "description": "Dette er den endelige prompten som vil bli sendt til AI-en, basert på innstillingene dine ovenfor.",
+    "system": "System-prompt",
+    "user": "Bruker-prompt",
+    "aiPrefix": "AI-svarprefiks",
+    "contextPairs": "Kontekstpar",
+    "contextUser": "Kontekstpar {number} (Bruker)",
+    "contextAssistant": "Kontekstpar {number} (Assistent)",
+    "empty": "(Tom)"
+  },
+  "errorLoadForm": "Kunne ikke laste redigeringsskjema.",
+  "errorNoEditorForPrompt": "Ingen redigeringsprogram funnet for prompt: {promptId}",
+  "errorApplyAction": "Kunne ikke utføre handling. Mangler modell, handling eller skjema.",
+  "errorNoBuilder": "Ingen prompt-bygger eller skjema-uttrekker funnet for handling: {action}",
+  "errorNoActiveEditor": "Ingen aktivt redigeringsprogram å bruke endringer på.",
+  "errorNoSelection": "Kunne ikke hente utvalg fra redigeringsprogrammet. For omformulering, vennligst velg litt tekst.",
+  "errorFetchContext": "Kunne ikke hente forrige oversettelsesblokker for kontekst. {message}",
+  "errorNoInterface": "Kan ikke åpne AI-redigeringsprogram: Redigeringsgrensesnitt er ikke tilgjengelig."
+}

@@ -17,3 +17,6 @@ userData/session.json
 /userData
 /vendor
 composer.lock
+/laravel_tmp
+/public/node_modules/bootstrap-icons
+/public/userData/temp
