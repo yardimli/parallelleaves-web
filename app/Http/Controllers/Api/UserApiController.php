@@ -7,6 +7,7 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use App\Models\User; // MODIFIED: Imported Eloquent User Model
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -20,7 +21,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -30,10 +30,12 @@
 
 				$result = null;
 				do {
-					// MODIFIED: Added endpoint to update the user's API key
 					$newKey = $args[0] ?? '';
-					$stmt = $db->prepare('UPDATE users SET openrouter_api_key = ? WHERE id = ?');
-					$stmt->execute([$newKey, $userId]);
+					// MODIFIED: Replaced users table MySQLi query with standard Eloquent update [1]
+					User::where('id', $userId)->update([
+						'openrouter_api_key' => $newKey
+					]);
+
 					$_SESSION['user']['openrouter_api_key'] = $newKey;
 					$result = ['success' => true];
 					break;

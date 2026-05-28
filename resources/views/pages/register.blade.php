@@ -8,9 +8,14 @@
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
 <body class="bg-base-100 min-h-screen flex flex-col items-center justify-center p-4 text-base-content">
-<div class="text-center">
-	<h1 class="text-4xl font-bold text-base-content mb-6">Parallel Leaves</h1>
+
+<!-- MODIFIED: Added uniform brand header containing the logo, title, and current version -->
+<div class="text-center mb-6">
+	<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Brand Logo" class="w-16 h-16 rounded-xl mx-auto mb-2 shadow-md">
+	<h1 class="text-3xl font-bold text-base-content">Parallel Leaves</h1>
+	<p class="text-xs text-base-content/60 mt-1">v{{ env('APP_VERSION', '0.1') }}</p>
 </div>
+
 <div class="card w-full max-w-md bg-base-200 shadow-xl">
 	<div class="card-body">
 		<h2 class="card-title text-2xl justify-center mb-2">Create an Account</h2>

@@ -8,6 +8,12 @@
 
 	class PageController extends Controller
 	{
+// NEW: Specific method for index/landing page
+		public function landing(): View
+		{
+			return view('pages.landing');
+		}
+
 // NEW: Specific method for login page
 		public function login(): View|RedirectResponse
 		{

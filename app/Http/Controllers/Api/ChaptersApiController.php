@@ -8,6 +8,7 @@
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
 	use Throwable;
+	use App\Models\Chapter; // MODIFIED: Imported Eloquent Chapter model
 
 	require_once __DIR__ . '/ApiSupport.php';
 
@@ -20,7 +21,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -35,8 +35,10 @@
 					if (!in_array($data['field'], $allowedFields)) {
 						throw new Exception('Invalid field specified.');
 					}
-					$stmt = $db->prepare("UPDATE chapters SET {$data['field']} = ? WHERE id = ?");
-					$stmt->execute([$data['value'], $data['chapterId']]);
+					// MODIFIED: Refactored database query to Eloquent update [1]
+					Chapter::where('id', $data['chapterId'])->update([
+						$data['field'] => $data['value']
+					]);
 					$result = ['success' => true];
 					break;
 				} while (false);
@@ -54,7 +56,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -69,10 +70,9 @@
 					if (!in_array($data['field'], $allowedFields)) {
 						throw new Exception('Invalid field specified.');
 					}
-					$stmt = $db->prepare("SELECT {$data['field']} FROM chapters WHERE id = ?");
-					$stmt->execute([$data['chapterId']]);
-					$row = $stmt->get_result()->fetch_row();
-					$result = $row[0] ?? null;
+					// MODIFIED: Replaced raw database fetch with Eloquent call [1]
+					$row = Chapter::select($data['field'])->where('id', $data['chapterId'])->first();
+					$result = $row ? $row->{$data['field']} : null;
 					break;
 				} while (false);
 
@@ -89,7 +89,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -100,7 +99,10 @@
 				$result = null;
 				do {
 					$data = $args[0];
-					$db->prepare('UPDATE chapters SET title = ? WHERE id = ?')->execute([$data['newTitle'], $data['chapterId']]);
+					// MODIFIED: Refactored renaming statement with Eloquent model [1]
+					Chapter::where('id', $data['chapterId'])->update([
+						'title' => $data['newTitle']
+					]);
 					$result = ['success' => true];
 					break;
 				} while (false);
@@ -118,7 +120,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -130,12 +131,16 @@
 				do {
 					$data = $args[0];
 					$chapterId = $data['chapterId'];
-					$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
-					$stmt->execute([$chapterId]);
-					$chapter = $stmt->get_result()->fetch_assoc();
+					// MODIFIED: Complete Eloquent delete logic with decrement update [1]
+					$chapter = Chapter::where('id', $chapterId)->first();
 					if ($chapter) {
-						$db->prepare('DELETE FROM chapters WHERE id = ?')->execute([$chapterId]);
-						$db->prepare('UPDATE chapters SET chapter_order = chapter_order - 1 WHERE book_id = ? AND chapter_order > ?')->execute([$chapter['book_id'], $chapter['chapter_order']]);
+						$bookId = $chapter->book_id;
+						$order = $chapter->chapter_order;
+						$chapter->delete();
+
+						Chapter::where('book_id', $bookId)
+							->where('chapter_order', '>', $order)
+							->decrement('chapter_order');
 					}
 					$result = ['success' => true];
 					break;
@@ -154,7 +159,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -167,13 +171,23 @@
 					$data = $args[0];
 					$chapterId = $data['chapterId'];
 					$direction = $data['direction'];
-					$stmt = $db->prepare('SELECT book_id, chapter_order FROM chapters WHERE id = ?');
-					$stmt->execute([$chapterId]);
-					$ref = $stmt->get_result()->fetch_assoc();
+					// MODIFIED: Standardized chapter insertions with Eloquent increment / save calls [1]
+					$ref = Chapter::where('id', $chapterId)->first();
 					if ($ref) {
-						$newOrder = $direction === 'above' ? $ref['chapter_order'] : $ref['chapter_order'] + 1;
-						$db->prepare('UPDATE chapters SET chapter_order = chapter_order + 1 WHERE book_id = ? AND chapter_order >= ?')->execute([$ref['book_id'], $newOrder]);
-						$db->prepare('INSERT INTO chapters (book_id, title, chapter_order, source_content, target_content) VALUES (?, ?, ?, ?, ?)')->execute([$ref['book_id'], 'New Chapter', $newOrder, '<p></p>', '<p></p>']);
+						$bookId = $ref->book_id;
+						$newOrder = $direction === 'above' ? $ref->chapter_order : $ref->chapter_order + 1;
+
+						Chapter::where('book_id', $bookId)
+							->where('chapter_order', '>=', $newOrder)
+							->increment('chapter_order');
+
+						Chapter::create([
+							'book_id' => $bookId,
+							'title' => 'New Chapter',
+							'chapter_order' => $newOrder,
+							'source_content' => '<p></p>',
+							'target_content' => '<p></p>'
+						]);
 					}
 					$result = ['success' => true];
 					break;
@@ -192,7 +206,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -212,14 +225,19 @@
 						break;
 					}
 
-					$stmt = $db->prepare('SELECT book_id, chapter_order, source_content, target_content FROM chapters WHERE id = ?');
-					$stmt->execute([$chapterId]);
-					$current = $stmt->get_result()->fetch_assoc();
+					// MODIFIED: Replaced raw SELECT queries with standard Eloquent calls [1]
+					$current = Chapter::select('book_id', 'chapter_order', 'source_content', 'target_content')
+						->where('id', $chapterId)
+						->first();
 					if (!$current) {
 						throw new Exception('Chapter not found.');
 					}
 
-					$currentPairs = extractMarkerPairsFromHtmlForContext($current['source_content'] ?? '', $current['target_content'] ?? '', $selectedText);
+					$currentPairs = extractMarkerPairsFromHtmlForContext(
+						$current->source_content ?? '',
+						$current->target_content ?? '',
+						$selectedText
+					);
 
 					if (count($currentPairs) >= $pairCount) {
 						$result = array_slice($currentPairs, -$pairCount);
@@ -227,21 +245,26 @@
 					}
 
 					$needed = $pairCount - count($currentPairs);
-					$stmt = $db->prepare('SELECT source_content, target_content FROM chapters WHERE book_id = ? AND chapter_order < ? ORDER BY chapter_order DESC LIMIT 1');
-					$stmt->execute([$current['book_id'], $current['chapter_order']]);
-					$prev = $stmt->get_result()->fetch_assoc();
+
+					// MODIFIED: Fetching preceding chapters context using Chapter Eloquent model
+					$prev = Chapter::select('source_content', 'target_content')
+						->where('book_id', $current->book_id)
+						->where('chapter_order', '<', $current->chapter_order)
+						->orderBy('chapter_order', 'DESC')
+						->first();
 
 					if (!$prev) {
 						$result = $currentPairs;
 						break;
 					}
 
-					$prevPairs = extractMarkerPairsFromHtmlForContext($prev['source_content'] ?? '', $prev['target_content'] ?? '');
+					$prevPairs = extractMarkerPairsFromHtmlForContext(
+						$prev->source_content ?? '',
+						$prev->target_content ?? ''
+					);
 					$lastPrev = array_slice($prevPairs, -$needed);
 					$result = array_merge($lastPrev, $currentPairs);
 					break;
-
-					// --- Documents ---
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);

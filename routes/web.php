@@ -24,7 +24,8 @@
 	use App\Http\Controllers\UploadController;
 	use Illuminate\Support\Facades\Route;
 
-	Route::get('/', fn() => redirect('/dashboard'));
+	// MODIFIED: Changed the root path to target the landing view instead of immediately redirecting
+	Route::get('/', [PageController::class, 'landing'])->name('landing');
 
 // MODIFIED: Updated routes to call specific methods in PageController
 	Route::get('/login', [PageController::class, 'login'])->name('login');

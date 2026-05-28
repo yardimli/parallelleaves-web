@@ -7,6 +7,7 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use App\Models\TranslationLog; // MODIFIED: Imported Eloquent model
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -20,7 +21,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -35,12 +35,21 @@
 					if ($marker && preg_match('/^\[\[#(\d+)\]\]$/', $marker, $matches)) {
 						$marker = $matches[1];
 					}
-					$stmt = $db->prepare('INSERT INTO translation_logs (user_id, book_id, chapter_id, source_text, target_text, marker, model, temperature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-					$stmt->execute([$userId, $data['bookId'], $data['chapterId'], $data['sourceText'], $data['targetText'], $marker, $data['model'], $data['temperature']]);
+
+					// MODIFIED: Created records with TranslationLog Eloquent Model [1]
+					TranslationLog::create([
+						'user_id' => $userId,
+						'book_id' => $data['bookId'],
+						'chapter_id' => $data['chapterId'],
+						'source_text' => $data['sourceText'],
+						'target_text' => $data['targetText'],
+						'marker' => $marker,
+						'model' => $data['model'],
+						'temperature' => $data['temperature']
+					]);
+
 					$result = ['success' => true];
 					break;
-
-					// --- Dictionaries ---
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);

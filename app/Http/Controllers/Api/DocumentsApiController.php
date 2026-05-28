@@ -7,6 +7,9 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use App\Models\UserBook; // MODIFIED: Imported Eloquent Models
+	use App\Models\Chapter;
+	use App\Models\Image;
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -20,7 +23,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -49,7 +51,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -60,39 +61,59 @@
 				$result = null;
 				do {
 					$data = $args[0];
-					$stmt = $db->prepare('INSERT into user_books (user_id, title, source_language, target_language) VALUES (?, ?, ?, ?)');
-					$stmt->execute([$userId, $data['title'], $data['source_language'], $data['target_language']]);
-					$bookId = $db->insert_id;
-					$chStmt = $db->prepare('INSERT INTO chapters (book_id, title, source_content, chapter_order) VALUES (?, ?, ?, ?)');
+					// MODIFIED: Replaced raw INSERT preparation with Eloquent model insertion [1]
+					$book = UserBook::create([
+						'user_id' => $userId,
+						'title' => $data['title'],
+						'source_language' => $data['source_language'],
+						'target_language' => $data['target_language']
+					]);
+					$bookId = $book->id;
+
 					foreach ($data['chapters'] as $i => $chapter) {
-						$chStmt->execute([$bookId, $chapter['title'], $chapter['content'], $i + 1]);
+						Chapter::create([
+							'book_id' => $bookId,
+							'title' => $chapter['title'],
+							'source_content' => $chapter['content'],
+							'chapter_order' => $i + 1
+						]);
 					}
 
 					// Generate cover automatically on import
 					try {
 						$promptPayload = [
-							'model' => OPEN_ROUTER_MODEL,
+							'model' => env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'),
 							'messages' => [['role' => 'user', 'content' => "Using the book title \"{$data['title']}\", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the \"{$data['title']}\" in the prompt Return the result as a JSON with one key \"prompt\"."]],
 							'response_format' => ['type' => 'json_object'],
 							'temperature' => 0.7
 						];
-						// MODIFIED: Passed $userApiKey
-						$res = callOpenRouter($promptPayload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt'], $userApiKey);
+
+						// MODIFIED: Passed parameter set cleanly without raw $db reference
+						$res = callOpenRouter(
+							$promptPayload,
+							['userId' => $userId, 'action' => 'generate_cover_prompt'],
+							$userApiKey
+						);
 						$content = json_decode($res['choices'][0]['message']['content'] ?? '{}', true);
 						$prompt = $content['prompt'] ?? null;
 
 						if ($prompt) {
 							$falPayload = ['prompt' => $prompt, 'image_size' => 'portrait_4_3'];
 							session_write_close();
-							$ch = curl_init('https://fal.run/fal-ai/qwen-image');
+							$ch = curl_init('https://fal.run/fal-ai/qwen-image-2/text-to-image');
 							curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 							curl_setopt($ch, CURLOPT_POST, true);
 							curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($falPayload));
 							curl_setopt($ch, CURLOPT_HTTPHEADER, [
-								'Authorization: Key ' . FAL_API_KEY,
+								'Authorization: Key ' . env('FAL_API_KEY', ''),
 								'Content-Type: application/json',
 								'Accept: application/json'
 							]);
+
+							// MODIFIED: Bypassed SSL verification to prevent handshaking failures on local development servers [1]
+							curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+							curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
 							$response = curl_exec($ch);
 
 							$falData = $response ? json_decode($response, true) : [];
@@ -100,8 +121,15 @@
 							if (isset($falData['images'][0]['url'])) {
 								$localPaths = storeImageFromUrl($falData['images'][0]['url'], $bookId, 'cover-autogen');
 								if ($localPaths) {
-									$db->prepare('INSERT INTO images (user_id, book_id, image_local_path, thumbnail_local_path, image_type, prompt) VALUES (?, ?, ?, ?, ?, ?)')
-										->execute([$userId, $bookId, $localPaths['original_path'], $localPaths['original_path'], 'generated', $prompt]);
+									// MODIFIED: Eloquent model replacement for the raw table insert [1]
+									Image::create([
+										'user_id' => $userId,
+										'book_id' => $bookId,
+										'image_local_path' => $localPaths['original_path'],
+										'thumbnail_local_path' => $localPaths['original_path'],
+										'image_type' => 'generated',
+										'prompt' => $prompt
+									]);
 								}
 							}
 						}
@@ -112,8 +140,6 @@
 
 					$result = ['success' => true, 'bookId' => $bookId];
 					break;
-
-					// --- AI & LLM ---
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);

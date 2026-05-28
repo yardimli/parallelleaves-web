@@ -3,44 +3,21 @@
 	namespace App\Http\Controllers\Api;
 
 	use Exception;
+	use App\Models\ApiLog; // MODIFIED: Added ApiLog model import
+
 	if (!defined('PARALLEL_LEAVES_BASE_DIR')) {
 		define('PARALLEL_LEAVES_BASE_DIR', dirname(__DIR__, 4));
 	}
 
-	if (!defined('DB_HOST')) {
-		define('DB_HOST', config('database.connections.mysql.host', env('DB_HOST', 'localhost')));
-		define('DB_NAME', config('database.connections.mysql.database', env('DB_DATABASE', env('DB_NAME', 'parallel_leaves'))));
-		define('DB_USER', config('database.connections.mysql.username', env('DB_USERNAME', env('DB_USER', 'root'))));
-		define('DB_PASS', config('database.connections.mysql.password', env('DB_PASSWORD', env('DB_PASS', ''))));
-		define('FAL_API_KEY', env('FAL_API_KEY', ''));
-		define('APP_VERSION', env('APP_VERSION', '0.1.7'));
-		define('OPEN_ROUTER_MODEL', env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'));
-		define('BASE_DIR', PARALLEL_LEAVES_BASE_DIR);
-		define('USER_DATA_DIR', PARALLEL_LEAVES_BASE_DIR . '/storage/app/public/userData');
-		define('TEMP_DIR', USER_DATA_DIR . '/temp');
-		define('IMAGES_DIR', USER_DATA_DIR . '/images');
-		define('DOWNLOADS_DIR', USER_DATA_DIR . '/downloads');
-		define('DICTS_DIR', USER_DATA_DIR . '/dictionaries');
+	define('BASE_DIR', PARALLEL_LEAVES_BASE_DIR);
+	define('USER_DATA_DIR', PARALLEL_LEAVES_BASE_DIR . '/storage/app/public/userData');
+	define('TEMP_DIR', USER_DATA_DIR . '/temp');
+	define('IMAGES_DIR', USER_DATA_DIR . '/images');
+	define('DOWNLOADS_DIR', USER_DATA_DIR . '/downloads');
 
-		foreach ([USER_DATA_DIR, TEMP_DIR, IMAGES_DIR, DOWNLOADS_DIR, DICTS_DIR] as $dir) {
-			if (!is_dir($dir)) {
-				mkdir($dir, 0755, true);
-			}
-		}
-	}
-
-	if (!function_exists(__NAMESPACE__ . '\\getDB')) {
-		function getDB(): \mysqli
-		{
-			static $mysqli = null;
-
-			if ($mysqli === null) {
-				mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-				$mysqli = new \mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-				$mysqli->set_charset('utf8mb4');
-			}
-
-			return $mysqli;
+	foreach ([USER_DATA_DIR, TEMP_DIR, IMAGES_DIR, DOWNLOADS_DIR] as $dir) {
+		if (!is_dir($dir)) {
+			mkdir($dir, 0755, true);
 		}
 	}
 
@@ -92,7 +69,6 @@
 			}
 
 			// MODIFIED: Strip out all color, background-color, and font-family CSS properties from inline styles.
-			// This regex safely handles single and double quotes inside the font-family declaration.
 			$html = preg_replace('/(color|background-color|font-family)\s*:\s*(?:[^;\'"]+|\'[^\']*\'|"[^"]*")+;?/i', '', $html);
 
 			// MODIFIED: Strip out legacy color and face/font-family attributes (e.g., <font face="Palatino Linotype" color="red">)
@@ -148,19 +124,23 @@
 		}
 	}
 
-// Log API interactions to the database
-	function logInteraction($db, int $userId, string $action, ?array $requestPayload, string $responseBody, int $responseCode): void
+// MODIFIED: Refactored logInteraction to write logs using the Eloquent model, dropping $db parameter [1]
+	function logInteraction(int $userId, string $action, ?array $requestPayload, string $responseBody, int $responseCode): void
 	{
 		try {
-			$stmt = $db->prepare('INSERT INTO api_logs (user_id, action, request_payload, response_body, response_code) VALUES (?, ?, ?, ?, ?)');
-			$payloadJson = $requestPayload ? json_encode($requestPayload, JSON_UNESCAPED_UNICODE) : null;
-			$stmt->execute([$userId, $action, $payloadJson, $responseBody, $responseCode]);
+			ApiLog::create([
+				'user_id' => $userId,
+				'action' => $action,
+				'request_payload' => $requestPayload ? json_encode($requestPayload, JSON_UNESCAPED_UNICODE) : null,
+				'response_body' => $responseBody,
+				'response_code' => $responseCode,
+			]);
 		} catch (Exception $e) {
 			error_log('Failed to write to database log: ' . $e->getMessage());
 		}
 	}
 
-// MODIFIED: Added $apiKey parameter to use the user's specific OpenRouter API Key
+// MODIFIED: Removed the raw $db parameter requirement in callOpenRouter
 	function callOpenRouter(array $payload, ?array $logContext = null, string $apiKey = ''): array
 	{
 		if (empty($apiKey)) {
@@ -184,8 +164,8 @@
 		$response = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-		if ($logContext && isset($logContext['db'], $logContext['userId'], $logContext['action'])) {
-			logInteraction($logContext['db'], $logContext['userId'], $logContext['action'], $payload, (string)$response, $httpCode);
+		if ($logContext && isset($logContext['userId'], $logContext['action'])) {
+			logInteraction($logContext['userId'], $logContext['action'], $payload, (string)$response, $httpCode);
 		}
 
 		return json_decode((string)$response, true) ?? [];

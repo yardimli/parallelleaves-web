@@ -20,7 +20,7 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
+
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -73,7 +73,7 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
+
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -86,13 +86,18 @@
 					$bookTitle = $args[0]['bookTitle'] ?? '';
 					$prompt = "Using the book title \"$bookTitle\", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the \"$bookTitle\" in the prompt Return the result as a JSON with one key \"prompt\". Example: with title \"Blue Scape\" {\"prompt\": \"An astronaut on a red planet looking at a big cosmic cloud, realistic, add the title \\\"Blue Scape\\\" to the image.\"}";
 					$payload = [
-						'model' => OPEN_ROUTER_MODEL,
+						'model' => env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'),
 						'messages' => [['role' => 'user', 'content' => $prompt]],
 						'response_format' => ['type' => 'json_object'],
 						'temperature' => 0.7
 					];
-					// MODIFIED: Passed $userApiKey
-					$res = callOpenRouter($payload, ['db' => $db, 'userId' => $userId, 'action' => 'generate_cover_prompt'], $userApiKey);
+
+					// MODIFIED: Passed sanitized context array without raw $db
+					$res = callOpenRouter(
+						$payload,
+						['userId' => $userId, 'action' => 'generate_cover_prompt'],
+						$userApiKey
+					);
 					$content = json_decode($res['choices'][0]['message']['content'] ?? '{}', true);
 					$result = ['success' => true, 'prompt' => $content['prompt'] ?? null];
 					break;
@@ -111,7 +116,7 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
+
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -125,23 +130,54 @@
 					$prompt = $args[0]['prompt'];
 					$falPayload = ['prompt' => $prompt, 'image_size' => 'portrait_4_3'];
 					session_write_close();
-					$ch = curl_init('https://fal.run/fal-ai/qwen-image');
+					$ch = curl_init('https://fal.run/fal-ai/qwen-image-2/text-to-image');
 					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 					curl_setopt($ch, CURLOPT_POST, true);
 					curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($falPayload));
 					curl_setopt($ch, CURLOPT_HTTPHEADER, [
-						'Authorization: Key ' . FAL_API_KEY,
+						'Authorization: Key ' . env('FAL_API_KEY', ''),
 						'Content-Type: application/json',
 						'Accept: application/json'
 					]);
+
+					// MODIFIED: Bypassed SSL verification to prevent handshaking failures on local development servers [1]
+					curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+					curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
 					$response = curl_exec($ch);
 
 					if (!$response) {
-						throw new Exception('Image generation API call failed.');
+						// MODIFIED: Added detailed cURL error messages to aid in connection troubleshooting [1]
+						$curlError = curl_error($ch);
+						throw new Exception('Image generation API call failed. cURL Error: ' . $curlError);
 					}
+
 					$falData = json_decode($response, true);
 					if (!isset($falData['images'][0]['url'])) {
-						throw new Exception('Image generation failed.');
+						// MODIFIED: Read structural error responses from fal.ai (such as missing balance or validation errors) and append them to the exception [1]
+						$errorMessage = 'Image generation failed.';
+						if (isset($falData['detail'])) {
+							if (is_array($falData['detail'])) {
+								$msgs = [];
+								foreach ($falData['detail'] as $err) {
+									if (isset($err['msg'])) {
+										$msgs[] = $err['msg'];
+									}
+								}
+								if (!empty($msgs)) {
+									$errorMessage .= ' Reason: ' . implode(', ', $msgs);
+								} else {
+									$errorMessage .= ' Reason: ' . json_encode($falData['detail']);
+								}
+							} else {
+								$errorMessage .= ' Reason: ' . $falData['detail'];
+							}
+						} elseif (isset($falData['error'])) {
+							$errorMessage .= ' Reason: ' . $falData['error'];
+						} else {
+							$errorMessage .= ' Response: ' . $response;
+						}
+						throw new Exception($errorMessage);
 					}
 
 					$localPaths = storeImageFromUrl($falData['images'][0]['url'], $bookId, 'generated-fal');

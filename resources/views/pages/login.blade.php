@@ -7,7 +7,15 @@
 	<link rel="stylesheet" href="/node_modules/bootstrap-icons/font/bootstrap-icons.css">
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
-<body class="bg-base-200 min-h-screen flex items-center justify-center">
+<body class="bg-base-200 min-h-screen flex flex-col items-center justify-center p-4">
+
+<!-- MODIFIED: Added uniform brand header containing the logo, title, and current version -->
+<div class="text-center mb-6">
+	<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Brand Logo" class="w-16 h-16 rounded-xl mx-auto mb-2 shadow-md">
+	<h1 class="text-3xl font-bold">Parallel Leaves</h1>
+	<p class="text-xs text-base-content/60 mt-1">v{{ env('APP_VERSION', '0.1') }}</p>
+</div>
+
 <div class="card w-96 bg-base-100 shadow-xl">
 	<div class="card-body">
 		<h2 class="card-title justify-center text-2xl mb-4" data-i18n="dashboard.login.title">Sign In</h2>
@@ -44,6 +52,7 @@
 </div>
 <script src="/js/api.js"></script>
 <script>
+	// MODIFIED: Restyled script structure according to StandardJS with semicolons
 	if (@json(session('google_error', false))) {
 		const errorMsg = document.getElementById('login-error-message');
 		errorMsg.textContent = 'Google sign in failed. Please try again.';

@@ -7,6 +7,7 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use App\Models\ApiLog; // MODIFIED: Imported ApiLog Eloquent Model
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -20,7 +21,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -33,18 +33,20 @@
 					$page = max(1, (int)($args[0] ?? 1));
 					$limit = 25;
 					$offset = ($page - 1) * $limit;
-					$total = $db->prepare('SELECT COUNT(*) FROM api_logs WHERE user_id = ?');
-					$total->execute([$userId]);
-					$countRow = $total->get_result()->fetch_row();
-					$count = $countRow[0] ?? 0;
 
-					$stmt = $db->prepare('SELECT id, action, request_payload, response_body, response_code, created_at FROM api_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?');
-					$stmt->execute([$userId, $limit, $offset]);
-					$logs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+					// MODIFIED: Eloquent select & paginated retrieval replacing prepare statements [1]
+					$count = ApiLog::where('user_id', $userId)->count();
+
+					$logs = ApiLog::select('id', 'action', 'request_payload', 'response_body', 'response_code', 'created_at')
+						->where('user_id', $userId)
+						->orderBy('created_at', 'DESC')
+						->limit($limit)
+						->offset($offset)
+						->get()
+						->toArray();
+
 					$result = ['logs' => $logs, 'totalPages' => ceil($count / $limit), 'currentPage' => $page];
 					break;
-
-					// --- Languages ---
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);

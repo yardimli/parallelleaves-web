@@ -29,7 +29,7 @@
 
 				$result = null;
 				do {
-					$result = ['version' => APP_VERSION, 'user' => $_SESSION['user'] ?? null, 'websiteUrl' => '#'];
+					$result = ['version' => env('APP_VERSION', '0.1'), 'user' => $_SESSION['user'] ?? null, 'websiteUrl' => '#'];
 					break;
 				} while (false);
 

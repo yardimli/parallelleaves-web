@@ -7,6 +7,8 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use Illuminate\Support\Facades\DB; // MODIFIED: Imported DB Facade [1]
+	use App\Models\UserBook; // MODIFIED: Imported Eloquent Models
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -20,7 +22,6 @@
 				$args = $request->input('args', []);
 				$args = is_array($args) ? $args : [$args];
 				$user = Auth::user();
-				$db = getDB();
 				$userId = $user?->id;
 				$userApiKey = $user?->openrouter_api_key ?? '';
 
@@ -63,7 +64,6 @@
 							}
 						}
 
-						// MODIFIED: Replaced the old TM logic with the advanced two-pass REGEXP logic
 						if ($hasTmPlaceholder) {
 							$lastUserMessage = '';
 							for ($i = count($messages) - 1; $i >= 0; $i--) {
@@ -73,7 +73,6 @@
 								}
 							}
 
-							// Split into words, filter length > 2
 							$words = preg_split('/[\s,.;:!?()"-]+/', strtolower($lastUserMessage), -1, PREG_SPLIT_NO_EMPTY);
 							$uniqueWords = array_unique($words);
 							$uniqueWords = array_filter($uniqueWords, fn($w) => mb_strlen($w) > 2);
@@ -82,22 +81,26 @@
 								$allMemories = [];
 								$maxPairs = 100;
 
-								// First pass - get memories from the current novel first.
 								if ($bookId) {
-									$stmt = $db->prepare(
-										"SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
-										"FROM user_books_translation_memory tm " .
-										"JOIN user_books b ON tm.book_id = b.id " .
-										"WHERE (b.user_id = ? OR ? = 1) AND b.id = ? AND tm.source_sentence REGEXP ?"
-									);
-
 									foreach ($uniqueWords as $word) {
 										if (count($allMemories) >= $maxPairs) {
 											break;
 										}
-										$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
-										$stmt->execute([$userId, $userId, $bookId, $regexpPattern]);
-										$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+										// MODIFIED: Parameterized DB query replaces escaped raw prepare [1]
+										$regexpPattern = '[[:<:]]' . $word . '[[:>:]]';
+										$memoriesForWord = DB::table('user_books_translation_memory as tm')
+											->join('user_books as b', 'tm.book_id', '=', 'b.id')
+											->select('tm.id', 'tm.source_sentence', 'tm.target_sentence', 'b.source_language', 'b.target_language')
+											->where(function ($query) use ($userId) {
+												$query->where('b.user_id', $userId)
+													->orWhereRaw('? = 1', [$userId]);
+											})
+											->where('b.id', $bookId)
+											->whereRaw('tm.source_sentence REGEXP ?', [$regexpPattern])
+											->get()
+											->map(fn($item) => (array)$item)
+											->all();
 
 										if (count($memoriesForWord) > 3) {
 											continue;
@@ -112,31 +115,30 @@
 									}
 								}
 
-								// Second pass - fill remaining slots with memories from other novels.
 								if (count($allMemories) < $maxPairs) {
-									$sql = "SELECT tm.id, tm.source_sentence, tm.target_sentence, b.source_language, b.target_language " .
-										"FROM user_books_translation_memory tm " .
-										"JOIN user_books b ON tm.book_id = b.id " .
-										"WHERE (b.user_id = ? OR ? = 1) ";
-									if ($bookId) {
-										$sql .= "AND b.id != ? ";
-									}
-									$sql .= "AND tm.source_sentence REGEXP ?";
-									$stmt = $db->prepare($sql);
-
 									foreach ($uniqueWords as $word) {
 										if (count($allMemories) >= $maxPairs) {
 											break;
 										}
-										$regexpPattern = '[[:<:]]' . $db->real_escape_string($word) . '[[:>:]]';
+										$regexpPattern = '[[:<:]]' . $word . '[[:>:]]';
+
+										// MODIFIED: Standard Query Builder execution replacing raw SQL string construction [1]
+										$query = DB::table('user_books_translation_memory as tm')
+											->join('user_books as b', 'tm.book_id', '=', 'b.id')
+											->select('tm.id', 'tm.source_sentence', 'tm.target_sentence', 'b.source_language', 'b.target_language')
+											->where(function ($q) use ($userId) {
+												$q->where('b.user_id', $userId)
+													->orWhereRaw('? = 1', [$userId]);
+											});
 
 										if ($bookId) {
-											$stmt->execute([$userId, $userId, $bookId, $regexpPattern]);
-										} else {
-											$stmt->execute([$userId, $userId, $regexpPattern]);
+											$query->where('b.id', '!=', $bookId);
 										}
 
-										$memoriesForWord = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+										$memoriesForWord = $query->whereRaw('tm.source_sentence REGEXP ?', [$regexpPattern])
+											->get()
+											->map(fn($item) => (array)$item)
+											->all();
 
 										if (count($memoriesForWord) > 3) {
 											continue;
@@ -153,7 +155,6 @@
 									}
 								}
 
-								// Format the unique TM pairs for injection
 								foreach ($allMemories as $mem) {
 									$tmContent .= "<{$mem['source_language']}>{$mem['source_sentence']}</{$mem['source_language']}>\n";
 									$tmContent .= "<{$mem['target_language']}>{$mem['target_sentence']}</{$mem['target_language']}>\n";
@@ -163,11 +164,14 @@
 						}
 
 						if ($hasCodexPlaceholder) {
-							$stmt = $db->prepare("SELECT codex_content FROM user_books WHERE id = ? AND user_id = ?");
-							$stmt->execute([$bookId, $userId]);
-							$row = $stmt->get_result()->fetch_assoc();
-							if ($row && !empty($row['codex_content'])) {
-								$codexContent = "Use the following glossary for consistent translation:\n<glossary>\n" . $row['codex_content'] . "\n</glossary>";
+							// MODIFIED: Eloquent replacement for fetching codex metadata [1]
+							$row = UserBook::select('codex_content')
+								->where('id', $bookId)
+								->where('user_id', $userId)
+								->first();
+
+							if ($row && !empty($row->codex_content)) {
+								$codexContent = "Use the following glossary for consistent translation:\n<glossary>\n" . $row->codex_content . "\n</glossary>";
 							}
 						}
 
@@ -193,7 +197,6 @@
 						unset($msg);
 					}
 
-					// MODIFIED: Added prompt length check to prevent exceeding API limits
 					$promptLength = 0;
 					foreach ($messages as $msg) {
 						if (isset($msg['content'])) {
@@ -206,12 +209,12 @@
 					}
 
 					$payload = [
-						'model' => $data['model'] ?? OPEN_ROUTER_MODEL,
+						'model' => $data['model'] ?? env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'),
 						'messages' => $messages,
 						'temperature' => $data['temperature'] ?? 0.7
 					];
-					$logCtx = ['db' => $db, 'userId' => $userId, 'action' => 'llm_process_text'];
-					// MODIFIED: Passed $userApiKey
+					// MODIFIED: Sanitized array configuration passed without $db context
+					$logCtx = ['userId' => $userId, 'action' => 'llm_process_text'];
 					$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx, $userApiKey)];
 					break;
 				} while (false);
