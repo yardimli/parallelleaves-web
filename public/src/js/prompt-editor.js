@@ -62,6 +62,7 @@ function showAiSpinner() {
 	}
 }
 
+// Hide loading spinner
 function hideAiSpinner() {
 	const overlay = document.getElementById('ai-action-spinner-overlay');
 	if (overlay) {
@@ -641,6 +642,19 @@ export async function openPromptEditor(context, promptId, initialState = null) {
 		console.error('`editorInterface` is missing from the context for openPromptEditor.');
 		window.showAlert(t('prompt.errorNoInterface'));
 		return;
+	}
+	
+	// MODIFIED: Verify if the user's OpenRouter API key is configured before continuing.
+	try {
+		const session = await window.api.getSession();
+		if (!session || !session.user || !session.user.openrouter_api_key) {
+			const errorMessage = t('prompt.errorApiKeyMissing') || 'OpenRouter API key is missing. Please set it in your account settings.';
+			const errorTitle = t('common.error') || 'Error';
+			window.showAlert(errorMessage, errorTitle);
+			return;
+		}
+	} catch (error) {
+		console.error('Failed to verify session API key:', error);
 	}
 	
 	currentContext = { ...context, initialState };

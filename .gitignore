@@ -20,3 +20,4 @@ composer.lock
 /laravel_tmp
 /public/node_modules/bootstrap-icons
 /public/userData/temp
+/public/dist
