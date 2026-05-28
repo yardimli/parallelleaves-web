@@ -4,7 +4,7 @@
 	<meta charset="UTF-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
 	<title>Parallel Leaves - Chapter Editor</title>
-	<link rel="stylesheet" href="/node_modules/bootstrap-icons/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
 <body class="h-full bg-base-100 text-base-content overflow-hidden flex flex-col">

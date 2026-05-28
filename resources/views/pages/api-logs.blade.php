@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Parallel Leaves - API Logs</title>
-	<link rel="stylesheet" href="/node_modules/bootstrap-icons/font/bootstrap-icons.css">
+	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
 <body class="bg-base-100 min-h-screen p-8 text-base-content">

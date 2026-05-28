@@ -21,3 +21,4 @@ composer.lock
 /public/node_modules/bootstrap-icons
 /public/userData/temp
 /public/dist
+/public/vendor/bootstrap-icons
