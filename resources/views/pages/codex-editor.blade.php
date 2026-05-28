@@ -17,6 +17,13 @@
 		<p>Loading...</p>
 	</div>
 </div>
+
+<!-- NEW: Pass route parameters to frontend JS -->
+<script>
+	window.routeParams = {
+		bookId: @json($bookId ?? null)
+	};
+</script>
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>
 <script type="module" src="/src/js/codex-editor.js"></script>

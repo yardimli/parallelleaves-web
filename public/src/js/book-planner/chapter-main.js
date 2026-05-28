@@ -1,18 +1,28 @@
-import { setupTopToolbar, setActiveContentWindow, updateToolbarState } from './toolbar.js';
-import { setupPromptEditor, openPromptEditor } from '../prompt-editor.js';
-import { setupTypographySettings, getTypographySettings, generateTypographyStyleProperties } from './typography-settings.js';
-import { initI18n, t, applyTranslationsTo } from '../i18n.js';
-import { processSourceContentForMarkers} from '../../utils/html-processing.js';
-import { initDictionaryModal } from '../dictionary/dictionary-modal.js';
-import { loadModals } from '../../utils/modal-loader.js';
-import { showConfirmationModal, showInputModal } from './modals.js';
-import { syncChapterScroll, scrollToChapter, scrollToTargetMarker, scrollToSourceMarker, setupIntersectionObserver } from './scroll-sync.js';
-import { setupSearch } from './search.js';
-import { setupSearchAndReplace } from './search-replace.js';
-import { setupSpellcheckDropdown } from './spellcheck.js';
-import { handleOpenDictionaryWithSelection } from './dictionary-handler.js';
-import { createIframeEditorInterface } from './editor-interface.js';
-import { setupShortcuts } from './shortcuts.js';
+import {setupTopToolbar, setActiveContentWindow, updateToolbarState} from './toolbar.js';
+import {setupPromptEditor, openPromptEditor} from '../prompt-editor.js';
+import {
+	setupTypographySettings,
+	getTypographySettings,
+	generateTypographyStyleProperties
+} from './typography-settings.js';
+import {initI18n, t, applyTranslationsTo} from '../i18n.js';
+import {processSourceContentForMarkers} from '../../utils/html-processing.js';
+import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
+import {loadModals} from '../../utils/modal-loader.js';
+import {showConfirmationModal, showInputModal} from './modals.js';
+import {
+	syncChapterScroll,
+	scrollToChapter,
+	scrollToTargetMarker,
+	scrollToSourceMarker,
+	setupIntersectionObserver
+} from './scroll-sync.js';
+import {setupSearch} from './search.js';
+import {setupSearchAndReplace} from './search-replace.js';
+import {setupSpellcheckDropdown} from './spellcheck.js';
+import {handleOpenDictionaryWithSelection} from './dictionary-handler.js';
+import {createIframeEditorInterface} from './editor-interface.js';
+import {setupShortcuts} from './shortcuts.js';
 
 const debounce = (func, delay) => {
 	let timeout;
@@ -32,7 +42,7 @@ const debounce = (func, delay) => {
 // --- State Management ---
 let activeChapterId = null;
 const chapterEditorViews = new Map();
-let currentSourceSelection = { text: '', hasSelection: false, range: null };
+let currentSourceSelection = {text: '', hasSelection: false, range: null};
 let lastBroadcastedSourceSelectionState = false;
 let totalIframes = 0;
 let iframesReadyCount = 0;
@@ -46,7 +56,9 @@ let targetEditCount = 0;
 // --- State Accessors and Mutators ---
 const getActiveEditor = () => activeEditor;
 const getLastFocusedSourceEditor = () => lastFocusedSourceEditor;
-const setActiveEditor = (editorWindow) => { activeEditor = editorWindow; };
+const setActiveEditor = (editorWindow) => {
+	activeEditor = editorWindow;
+};
 const setActiveChapterId = (chapterId, callback) => {
 	if (chapterId && chapterId !== activeChapterId) {
 		activeChapterId = chapterId;
@@ -54,7 +66,7 @@ const setActiveChapterId = (chapterId, callback) => {
 	}
 };
 
-const debouncedContentSave = debounce(async ({ chapterId, field, value }) => {
+const debouncedContentSave = debounce(async ({chapterId, field, value}) => {
 	if (field === 'target_content') {
 		const tempDiv = document.createElement('div');
 		tempDiv.innerHTML = value;
@@ -69,7 +81,7 @@ const debouncedContentSave = debounce(async ({ chapterId, field, value }) => {
 	}
 	
 	try {
-		await window.api.updateChapterField({ chapterId, field, value });
+		await window.api.updateChapterField({chapterId, field, value});
 	} catch (error) {
 		console.error(`[SAVE] Error saving ${field} for chapter ${chapterId}:`, error);
 		window.showAlert(`Could not save ${field} changes.`);
@@ -85,7 +97,7 @@ const debouncedSaveScroll = debounce((bookId, sourceEl, targetEl) => {
 	localStorage.setItem(`scroll-position-${bookId}`, JSON.stringify(positions));
 }, 500);
 
-function restoreScrollPositions (bookId, sourceEl, targetEl) {
+function restoreScrollPositions(bookId, sourceEl, targetEl) {
 	const saved = localStorage.getItem(`scroll-position-${bookId}`);
 	if (saved) {
 		try {
@@ -101,7 +113,7 @@ function restoreScrollPositions (bookId, sourceEl, targetEl) {
 	return false;
 }
 
-async function renderSourceChapterContent (chapterId, rawHtml) {
+async function renderSourceChapterContent(chapterId, rawHtml) {
 	const chapterItem = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	if (!chapterItem) return;
 	const contentContainer = chapterItem.querySelector('.source-content-readonly');
@@ -109,7 +121,7 @@ async function renderSourceChapterContent (chapterId, rawHtml) {
 	contentContainer.innerHTML = processSourceContentForMarkers(rawHtml || '');
 }
 
-async function toggleSourceEditMode (chapterId, isEditing) {
+async function toggleSourceEditMode(chapterId, isEditing) {
 	const chapterItem = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	if (!chapterItem) return;
 	
@@ -126,18 +138,18 @@ async function toggleSourceEditMode (chapterId, isEditing) {
 	cancelBtn.classList.toggle('hidden', !isEditing);
 	
 	if (isEditing) {
-		const rawContent = await window.api.getRawChapterContent({ chapterId, field: 'source_content' });
+		const rawContent = await window.api.getRawChapterContent({chapterId, field: 'source_content'});
 		contentContainer.contentEditable = true;
 		contentContainer.innerHTML = rawContent || '';
 		contentContainer.focus();
 	} else {
 		contentContainer.contentEditable = false;
-		const rawContent = await window.api.getRawChapterContent({ chapterId, field: 'source_content' });
+		const rawContent = await window.api.getRawChapterContent({chapterId, field: 'source_content'});
 		await renderSourceChapterContent(chapterId, rawContent);
 	}
 }
 
-async function saveSourceChanges (chapterId) {
+async function saveSourceChanges(chapterId) {
 	const chapterItem = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	if (!chapterItem) return;
 	
@@ -145,7 +157,7 @@ async function saveSourceChanges (chapterId) {
 	const newContent = contentContainer.innerHTML;
 	
 	try {
-		await window.api.updateChapterField({ chapterId, field: 'source_content', value: newContent });
+		await window.api.updateChapterField({chapterId, field: 'source_content', value: newContent});
 		
 		const tempDiv = document.createElement('div');
 		tempDiv.innerHTML = newContent;
@@ -170,7 +182,7 @@ async function saveSourceChanges (chapterId) {
  * @param {string} rawTargetHtml - The raw target HTML content from the database.
  * @returns {{cleanedSourceContent: string, wasModified: boolean}} - The cleaned source content and a flag indicating if changes were made.
  */
-function synchronizeMarkers (rawSourceHtml, rawTargetHtml) {
+function synchronizeMarkers(rawSourceHtml, rawTargetHtml) {
 	const markerRegex = /(\[\[#(\d+)\]\])|(\{\{#(\d+)\}\})/g;
 	let sourceHtml = rawSourceHtml || '';
 	const targetHtml = rawTargetHtml || '';
@@ -185,7 +197,7 @@ function synchronizeMarkers (rawSourceHtml, rawTargetHtml) {
 	
 	const sourceMarkerNumbers = getMarkerNumbers(sourceHtml);
 	if (sourceMarkerNumbers.size === 0) {
-		return { cleanedSourceContent: sourceHtml, wasModified: false };
+		return {cleanedSourceContent: sourceHtml, wasModified: false};
 	}
 	
 	const targetMarkerNumbers = getMarkerNumbers(targetHtml);
@@ -203,10 +215,10 @@ function synchronizeMarkers (rawSourceHtml, rawTargetHtml) {
 		}
 	});
 	
-	return { cleanedSourceContent: sourceHtml, wasModified };
+	return {cleanedSourceContent: sourceHtml, wasModified};
 }
 
-async function renderManuscript (bookData) {
+async function renderManuscript(bookData) {
 	const sourceContainer = document.getElementById('js-source-column-container');
 	const targetContainer = document.getElementById('js-target-column-container');
 	const sourceFragment = document.createDocumentFragment();
@@ -231,13 +243,13 @@ async function renderManuscript (bookData) {
 		targetFragment.appendChild(noChaptersMessage.cloneNode(true));
 	} else {
 		for (const chapter of bookData.chapters) {
-			const { cleanedSourceContent, wasModified } = synchronizeMarkers(chapter.source_content, chapter.target_content);
+			const {cleanedSourceContent, wasModified} = synchronizeMarkers(chapter.source_content, chapter.target_content);
 			
 			if (wasModified) {
-				window.api.updateChapterField({ chapterId: chapter.id, field: 'source_content', value: cleanedSourceContent });
+				window.api.updateChapterField({chapterId: chapter.id, field: 'source_content', value: cleanedSourceContent});
 			}
-			
-			// Use the cleaned content for rendering.
+
+// Use the cleaned content for rendering.
 			const rawSourceContent = cleanedSourceContent || '';
 			
 			const finalSourceContent = processSourceContentForMarkers(rawSourceContent);
@@ -264,7 +276,12 @@ async function renderManuscript (bookData) {
 			const iframe = targetChapterWrapper.querySelector('iframe');
 			
 			totalIframes++;
-			const viewInfo = { iframe, isReady: false, initialContent: chapter.target_content || '', initialResizeComplete: false };
+			const viewInfo = {
+				iframe,
+				isReady: false,
+				initialContent: chapter.target_content || '',
+				initialResizeComplete: false
+			};
 			chapterEditorViews.set(chapter.id.toString(), viewInfo);
 			
 			iframe.addEventListener('load', () => {
@@ -272,7 +289,10 @@ async function renderManuscript (bookData) {
 				viewInfo.isReady = true;
 				const settings = getTypographySettings();
 				const styleProps = generateTypographyStyleProperties(settings);
-				iframe.contentWindow.postMessage({ type: 'updateTypography', payload: { styleProps, settings } }, window.location.origin);
+				iframe.contentWindow.postMessage({
+					type: 'updateTypography',
+					payload: {styleProps, settings}
+				}, window.location.origin);
 				iframe.contentWindow.postMessage({
 					type: 'init',
 					payload: {
@@ -303,7 +323,7 @@ async function renderManuscript (bookData) {
 	applyTranslationsTo(targetContainer);
 }
 
-function populateNavDropdown (bookData) {
+function populateNavDropdown(bookData) {
 	const navDropdown = document.getElementById('js-chapter-nav-dropdown');
 	navDropdown.innerHTML = '';
 	
@@ -317,7 +337,7 @@ function populateNavDropdown (bookData) {
 	navDropdown.addEventListener('change', () => scrollToChapter(navDropdown.value, setActiveChapterId));
 }
 
-function initializeView (bookId, bookData, initialChapterId) {
+function initializeView(bookId, bookData, initialChapterId) {
 	if (viewInitialized) return;
 	viewInitialized = true;
 	
@@ -345,10 +365,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
 	
 	document.getElementById('js-refresh-page-btn')?.addEventListener('click', () => window.location.reload());
-	
-	const pathParts = window.location.pathname.split('/').filter(Boolean);
-	const bookId = pathParts[0] === 'chapter-editor' ? pathParts[1] : null;
-	const initialChapterId = pathParts[0] === 'chapter-editor' ? pathParts[2] : null;
+
+// MODIFIED: Read parameters from window.routeParams instead of parsing URL
+	const bookId = window.routeParams?.bookId || null;
+	const initialChapterId = window.routeParams?.chapterId || null;
 	
 	window.showAlert = (message, title = t('common.error')) => {
 		const modal = document.getElementById('alert-modal');
@@ -372,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const bookData = await window.api.getFullManuscript(bookId);
 		if (!bookData || !bookData.title) throw new Error('Failed to load project data.');
 		
-		document.title = t('editor.translating', { title: bookData.title });
+		document.title = t('editor.translating', {title: bookData.title});
 		document.getElementById('js-book-title').textContent = bookData.title;
 		
 		const totalTargetWords = bookData.chapters?.reduce((sum, ch) => sum + ch.target_word_count, 0) || 0;
@@ -406,7 +426,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 			applyCallback: (styleProps, settings) => {
 				chapterEditorViews.forEach(viewInfo => {
 					if (viewInfo.isReady) {
-						viewInfo.contentWindow.postMessage({ type: 'updateTypography', payload: { styleProps, settings } }, window.location.origin);
+						viewInfo.contentWindow.postMessage({
+							type: 'updateTypography',
+							payload: {styleProps, settings}
+						}, window.location.origin);
 					}
 				});
 				document.querySelectorAll('.js-source-column').forEach(col => {
@@ -417,8 +440,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 		setupIntersectionObserver(setActiveChapterId);
 		setupSpellcheckDropdown();
 		
-		const searchAPI = setupSearch(chapterEditorViews, (handler) => { searchResultHandler = handler; });
-		const searchReplaceAPI = setupSearchAndReplace(chapterEditorViews, (handler) => { searchReplaceResultHandler = handler; });
+		const searchAPI = setupSearch(chapterEditorViews, (handler) => {
+			searchResultHandler = handler;
+		});
+		const searchReplaceAPI = setupSearchAndReplace(chapterEditorViews, (handler) => {
+			searchReplaceResultHandler = handler;
+		});
 		
 		setupShortcuts({
 			searchAPI,
@@ -431,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		initDictionaryModal(bookId);
 		
 		document.body.addEventListener('dictionary:find-replace', (event) => {
-			const { find, replace } = event.detail;
+			const {find, replace} = event.detail;
 			if (searchReplaceAPI && searchReplaceAPI.openWithValues) {
 				searchReplaceAPI.openWithValues(find, replace);
 			}
@@ -445,24 +472,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		const tmStatusEl = document.getElementById('js-tm-status');
 		const codexStatusEl = document.getElementById('js-codex-status');
-		
-		// Start background codex generation on load
+
+// Start background codex generation on load
 		window.api.codex.startGeneration(bookId);
 		
-		window.api.codex.onUpdate((event, { statusKey, progress, total }) => {
+		window.api.codex.onUpdate((event, {statusKey, progress, total}) => {
 			if (codexStatusEl) {
-				const message = t(statusKey, { progress, total });
+				const message = t(statusKey, {progress, total});
 				codexStatusEl.textContent = `Codex: ${message}`;
 			}
 		});
 		
-		window.api.codex.onFinished((event, { status, message }) => {
+		window.api.codex.onFinished((event, {status, message}) => {
 			if (codexStatusEl) {
 				let statusMessage = '';
 				if (status === 'complete') {
 					statusMessage = t('editor.codex.status.complete');
 				} else if (status === 'error') {
-					statusMessage = t('editor.codex.status.error', { message });
+					statusMessage = t('editor.codex.status.error', {message});
 				} else if (status === 'cancelled') {
 					statusMessage = t('editor.codex.status.cancelled');
 				}
@@ -486,18 +513,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 			try {
 				await window.api.translationMemoryGenerateInBackground(bookId);
 			} catch (error) {
-				tmStatusEl.textContent = t('editor.translationMemory.status.error', { message: error.message });
+				tmStatusEl.textContent = t('editor.translationMemory.status.error', {message: error.message});
 				isTmUpdateRunning = false; // Reset on error
 			}
 		};
 		
 		window.api.onTranslationMemoryProgressUpdate((update) => {
 			if (update.error) {
-				tmStatusEl.textContent = t('editor.translationMemory.status.error', { message: update.message });
+				tmStatusEl.textContent = t('editor.translationMemory.status.error', {message: update.message});
 				isTmUpdateRunning = false; // Reset flag
 			} else if (update.finished) {
 				if (update.processedCount > 0) {
-					tmStatusEl.textContent = t('editor.translationMemory.status.complete', { count: update.processedCount });
+					tmStatusEl.textContent = t('editor.translationMemory.status.complete', {count: update.processedCount});
 				} else {
 					tmStatusEl.textContent = t('editor.translationMemory.status.complete_none');
 				}
@@ -506,18 +533,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 					tmStatusEl.textContent = ''; // Clear status after 5 seconds
 				}, 5000);
 			} else if (update.processed !== undefined && update.total !== undefined) {
-				tmStatusEl.textContent = t('editor.translationMemory.status.generating', { processed: update.processed, total: update.total });
+				tmStatusEl.textContent = t('editor.translationMemory.status.generating', {
+					processed: update.processed,
+					total: update.total
+				});
 			} else {
-				// Fallback for general status messages like "Syncing..."
+// Fallback for general status messages like "Syncing..."
 				tmStatusEl.textContent = update.message;
 			}
 		});
-		
-		// Initial TM update run on load
+
+// Initial TM update run on load
 		runTmUpdate();
-		
-		// Set interval for subsequent updates every 5 minutes
-		setInterval(runTmUpdate, 60000*5);
+
+// Set interval for subsequent updates every 5 minutes
+		setInterval(runTmUpdate, 60000 * 5);
 		
 		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
 		targetContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
@@ -533,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					if (selectedText.length > 0) {
 						isSourceSelectionHandled = true;
 						const wordCount = selectedText.split(/\s+/).filter(Boolean).length;
-						document.getElementById('js-word-count').textContent = t('editor.wordsSelectedSource', { count: wordCount });
+						document.getElementById('js-word-count').textContent = t('editor.wordsSelectedSource', {count: wordCount});
 					}
 				}
 			}
@@ -559,13 +589,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 			}
 			
-			currentSourceSelection = { text: selectedText, hasSelection: hasSourceSelection, range: selectionRange };
+			currentSourceSelection = {text: selectedText, hasSelection: hasSourceSelection, range: selectionRange};
 			
 			if (hasSourceSelection !== lastBroadcastedSourceSelectionState) {
 				lastBroadcastedSourceSelectionState = hasSourceSelection;
 				chapterEditorViews.forEach(viewInfo => {
 					if (viewInfo.isReady) {
-						viewInfo.contentWindow.postMessage({ type: 'sourceSelectionChanged', payload: { hasSelection: hasSourceSelection } }, window.location.origin);
+						viewInfo.contentWindow.postMessage({
+							type: 'sourceSelectionChanged',
+							payload: {hasSelection: hasSourceSelection}
+						}, window.location.origin);
 					}
 				});
 			}
@@ -602,21 +635,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			const chapterActionBtn = target.closest('.js-chapter-action');
 			if (chapterActionBtn) {
-				const { action, chapterId } = chapterActionBtn.dataset;
+				const {action, chapterId} = chapterActionBtn.dataset;
 				if (action === 'rename') {
 					const currentTitle = chapterActionBtn.closest('.js-source-actions').parentElement.querySelector('h3').textContent.split('(')[0].trim();
 					const newTitle = await showInputModal(t('editor.renameChapter'), t('editor.promptNewChapterTitle'), currentTitle);
 					if (newTitle) {
-						await window.api.renameChapter({ chapterId, newTitle });
+						await window.api.renameChapter({chapterId, newTitle});
 						window.location.reload();
 					}
 				} else if (action === 'delete') {
 					if (await showConfirmationModal(t('editor.deleteChapter'), t('editor.confirmDeleteChapter'))) {
-						await window.api.deleteChapter({ chapterId });
+						await window.api.deleteChapter({chapterId});
 						window.location.reload();
 					}
 				} else if (action === 'insert-above' || action === 'insert-below') {
-					await window.api.insertChapter({ chapterId, direction: action.replace('insert-', '') });
+					await window.api.insertChapter({chapterId, direction: action.replace('insert-', '')});
 					window.location.reload();
 				}
 			}
@@ -669,7 +702,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const isFromKnownIframe = Array.from(chapterEditorViews.values()).some(view => view.iframe.contentWindow === event.source);
 			if (!isFromKnownIframe) return;
 			
-			const { type, payload } = event.data;
+			const {type, payload} = event.data;
 			const sourceWindow = event.source;
 			
 			switch (type) {
@@ -715,7 +748,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						const iframeRect = viewInfo.iframe.getBoundingClientRect();
 						const containerRect = targetContainer.getBoundingClientRect();
 						const scrollPosition = targetContainer.scrollTop + (iframeRect.top - containerRect.top) + payload.top - 100;
-						targetContainer.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+						targetContainer.scrollTo({top: scrollPosition, behavior: 'smooth'});
 					}
 					break;
 				}
@@ -728,7 +761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					if (searchReplaceResultHandler) searchReplaceResultHandler(type, payload);
 					break;
 				case 'markerClicked': {
-					const { markerId, markerType } = payload;
+					const {markerId, markerType} = payload;
 					scrollToSourceMarker(markerId, markerType);
 					break;
 				}
@@ -741,7 +774,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 						let settings = {};
 						try {
 							settings = bookData.translate_settings ? JSON.parse(bookData.translate_settings) : {};
-						} catch (e) { console.error('Error parsing translate_settings JSON', e); }
+						} catch (e) {
+							console.error('Error parsing translate_settings JSON', e);
+						}
 						
 						const context = {
 							selectedText: currentSourceSelection.text,
@@ -752,7 +787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 							editorInterface: createIframeEditorInterface(sourceWindow),
 							chapterId: viewInfo.iframe.dataset.chapterId,
 							bookId: bookId,
-							insertionPoint: { from: payload.from, to: payload.to }
+							insertionPoint: {from: payload.from, to: payload.to}
 						};
 						openPromptEditor(context, 'translate', settings);
 					})();
@@ -775,18 +810,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 						if (firstEditor) {
 							firstEditor.focus();
 						} else {
-							sourceContainer.focus({ preventScroll: true });
+							sourceContainer.focus({preventScroll: true});
 						}
 					}
 					break;
 				case 'shortcut:focus-target':
-					sourceWindow.postMessage({ type: 'focusEditor' }, window.location.origin);
+					sourceWindow.postMessage({type: 'focusEditor'}, window.location.origin);
 					break;
 			}
 		});
 		
 	} catch (error) {
 		console.error('Failed to load manuscript data:', error);
-		document.body.innerHTML = `<p class="p-8 text-error">${t('editor.errorLoadManuscript', { message: error.message })}</p>`;
+		document.body.innerHTML = `<p class="p-8 text-error">${t('editor.errorLoadManuscript', {message: error.message})}</p>`;
 	}
 });

@@ -27,10 +27,12 @@
 	<!-- Heading Dropdown -->
 	<div class="dropdown js-dropdown-container">
 		<button type="button" tabindex="0" role="button"
-		        class="js-toolbar-btn js-heading-btn btn btn-ghost btn-sm w-28 justify-start" disabled data-i18n="editor.paragraph">Paragraph
+		        class="js-toolbar-btn js-heading-btn btn btn-ghost btn-sm w-28 justify-start" disabled
+		        data-i18n="editor.paragraph">Paragraph
 		</button>
 		<div tabindex="0" class="js-dropdown dropdown-content z-[1] menu p-1 shadow bg-base-100 rounded-box w-40">
-			<button class="js-heading-option p-2 rounded w-full text-left text-sm hover:bg-base-200" data-level="0" data-i18n="editor.paragraph">
+			<button class="js-heading-option p-2 rounded w-full text-left text-sm hover:bg-base-200" data-level="0"
+			        data-i18n="editor.paragraph">
 				Paragraph
 			</button>
 			<button class="js-heading-option p-2 rounded w-full text-left text-xl font-bold hover:bg-base-200"
@@ -87,12 +89,14 @@
 				<button
 					class="js-highlight-option p-1 rounded w-full text-left flex items-center gap-2 text-xs hover:bg-base-200"
 					data-bg="highlight-blue"><span class="w-4 h-4 rounded-full"
-				                                 style="background-color: #bfdbfe;"></span> <span data-i18n="editor.blue">Blue</span>
+				                                 style="background-color: #bfdbfe;"></span> <span
+						data-i18n="editor.blue">Blue</span>
 				</button>
 				<button
 					class="js-highlight-option p-1 rounded w-full text-left flex items-center gap-2 text-xs hover:bg-base-200"
 					data-bg="highlight-red"><span class="w-4 h-4 rounded-full"
-				                                style="background-color: #fecaca;"></span> <span data-i18n="editor.red">Red</span>
+				                                style="background-color: #fecaca;"></span> <span
+						data-i18n="editor.red">Red</span>
 				</button>
 				<button class="js-highlight-option p-1 rounded w-full text-left text-xs hover:bg-base-200"
 				        data-bg="transparent" data-i18n="editor.none">None
@@ -120,7 +124,8 @@
 	</div>
 	<div class="divider divider-horizontal mx-0"></div>
 	<div class="flex items-center gap-1">
-		<button type="button" id="js-open-chat-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.openChat">
+		<button type="button" id="js-open-chat-btn" class="btn btn-ghost btn-sm btn-square"
+		        data-i18n-title="editor.openChat">
 			<i class="bi bi-chat-dots text-lg"></i>
 		</button>
 	</div>
@@ -129,13 +134,15 @@
 		<button type="button" id="js-search-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.search">
 			<i class="bi bi-search text-lg"></i>
 		</button>
-		<button type="button" id="js-search-replace-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchReplace.title">
+		<button type="button" id="js-search-replace-btn" class="btn btn-ghost btn-sm btn-square"
+		        data-i18n-title="editor.searchReplace.title">
 			<i class="bi bi-search-heart text-lg"></i>
 		</button>
 	</div>
 	<div class="divider divider-horizontal mx-0"></div>
 	<div class="flex items-center gap-1">
-		<button type="button" id="js-open-dictionary-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="prompt.common.dictionary">
+		<button type="button" id="js-open-dictionary-btn" class="btn btn-ghost btn-sm btn-square"
+		        data-i18n-title="prompt.common.dictionary">
 			<i class="bi bi-book text-lg"></i>
 		</button>
 		<!-- MODIFIED: Removed the Translation Memory button -->
@@ -148,7 +155,8 @@
 		<button tabindex="0" role="button" class="btn btn-ghost btn-circle" data-i18n-title="common.changeLanguage">
 			<i class="bi bi-translate text-xl"></i>
 		</button>
-		<ul tabindex="0" id="js-lang-switcher-menu" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
+		<ul tabindex="0" id="js-lang-switcher-menu"
+		    class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-32">
 			<!-- Populated by i18n.js -->
 		</ul>
 	</div>
@@ -162,25 +170,29 @@
 </div>
 
 <!-- Search Bar -->
-<div id="js-search-bar" class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
-	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs" data-i18n-placeholder="editor.searchBar.placeholder">
+<div id="js-search-bar"
+     class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
+	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs"
+	       data-i18n-placeholder="editor.searchBar.placeholder">
 	<div class="form-control">
 		<label class="label cursor-pointer gap-2 p-0">
 			<span class="label-text text-sm" data-i18n="editor.searchBar.source">Source</span>
-			<input type="radio" name="search-scope" class="radio radio-sm" value="source" checked />
+			<input type="radio" name="search-scope" class="radio radio-sm" value="source" checked/>
 		</label>
 	</div>
 	<div class="form-control">
 		<label class="label cursor-pointer gap-2 p-0">
 			<span class="label-text text-sm" data-i18n="editor.searchBar.target">Target</span>
-			<input type="radio" name="search-scope" class="radio radio-sm" value="target" />
+			<input type="radio" name="search-scope" class="radio radio-sm" value="target"/>
 		</label>
 	</div>
 	<div class="flex items-center gap-1">
-		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous" disabled>
+		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous"
+		        disabled>
 			<i class="bi bi-chevron-up"></i>
 		</button>
-		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next" disabled>
+		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next"
+		        disabled>
 			<i class="bi bi-chevron-down"></i>
 		</button>
 	</div>
@@ -192,32 +204,39 @@
 </div>
 
 <!-- Search and Replace Bar -->
-<div id="js-search-replace-bar" class="hidden flex-shrink-0 h-auto bg-base-200 flex flex-col p-2 gap-1 z-40 border-b border-base-300">
+<div id="js-search-replace-bar"
+     class="hidden flex-shrink-0 h-auto bg-base-200 flex flex-col p-2 gap-1 z-40 border-b border-base-300">
 	<!-- Find Row -->
 	<div class="flex items-center gap-2">
 		<!-- Input container with 50% width -->
 		<div class="relative w-1/2">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50 pointer-events-none">
-                <i class="bi bi-search"></i>
-            </span>
-			<input type="text" id="js-search-replace-input" class="input input-sm input-bordered w-full pl-10 pr-12" data-i18n-placeholder="editor.searchReplace.findPlaceholder">
-			<button id="js-case-sensitive-btn" class="absolute inset-y-0 right-0 flex items-center px-2 btn btn-ghost btn-sm font-mono" data-i18n-title="editor.searchReplace.caseSensitive">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50 pointer-events-none">
+<i class="bi bi-search"></i>
+</span>
+			<input type="text" id="js-search-replace-input" class="input input-sm input-bordered w-full pl-10 pr-12"
+			       data-i18n-placeholder="editor.searchReplace.findPlaceholder">
+			<button id="js-case-sensitive-btn"
+			        class="absolute inset-y-0 right-0 flex items-center px-2 btn btn-ghost btn-sm font-mono"
+			        data-i18n-title="editor.searchReplace.caseSensitive">
 				Aa
 			</button>
 		</div>
 		<!-- Buttons and info aligned left -->
 		<span id="js-search-replace-results-count" class="text-sm text-base-content/70 w-20 text-center"></span>
 		<div class="flex items-center gap-1">
-			<button id="js-search-replace-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchReplace.previous" disabled>
+			<button id="js-search-replace-prev-btn" class="btn btn-ghost btn-sm btn-square"
+			        data-i18n-title="editor.searchReplace.previous" disabled>
 				<i class="bi bi-chevron-up"></i>
 			</button>
-			<button id="js-search-replace-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchReplace.next" disabled>
+			<button id="js-search-replace-next-btn" class="btn btn-ghost btn-sm btn-square"
+			        data-i18n-title="editor.searchReplace.next" disabled>
 				<i class="bi bi-chevron-down"></i>
 			</button>
 		</div>
 		<!-- Spacer to push close button to the right -->
 		<div class="flex-grow"></div>
-		<button id="js-search-replace-close-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchReplace.close">
+		<button id="js-search-replace-close-btn" class="btn btn-ghost btn-sm btn-square"
+		        data-i18n-title="editor.searchReplace.close">
 			<i class="bi bi-x-lg"></i>
 		</button>
 	</div>
@@ -225,15 +244,20 @@
 	<div class="flex items-center gap-2">
 		<!-- Input container with 50% width -->
 		<div class="relative w-1/2">
-             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50 pointer-events-none">
-                <i class="bi bi-arrow-left-right"></i>
-            </span>
-			<input type="text" id="js-replace-input" class="input input-sm input-bordered w-full pl-10" data-i18n-placeholder="editor.searchReplace.replacePlaceholder">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50 pointer-events-none">
+<i class="bi bi-arrow-left-right"></i>
+</span>
+			<input type="text" id="js-replace-input" class="input input-sm input-bordered w-full pl-10"
+			       data-i18n-placeholder="editor.searchReplace.replacePlaceholder">
 		</div>
 		<!-- Buttons aligned left -->
 		<div class="flex items-center gap-1">
-			<button id="js-replace-btn" class="btn btn-sm btn-outline" data-i18n="editor.searchReplace.replace" disabled>Replace</button>
-			<button id="js-replace-all-btn" class="btn btn-sm btn-outline" data-i18n="editor.searchReplace.replaceAll" disabled>Replace All</button>
+			<button id="js-replace-btn" class="btn btn-sm btn-outline" data-i18n="editor.searchReplace.replace" disabled>
+				Replace
+			</button>
+			<button id="js-replace-all-btn" class="btn btn-sm btn-outline" data-i18n="editor.searchReplace.replaceAll"
+			        disabled>Replace All
+			</button>
 		</div>
 	</div>
 </div>
@@ -248,7 +272,8 @@
 		</select>
 		<div class="flex-grow"></div>
 		<div class="flex items-center gap-2">
-			<label for="js-spellcheck-lang-dropdown" class="text-sm font-medium" data-i18n="editor.spellcheck">Spellcheck:</label>
+			<label for="js-spellcheck-lang-dropdown" class="text-sm font-medium"
+			       data-i18n="editor.spellcheck">Spellcheck:</label>
 			<select id="js-spellcheck-lang-dropdown" class="select select-bordered select-sm">
 				<option data-i18n="common.loading">Loading...</option>
 			</select>
@@ -256,7 +281,8 @@
 	</div>
 	
 	<div class="flex-grow flex min-h-0 relative">
-		<div id="ai-action-spinner-overlay" class="hidden absolute inset-0 bg-base-100/80 backdrop-blur-sm flex items-center justify-center z-50">
+		<div id="ai-action-spinner-overlay"
+		     class="hidden absolute inset-0 bg-base-100/80 backdrop-blur-sm flex items-center justify-center z-50">
 			<div class="text-center">
 				<span class="loading loading-spinner loading-lg"></span>
 				<p class="mt-2 text-sm" data-i18n="editor.waitingAi">Waiting for AI response...</p>
@@ -271,7 +297,8 @@
 	</div>
 </div>
 
-<div id="bottom-status-bar" class="flex-shrink-0 h-8 bg-base-100 flex items-center px-4 gap-4 z-40 border-t border-base-300 dark:border-base-100/10 text-sm">
+<div id="bottom-status-bar"
+     class="flex-shrink-0 h-8 bg-base-100 flex items-center px-4 gap-4 z-40 border-t border-base-300 dark:border-base-100/10 text-sm">
 	<span id="js-tm-status" class="text-base-content/70"></span>
 	<span id="js-codex-status" class="text-base-content/70 ml-4"></span>
 	<div class="flex-grow"></div>
@@ -283,6 +310,13 @@
 
 <div id="modal-placeholders"></div>
 
+<!-- NEW: Pass route parameters to frontend JS -->
+<script>
+	window.routeParams = {
+		bookId: @json($bookId ?? null),
+		chapterId: @json($chapterId ?? null)
+	};
+</script>
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>
 <script type="module" src="/dist/chapter-editor-bundle.js"></script>

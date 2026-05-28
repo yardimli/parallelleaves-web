@@ -1,5 +1,5 @@
-import { initI18n, t, applyTranslationsTo } from './i18n.js';
-import { htmlToPlainText } from '../utils/html-processing.js';
+import {initI18n, t, applyTranslationsTo} from './i18n.js';
+import {htmlToPlainText} from '../utils/html-processing.js';
 
 let bookId = null;
 let chatHistories = [];
@@ -73,7 +73,7 @@ function generateChatId() {
  */
 function addNewChat() {
 	const newChatCount = chatHistories.length + 1;
-	const newChatName = t('editor.chat.chatNamePlaceholder', { number: newChatCount });
+	const newChatName = t('editor.chat.chatNamePlaceholder', {number: newChatCount});
 	const newChat = {
 		id: generateChatId(),
 		name: newChatName,
@@ -97,12 +97,12 @@ function selectChat(chatId) {
 		currentChat = selected;
 		chatHistoryContainer.innerHTML = '';
 		currentChat.messages.forEach(msg => renderMessage(msg.role, msg.content));
-		currentChatNameEl.textContent = t('editor.chat.currentChatName', { name: currentChat.name });
+		currentChatNameEl.textContent = t('editor.chat.currentChatName', {name: currentChat.name});
 		chapterSelect.value = currentChat.selectedChapterId || '';
 		autoResizeTextarea();
 		chatHistoryContainer.scrollTop = chatHistoryContainer.scrollHeight;
 	} else {
-		// Fallback if the chat isn't found, maybe it was deleted on another client
+// Fallback if the chat isn't found, maybe it was deleted on another client
 		addNewChat();
 	}
 	renderChatList(); // Re-render to update active state
@@ -114,7 +114,7 @@ function selectChat(chatId) {
 function deleteCurrentChat() {
 	if (!currentChat) return;
 	
-	const confirmDelete = confirm(t('editor.chat.chatDeletedConfirm', { chatName: currentChat.name }));
+	const confirmDelete = confirm(t('editor.chat.chatDeletedConfirm', {chatName: currentChat.name}));
 	if (confirmDelete) {
 		chatHistories = chatHistories.filter(chat => chat.id !== currentChat.id);
 		saveChats();
@@ -217,7 +217,7 @@ function renderMessage(role, content, isLoading = false) {
 	if (isLoading) {
 		messageBubble.innerHTML = '<span class="loading loading-dots loading-md"></span>';
 	} else {
-		// A simple markdown-to-html for code blocks and bold text
+// A simple markdown-to-html for code blocks and bold text
 		let formattedContent = content
 			.replace(/</g, '&lt;').replace(/>/g, '&gt;') // Sanitize HTML
 			.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -264,16 +264,16 @@ async function handleSendMessage(event) {
 		alert('Please select an AI model.'); // TODO: Use a better alert
 		return;
 	}
-	
-	// Add user message to UI and history
+
+// Add user message to UI and history
 	renderMessage('user', messageText);
-	currentChat.messages.push({ role: 'user', content: messageText });
+	currentChat.messages.push({role: 'user', content: messageText});
 	currentChat.updatedAt = new Date().toISOString();
 	saveChats();
 	chatInput.value = '';
 	chatInput.style.height = 'auto'; // Reset height
-	
-	// Show loading indicator
+
+// Show loading indicator
 	const loadingMessage = renderMessage('assistant', '', true);
 	sendBtn.disabled = true;
 	chatInput.disabled = true;
@@ -293,17 +293,17 @@ async function handleSendMessage(event) {
 				if (sourceContent) chapterContext += `Source Content:\n${sourceContent}\n`;
 				if (targetContent) chapterContext += `Target Content:\n${targetContent}\n`;
 				
-				messagesToSend.unshift({ role: 'system', content: chapterContext });
+				messagesToSend.unshift({role: 'system', content: chapterContext});
 			}
 		} catch (error) {
 			console.error('Failed to fetch chapter content for AI chat:', error);
-			renderMessage('assistant', t('editor.chat.errorSendMessage', { message: 'Could not include chapter context.' }));
+			renderMessage('assistant', t('editor.chat.errorSendMessage', {message: 'Could not include chapter context.'}));
 		}
 	}
 	
 	try {
-		// Keep only the last 4 messages (2 pairs) for context + the new one
-		// This slice now applies *after* potentially adding chapter context
+// Keep only the last 4 messages (2 pairs) for context + the new one
+// This slice now applies *after* potentially adding chapter context
 		const contextMessages = messagesToSend.slice(-5);
 		
 		const temperature = parseFloat(tempSlider.value);
@@ -315,7 +315,7 @@ async function handleSendMessage(event) {
 		
 		if (result.success) {
 			const aiResponse = result.data.choices[0].message.content;
-			currentChat.messages.push({ role: 'assistant', content: aiResponse });
+			currentChat.messages.push({role: 'assistant', content: aiResponse});
 			currentChat.updatedAt = new Date().toISOString();
 			saveChats();
 			loadingMessage.remove();
@@ -326,7 +326,7 @@ async function handleSendMessage(event) {
 	} catch (error) {
 		console.error('Failed to send message:', error);
 		loadingMessage.remove();
-		renderMessage('assistant', t('editor.chat.errorSendMessage', { message: error.message }));
+		renderMessage('assistant', t('editor.chat.errorSendMessage', {message: error.message}));
 	} finally {
 		sendBtn.disabled = false;
 		chatInput.disabled = false;
@@ -347,13 +347,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
 	applyTranslationsTo(document.body);
 	document.title = t('editor.chat.title');
-	
-	const pathParts = window.location.pathname.split('/').filter(Boolean);
-	bookId = pathParts[0] === 'chat' ? pathParts[1] : null;
+
+// MODIFIED: Read parameters from window.routeParams instead of parsing URL
+	bookId = window.routeParams?.bookId || null;
 	
 	if (!bookId) {
-		// Handle case where bookId is missing (e.g., chat opened directly without context)
-		// Maybe close the window or show an error
+// Handle case where bookId is missing (e.g., chat opened directly without context)
+// Maybe close the window or show an error
 		console.error('Book ID is missing from chat window URL.');
 		alert('Error: This chat window requires a project context. Please open it from the editor.');
 		window.close();
@@ -377,8 +377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	populateModels();
 	populateChapterSelect();
 	loadChats();
-	
-	// Event listeners for chat management
+
+// Event listeners for chat management
 	newChatBtn.addEventListener('click', addNewChat);
 	deleteChatBtn.addEventListener('click', deleteCurrentChat);
 	chapterSelect.addEventListener('change', () => {
