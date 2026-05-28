@@ -297,6 +297,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 				const p = document.createElement('p');
 				p.innerHTML = node.innerHTML;
 				
+				// MODIFIED: Strip inline 'font-family' property from child elements (e.g. <span>) to prevent template override issues.
+				p.querySelectorAll('[style]').forEach(el => {
+					el.style.removeProperty('font-family');
+					if (!el.style.cssText || el.style.cssText.trim() === '') {
+						el.removeAttribute('style');
+					}
+				});
+				
 				// Preserve alignment for auto-detection
 				if (node.style && node.style.textAlign) {
 					p.style.textAlign = node.style.textAlign;

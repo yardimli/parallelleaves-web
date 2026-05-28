@@ -154,6 +154,15 @@ async function saveSourceChanges(chapterId) {
 	if (!chapterItem) return;
 	
 	const contentContainer = chapterItem.querySelector('.source-content-readonly');
+	
+	// MODIFIED: Clean up inline 'font-family' property from elements in the source pane before saving to database.
+	contentContainer.querySelectorAll('[style]').forEach(el => {
+		el.style.removeProperty('font-family');
+		if (!el.style.cssText || el.style.cssText.trim() === '') {
+			el.removeAttribute('style');
+		}
+	});
+	
 	const newContent = contentContainer.innerHTML;
 	
 	try {

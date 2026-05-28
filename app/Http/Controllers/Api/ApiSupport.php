@@ -1,50 +1,50 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+	namespace App\Http\Controllers\Api;
 
-use Exception;
-if (!defined('PARALLEL_LEAVES_BASE_DIR')) {
-    define('PARALLEL_LEAVES_BASE_DIR', dirname(__DIR__, 4));
-}
+	use Exception;
+	if (!defined('PARALLEL_LEAVES_BASE_DIR')) {
+		define('PARALLEL_LEAVES_BASE_DIR', dirname(__DIR__, 4));
+	}
 
-if (!defined('DB_HOST')) {
-    define('DB_HOST', config('database.connections.mysql.host', env('DB_HOST', 'localhost')));
-    define('DB_NAME', config('database.connections.mysql.database', env('DB_DATABASE', env('DB_NAME', 'parallel_leaves'))));
-    define('DB_USER', config('database.connections.mysql.username', env('DB_USERNAME', env('DB_USER', 'root'))));
-    define('DB_PASS', config('database.connections.mysql.password', env('DB_PASSWORD', env('DB_PASS', ''))));
-    define('FAL_API_KEY', env('FAL_API_KEY', ''));
-    define('APP_VERSION', env('APP_VERSION', '0.1.7'));
-    define('OPEN_ROUTER_MODEL', env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'));
-    define('BASE_DIR', PARALLEL_LEAVES_BASE_DIR);
-    define('USER_DATA_DIR', PARALLEL_LEAVES_BASE_DIR . '/storage/app/public/userData');
-    define('TEMP_DIR', USER_DATA_DIR . '/temp');
-    define('IMAGES_DIR', USER_DATA_DIR . '/images');
-    define('DOWNLOADS_DIR', USER_DATA_DIR . '/downloads');
-    define('DICTS_DIR', USER_DATA_DIR . '/dictionaries');
+	if (!defined('DB_HOST')) {
+		define('DB_HOST', config('database.connections.mysql.host', env('DB_HOST', 'localhost')));
+		define('DB_NAME', config('database.connections.mysql.database', env('DB_DATABASE', env('DB_NAME', 'parallel_leaves'))));
+		define('DB_USER', config('database.connections.mysql.username', env('DB_USERNAME', env('DB_USER', 'root'))));
+		define('DB_PASS', config('database.connections.mysql.password', env('DB_PASSWORD', env('DB_PASS', ''))));
+		define('FAL_API_KEY', env('FAL_API_KEY', ''));
+		define('APP_VERSION', env('APP_VERSION', '0.1.7'));
+		define('OPEN_ROUTER_MODEL', env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'));
+		define('BASE_DIR', PARALLEL_LEAVES_BASE_DIR);
+		define('USER_DATA_DIR', PARALLEL_LEAVES_BASE_DIR . '/storage/app/public/userData');
+		define('TEMP_DIR', USER_DATA_DIR . '/temp');
+		define('IMAGES_DIR', USER_DATA_DIR . '/images');
+		define('DOWNLOADS_DIR', USER_DATA_DIR . '/downloads');
+		define('DICTS_DIR', USER_DATA_DIR . '/dictionaries');
 
-    foreach ([USER_DATA_DIR, TEMP_DIR, IMAGES_DIR, DOWNLOADS_DIR, DICTS_DIR] as $dir) {
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-    }
-}
+		foreach ([USER_DATA_DIR, TEMP_DIR, IMAGES_DIR, DOWNLOADS_DIR, DICTS_DIR] as $dir) {
+			if (!is_dir($dir)) {
+				mkdir($dir, 0755, true);
+			}
+		}
+	}
 
-if (!function_exists(__NAMESPACE__ . '\\getDB')) {
-    function getDB(): \mysqli
-    {
-        static $mysqli = null;
+	if (!function_exists(__NAMESPACE__ . '\\getDB')) {
+		function getDB(): \mysqli
+		{
+			static $mysqli = null;
 
-        if ($mysqli === null) {
-            mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-            $mysqli = new \mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-            $mysqli->set_charset('utf8mb4');
-        }
+			if ($mysqli === null) {
+				mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+				$mysqli = new \mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+				$mysqli->set_charset('utf8mb4');
+			}
 
-        return $mysqli;
-    }
-}
+			return $mysqli;
+		}
+	}
 
-function htmlToPlainText(string $html): string
+	function htmlToPlainText(string $html): string
 	{
 		if (!$html) {
 			return '';
@@ -91,14 +91,15 @@ function htmlToPlainText(string $html): string
 				$html = $matches[1];
 			}
 
-			// Strip out all color and background-color CSS properties from inline styles
-			$html = preg_replace('/(color|background-color)\s*:\s*[^;"\']+;?/i', '', $html);
+			// MODIFIED: Strip out all color, background-color, and font-family CSS properties from inline styles.
+			// This regex safely handles single and double quotes inside the font-family declaration.
+			$html = preg_replace('/(color|background-color|font-family)\s*:\s*(?:[^;\'"]+|\'[^\']*\'|"[^"]*")+;?/i', '', $html);
 
-			// Strip out legacy color attributes (e.g., <font color="red"> or <td bgcolor="black">)
-			$html = preg_replace('/\s(color|bgcolor)="[^"]*"/i', '', $html);
+			// MODIFIED: Strip out legacy color and face/font-family attributes (e.g., <font face="Palatino Linotype" color="red">)
+			$html = preg_replace('/\s(color|bgcolor|face)="[^"]*"/i', '', $html);
 
-			// Clean up any empty style or class attributes left behind
-			$html = preg_replace('/style="\s*"/i', '', $html);
+			// MODIFIED: Clean up any empty style or class attributes left behind, including empty semicolons
+			$html = preg_replace('/style="\s*;*\s*"/i', '', $html);
 			$html = preg_replace('/class="\s*"/i', '', $html);
 
 			// Remove soft hyphens (&shy;) which Word often inserts and breaks words in the editor
