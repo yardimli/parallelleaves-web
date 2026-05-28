@@ -208,7 +208,7 @@
 					$book['source_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['source_content'] ?? ''), $chapters));
 					$book['target_word_count'] = array_sum(array_map(fn($c) => countWordsInHtml($c['target_content'] ?? ''), $chapters));
 					if ($book['cover_path']) {
-						$book['cover_path'] = '/userData/images/' . $book['cover_path'];
+						$book['cover_path'] = 'userData/images/' . $book['cover_path'];
 					}
 				}
 				$result = $books;
@@ -769,7 +769,7 @@
 					throw new Exception('Failed to save generated cover.');
 				}
 
-				$fullPath = '/userData/images/' . $localPaths['original_path'];
+				$fullPath = 'userData/images/' . $localPaths['original_path'];
 				$result = ['success' => true, 'filePath' => $fullPath, 'localPath' => $localPaths['original_path']];
 				break;
 			case 'log:translation':
