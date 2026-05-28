@@ -62,10 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const loginSubmitBtn = document.getElementById('login-submit-btn');
 	const loginLangSelect = document.getElementById('login-language');
 	
-	const proseModal = document.getElementById('prose-settings-modal');
-	const proseForm = document.getElementById('prose-settings-form');
-	const proseBookIdInput = document.getElementById('prose-book-id');
-	const saveProseBtn = document.getElementById('save-prose-settings-btn');
+	// MODIFIED: Combined language selectors are now references straight from the meta form
 	const sourceLangSelect = document.getElementById('prose_source_language');
 	const targetLangSelect = document.getElementById('prose_target_language');
 	
@@ -288,12 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		if (spinner) spinner.classList.toggle('hidden', !isLoading);
 	}
 	
-	function openProseSettingsModal(book) {
-		proseBookIdInput.value = book.id;
-		sourceLangSelect.value = book.source_language || 'English';
-		targetLangSelect.value = book.target_language || 'English';
-		proseModal.showModal();
-	}
+	// MODIFIED: Removed the openProseSettingsModal method as language adjustments are handled by meta dialog
 	
 	function openMetaSettingsModal(book) {
 		stagedCover = null;
@@ -301,7 +293,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 		metaForm.querySelector('#meta-title').value = book.title;
 		metaForm.querySelector('#meta-author').value = book.author || '';
 		
+		// MODIFIED: Populate the book's languages into the select elements inside this combined modal
 		const currentBook = booksData.find(n => n.id === book.id);
+		if (currentBook) {
+			sourceLangSelect.value = currentBook.source_language || 'English';
+			targetLangSelect.value = currentBook.target_language || 'English';
+		}
+		
 		if (currentBook && currentBook.cover_path) {
 			metaCoverPreview.innerHTML = `<img src="${currentBook.cover_path}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altCurrentCover')}" class="w-full h-auto">`;
 		} else {
@@ -373,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', {title: book.title})}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 			
-			// MODIFIED: Removed the Codex and Translation Memory action buttons from the dashboard card actions
+			// MODIFIED: Removed prose translation button from card action menu
 			bookCard.innerHTML = `
                 <figure class="cursor-pointer js-open-editor">${coverHtml}</figure>
                 <div class="card-body flex flex-col flex-grow">
@@ -420,9 +418,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="btn btn-ghost btn-sm js-meta-settings" data-i18n-title="common.edit">
                             <i class="bi bi-pencil-square text-lg"></i>
                         </button>
-                        <button class="btn btn-ghost btn-sm js-prose-settings" data-i18n-title="dashboard.proseSettings.title">
-                            <i class="bi bi-translate text-lg"></i>
-                        </button>
                         <button class="btn btn-ghost btn-sm js-export-docx" data-i18n-title="export.exportDocx">
                             <i class="bi bi-file-earmark-word text-lg"></i>
                         </button>
@@ -465,7 +460,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			
 			bookCard.querySelectorAll('.js-open-editor').forEach(el => el.addEventListener('click', () => window.api.openEditor(book.id)));
-			bookCard.querySelector('.js-prose-settings').addEventListener('click', () => openProseSettingsModal(book));
+			// MODIFIED: Removed .js-prose-settings button listener binding
 			bookCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(book));
 			bookCard.querySelector('.js-export-docx').addEventListener('click', () => exportBook(book.id));
 			
@@ -527,25 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 	}
 	
-	saveProseBtn.addEventListener('click', async (e) => {
-		e.preventDefault();
-		const bookId = parseInt(proseBookIdInput.value, 10);
-		const formData = new FormData(proseForm);
-		const data = {
-			bookId,
-			source_language: formData.get('prose_source_language'),
-			target_language: formData.get('prose_target_language'),
-		};
-		
-		try {
-			await window.api.updateProseSettings(data);
-			const bookIndex = booksData.findIndex(n => n.id === bookId);
-			if (bookIndex !== -1) Object.assign(booksData[bookIndex], data);
-			proseModal.close();
-		} catch (error) {
-			console.error('Failed to save language settings:', error);
-		}
-	});
+	// MODIFIED: Removed standalone saveProseBtn click listener
 	
 	saveMetaBtn.addEventListener('click', async (e) => {
 		e.preventDefault();
@@ -558,10 +535,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 			author: formData.get('author'),
 		};
 		
+		// MODIFIED: Gather language choices inside this consolidated dialog
+		const proseData = {
+			bookId,
+			source_language: formData.get('prose_source_language'),
+			target_language: formData.get('prose_target_language'),
+		};
+		
 		try {
+			// MODIFIED: Simultaneously update metadata and translation settings in the database
 			await window.api.updateBookMeta(data);
+			await window.api.updateProseSettings(proseData);
+			
 			const bookIndex = booksData.findIndex(n => n.id === bookId);
-			if (bookIndex !== -1) Object.assign(booksData[bookIndex], data);
+			if (bookIndex !== -1) {
+				Object.assign(booksData[bookIndex], {
+					...data,
+					source_language: proseData.source_language,
+					target_language: proseData.target_language
+				});
+			}
 			updateBookCardUI(bookId);
 			
 			if (stagedCover) {
@@ -570,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			metaModal.close();
 		} catch (error) {
-			console.error('Failed to save meta settings:', error);
+			console.error('Failed to save consolidated details:', error);
 			window.showAlert('Error saving settings: ' + error.message);
 		}
 	});

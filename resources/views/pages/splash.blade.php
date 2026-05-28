@@ -6,39 +6,43 @@
 	<title>Parallel Leaves</title>
 	<link rel="stylesheet" href="/dist/styles.css">
 	<style>
-		body {
-			-webkit-app-region: drag; /* Allows dragging the frameless window */
-			cursor: pointer;
-		}
-		.splash-container {
-			display: flex;
-			flex-direction: column;
-			height: 100vh;
-			width: 100vw;
-			background-color: #191919; /* Match dark theme */
-			position: relative;
-		}
-		.splash-image {
-			flex: 3;
-			background-image: url('./assets/splash-v1.png');
-			background-size: cover;
-			background-position: center;
-		}
-		.splash-info {
-			flex: 1;
-			-webkit-app-region: no-drag;
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			padding: 1rem;
-			color: #e0e0e0;
-			text-align: center;
-		}
-		a {
-			-webkit-app-region: no-drag; /* Make links clickable */
-			cursor: pointer;
-		}
+      body {
+          -webkit-app-region: drag; /* Allows dragging the frameless window */
+          cursor: pointer;
+      }
+
+      .splash-container {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          width: 100vw;
+          background-color: #191919; /* Match dark theme */
+          position: relative;
+      }
+
+      .splash-image {
+          flex: 3;
+          background-image: url('./assets/splash-v1.png');
+          background-size: cover;
+          background-position: center;
+      }
+
+      .splash-info {
+          flex: 1;
+          -webkit-app-region: no-drag;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 1rem;
+          color: #e0e0e0;
+          text-align: center;
+      }
+
+      a {
+          -webkit-app-region: no-drag; /* Make links clickable */
+          cursor: pointer;
+      }
 	</style>
 </head>
 <body class="overflow-hidden">

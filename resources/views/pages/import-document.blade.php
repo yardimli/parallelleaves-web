@@ -37,7 +37,8 @@
 	</div>
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 		<div class="form-control">
-			<label for="title" class="label"><span class="label-text" data-i18n="import.projectTitle">Project Title</span></label>
+			<label for="title" class="label"><span class="label-text"
+			                                       data-i18n="import.projectTitle">Project Title</span></label>
 			<input type="text" id="title" name="title" class="input input-bordered" required>
 		</div>
 		<div class="form-control">
@@ -55,13 +56,17 @@
 	</div>
 </div>
 
-<div id="js-search-bar" class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
-	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs" data-i18n-placeholder="editor.searchBar.placeholder">
+<div id="js-search-bar"
+     class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
+	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs"
+	       data-i18n-placeholder="editor.searchBar.placeholder">
 	<div class="flex items-center gap-1">
-		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous" disabled>
+		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous"
+		        disabled>
 			<i class="bi bi-chevron-up"></i>
 		</button>
-		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next" disabled>
+		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next"
+		        disabled>
 			<i class="bi bi-chevron-down"></i>
 		</button>
 	</div>
@@ -85,7 +90,8 @@
 <!-- Footer -->
 <div class="flex-shrink-0 p-4 border-t border-base-300 flex justify-between items-center">
 	<div class="text-sm text-base-content/70">
-		<p><i class="bi bi-info-circle-fill"></i> <span data-i18n="import.instructions">Click any paragraph to mark it as the start of a new chapter.</span></p>
+		<p><i class="bi bi-info-circle-fill"></i> <span data-i18n="import.instructions">Click any paragraph to mark it as the start of a new chapter.</span>
+		</p>
 		<p id="js-import-status" class="font-bold mt-1" data-i18n="import.status">No content to import.</p>
 	</div>
 	<button id="start-import-btn" class="btn btn-accent w-48" disabled>
@@ -99,9 +105,14 @@
 <!-- Pop-up menu for selecting break type -->
 <div id="break-type-popover" class="hidden absolute z-50">
 	<ul class="menu p-2 shadow-lg bg-base-200 rounded-box w-48">
-		<li><button data-action="set-chapter"><i class="bi bi-card-text"></i> <span data-i18n="import.newChapter">New Chapter</span></button></li>
+		<li>
+			<button data-action="set-chapter"><i class="bi bi-card-text"></i> <span
+					data-i18n="import.newChapter">New Chapter</span></button>
+		</li>
 		<div class="divider my-1"></div>
-		<li data-action="remove-break"><button><i class="bi bi-x-circle"></i> <span data-i18n="import.removeBreak">Remove Break</span></button></li>
+		<li data-action="remove-break">
+			<button><i class="bi bi-x-circle"></i> <span data-i18n="import.removeBreak">Remove Break</span></button>
+		</li>
 	</ul>
 </div>
 
@@ -125,27 +136,31 @@
 				<label class="label cursor-pointer">
 					<div>
 						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.numericLabel">Numeric or Roman Numerals</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.numericDesc">Detects lines containing only a number (e.g., "2", "IV").</p>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.numericDesc">Detects lines
+							containing only a number (e.g., "2", "IV").</p>
 					</div>
-					<input type="checkbox" id="detect-numeric" class="toggle toggle-primary" checked />
+					<input type="checkbox" id="detect-numeric" class="toggle toggle-primary" checked/>
 				</label>
 			</div>
 			<div class="form-control">
 				<label class="label cursor-pointer">
 					<div>
-						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.keywordLabel">Keywords (Chapter)</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.keywordDesc">Detects lines starting with "Chapter".</p>
+						<span class="label-text font-semibold"
+						      data-i18n="import.autoDetectModal.keywordLabel">Keywords (Chapter)</span>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.keywordDesc">Detects lines
+							starting with "Chapter".</p>
 					</div>
-					<input type="checkbox" id="detect-keyword" class="toggle toggle-primary" checked />
+					<input type="checkbox" id="detect-keyword" class="toggle toggle-primary" checked/>
 				</label>
 			</div>
 			<div class="form-control">
 				<label class="label cursor-pointer">
 					<div>
 						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.allCapsLabel">All-Caps Lines</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.allCapsDesc">Detects short lines (under 50 chars) written entirely in uppercase.</p>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.allCapsDesc">Detects short lines
+							(under 50 chars) written entirely in uppercase.</p>
 					</div>
-					<input type="checkbox" id="detect-all-caps" class="toggle toggle-primary" />
+					<input type="checkbox" id="detect-all-caps" class="toggle toggle-primary"/>
 				</label>
 			</div>
 			<!-- NEW: Centered & Short Option -->
@@ -153,22 +168,26 @@
 				<label class="label cursor-pointer">
 					<div>
 						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.centeredShortLabel">Centered & Short</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.centeredShortDesc">Detects centered lines with 3 or fewer words.</p>
+						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.centeredShortDesc">Detects
+							centered lines with 3 or fewer words.</p>
 					</div>
-					<input type="checkbox" id="detect-centered-short" class="toggle toggle-primary" checked />
+					<input type="checkbox" id="detect-centered-short" class="toggle toggle-primary" checked/>
 				</label>
 			</div>
 		</div>
 		<div class="modal-action">
 			<form method="dialog" class="flex gap-2">
 				<button class="btn" data-i18n="common.cancel">Cancel</button>
-				<button id="run-detection-btn" type="button" class="btn btn-primary" data-i18n="import.autoDetectModal.runDetection">Run Detection</button>
+				<button id="run-detection-btn" type="button" class="btn btn-primary"
+				        data-i18n="import.autoDetectModal.runDetection">Run Detection
+				</button>
 			</form>
 		</div>
 	</div>
 </dialog>
 
-<div id="import-overlay" class="hidden fixed inset-0 bg-base-100/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
+<div id="import-overlay"
+     class="hidden fixed inset-0 bg-base-100/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
 	<span class="loading loading-spinner loading-lg"></span>
 	<p id="import-overlay-status" class="text-lg font-semibold"></p>
 </div>

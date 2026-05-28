@@ -83,111 +83,129 @@
 	</div>
 </div>
 
-<dialog id="prose-settings-modal" class="modal">
-	<div class="modal-box w-11/12 max-w-2xl">
-		<h3 class="font-bold text-lg" data-i18n="dashboard.proseSettings.title">Language Settings</h3>
-		<p class="py-4 text-sm text-base-content/70" data-i18n="dashboard.proseSettings.description">These settings define the source and target languages for the project and AI tools.</p>
-		<form id="prose-settings-form" class="space-y-4">
-			<input type="hidden" id="prose-book-id" name="bookId">
-			
-			<div class="form-control">
-				<label for="prose_source_language" class="label"><span class="label-text" data-i18n="dashboard.proseSettings.sourceLanguage">Source Language</span></label>
-				<select id="prose_source_language" name="prose_source_language" class="select select-bordered">
-					<!-- Options populated by JS -->
-				</select>
-				<div class="label">
-					<span class="label-text-alt" data-i18n="dashboard.proseSettings.sourceLanguageHelp">The original language of the document.</span>
-				</div>
-			</div>
-			
-			<div class="form-control">
-				<label for="prose_target_language" class="label"><span class="label-text" data-i18n="dashboard.proseSettings.targetLanguage">Target Language</span></label>
-				<select id="prose_target_language" name="prose_target_language" class="select select-bordered">
-					<!-- Options populated by JS -->
-				</select>
-				<div class="label">
-					<span class="label-text-alt" data-i18n="dashboard.proseSettings.targetLanguageHelp">The language to translate into. Used for spell checking and AI generation.</span>
-				</div>
-			</div>
-		
-		</form>
-		<div class="modal-action">
-			<form method="dialog" class="flex gap-3">
-				<button class="btn" data-i18n="common.cancel">Cancel</button>
-				<button id="save-prose-settings-btn" class="btn btn-primary" data-i18n="dashboard.proseSettings.saveButton">Save Settings</button>
-			</form>
-		</div>
-	</div>
-</dialog>
+<!-- MODIFIED: Removed the prose-settings-modal since language settings are now Consolidated into Edit Project Details -->
 
 <dialog id="meta-settings-modal" class="modal">
-	<div class="modal-box w-11/12 max-w-3xl">
-		<h3 class="font-bold text-lg" data-i18n="dashboard.metaSettings.title">Edit Project Details</h3>
+	<!-- MODIFIED: Setup standard flexible column model with h-[90vh] and p-0 padding -->
+	<div class="modal-box w-11/12 max-w-3xl h-[90vh] flex flex-col p-0">
 		
-		<div class="grid grid-cols-1 md:grid-cols-12 gap-6 py-4">
-			<div class="space-y-4 md:col-span-7">
-				<form id="meta-settings-form">
-					<input type="hidden" id="meta-book-id" name="bookId">
+		<!-- MODIFIED: Fixed Top Header container featuring bottom border division -->
+		<div class="flex-shrink-0 p-6 pb-4 border-b border-base-300 relative">
+			<form method="dialog">
+				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+			</form>
+			<h3 class="font-bold text-lg" data-i18n="dashboard.metaSettings.title">Edit Project Details</h3>
+		</div>
+		
+		<!-- MODIFIED: Scrollable Body block with overflow-y-auto to handle form elements internally -->
+		<div class="flex-grow overflow-y-auto min-h-0 p-6 space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+				<div class="space-y-4 md:col-span-7">
+					<form id="meta-settings-form">
+						<input type="hidden" id="meta-book-id" name="bookId">
+						
+						<!-- Title -->
+						<div class="form-control">
+							<label for="meta-title" class="label"><span class="label-text"
+							                                            data-i18n="dashboard.metaSettings.projectTitle">Title</span></label>
+							<input type="text" id="meta-title" name="title" class="input input-bordered" required>
+						</div>
+						
+						<!-- Author -->
+						<div class="form-control">
+							<label for="meta-author" class="label"><span class="label-text" data-i18n="dashboard.metaSettings.author">Author</span></label>
+							<input type="text" id="meta-author" name="author" class="input input-bordered" required>
+						</div>
+						
+						<!-- MODIFIED: Consolidated Language Form fields inside this modal -->
+						<div class="form-control">
+							<label for="prose_source_language" class="label"><span class="label-text"
+							                                                       data-i18n="dashboard.proseSettings.sourceLanguage">Source Language</span></label>
+							<select id="prose_source_language" name="prose_source_language" class="select select-bordered">
+								<!-- Options populated by JS -->
+							</select>
+							<div class="label">
+								<span class="label-text-alt" data-i18n="dashboard.proseSettings.sourceLanguageHelp">The original language of the document.</span>
+							</div>
+						</div>
+						
+						<div class="form-control">
+							<label for="prose_target_language" class="label"><span class="label-text"
+							                                                       data-i18n="dashboard.proseSettings.targetLanguage">Target Language</span></label>
+							<select id="prose_target_language" name="prose_target_language" class="select select-bordered">
+								<!-- Options populated by JS -->
+							</select>
+							<div class="label">
+								<span class="label-text-alt" data-i18n="dashboard.proseSettings.targetLanguageHelp">The language to translate into. Used for spell checking and AI generation.</span>
+							</div>
+						</div>
+					</form>
 					
-					<!-- Title -->
-					<div class="form-control">
-						<label for="meta-title" class="label"><span class="label-text" data-i18n="dashboard.metaSettings.projectTitle">Title</span></label>
-						<input type="text" id="meta-title" name="title" class="input input-bordered" required>
+					<!-- AI Generation controls (hidden by default) -->
+					<div id="meta-ai-gen-controls" class="hidden space-y-2">
+						<div class="form-control">
+							<label for="meta-ai-prompt" class="label"><span class="label-text"
+							                                                data-i18n="dashboard.generateCover.prompt">Image Prompt</span></label>
+							<textarea id="meta-ai-prompt" class="textarea textarea-bordered h-24"
+							          placeholder="A lone astronaut on a red planet..."></textarea>
+						</div>
+						<div class="flex gap-2 justify-start">
+							<button id="cancel-generate-cover-btn" type="button" class="btn btn-ghost" data-i18n="common.cancel">
+								Cancel
+							</button>
+							<button id="run-generate-cover-btn" type="button" class="btn btn-accent w-40">
+								<span class="js-btn-content flex items-center gap-2"><i class="bi bi-stars"></i> <span
+										data-i18n="dashboard.generateCover.generate">Generate</span></span>
+								<span class="js-btn-spinner animate-spin hidden"><i class="bi bi-arrow-repeat"></i></span>
+							</button>
+						</div>
 					</div>
-					
-					<!-- Author -->
-					<div class="form-control">
-						<label for="meta-author" class="label"><span class="label-text" data-i18n="dashboard.metaSettings.author">Author</span></label>
-						<input type="text" id="meta-author" name="author" class="input input-bordered" required>
-					</div>
-				</form>
+				</div>
 				
-				<!-- AI Generation controls (hidden by default) -->
-				<div id="meta-ai-gen-controls" class="hidden space-y-2">
-					<div class="form-control">
-						<label for="meta-ai-prompt" class="label"><span class="label-text" data-i18n="dashboard.generateCover.prompt">Image Prompt</span></label>
-						<textarea id="meta-ai-prompt" class="textarea textarea-bordered h-24" placeholder="A lone astronaut on a red planet..."></textarea>
-					</div>
-					<div class="flex gap-2 justify-start">
-						<button id="cancel-generate-cover-btn" type="button" class="btn btn-ghost" data-i18n="common.cancel">Cancel</button>
-						<button id="run-generate-cover-btn" type="button" class="btn btn-accent w-40">
-							<span class="js-btn-content flex items-center gap-2"><i class="bi bi-stars"></i> <span data-i18n="dashboard.generateCover.generate">Generate</span></span>
-							<span class="js-btn-spinner animate-spin hidden"><i class="bi bi-arrow-repeat"></i></span>
+				<!-- Right Column: Cover Art (2/5 width) -->
+				<div class="space-y-4 md:col-span-5 relative">
+					<div id="meta-cover-actions" class="absolute top-2 left-2 z-10 flex gap-2">
+						<button id="generate-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Generate AI Cover"
+						        data-i18n-title="dashboard.metaSettings.generateCover">
+							<i class="bi bi-magic text-xl"></i>
 						</button>
+						<button id="upload-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Upload Cover"
+						        data-i18n-title="dashboard.metaSettings.uploadCover">
+							<i class="bi bi-upload text-xl"></i>
+						</button>
+					</div>
+					
+					<div id="meta-cover-preview"
+					     class="rounded-lg overflow-hidden w-full mx-auto bg-base-300 flex items-center justify-center min-h-48 text-base-content/50">
+						<!-- Preview image will be inserted here by JS -->
+						<span data-i18n="dashboard.metaSettings.noCover">No new cover selected</span>
 					</div>
 				</div>
 			</div>
 			
-			<!-- Right Column: Cover Art (2/5 width) -->
-			<div class="space-y-4 md:col-span-5 relative">
-				<div id="meta-cover-actions" class="absolute top-2 left-2 z-10 flex gap-2">
-					<button id="generate-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Generate AI Cover" data-i18n-title="dashboard.metaSettings.generateCover">
-						<i class="bi bi-magic text-xl"></i>
+			<!-- Danger Zone (Full Width) -->
+			<div class="space-y-4">
+				<div class="divider" data-i18n="dashboard.metaSettings.dangerZone">Danger Zone</div>
+				<div class="flex justify-between items-center bg-error/10 p-4 rounded-lg">
+					<p class="text-sm" data-i18n="dashboard.metaSettings.dangerZoneDesc">Permanently delete this project and all
+						its content.</p>
+					<button id="delete-book-btn" class="btn btn-error" data-i18n="dashboard.metaSettings.deleteProject">Delete
+						Project
 					</button>
-					<button id="upload-cover-btn" class="btn btn-neutral btn-square tooltip" data-tip="Upload Cover" data-i18n-title="dashboard.metaSettings.uploadCover">
-						<i class="bi bi-upload text-xl"></i>
-					</button>
-				</div>
-				
-				<div id="meta-cover-preview" class="rounded-lg overflow-hidden w-full mx-auto bg-base-300 flex items-center justify-center min-h-48 text-base-content/50">
-					<!-- Preview image will be inserted here by JS -->
-					<span data-i18n="dashboard.metaSettings.noCover">No new cover selected</span>
 				</div>
 			</div>
 		</div>
 		
-		<!-- Danger Zone (Full Width) -->
-		<div class="divider" data-i18n="dashboard.metaSettings.dangerZone">Danger Zone</div>
-		<div class="flex justify-between items-center bg-error/10 p-4 rounded-lg">
-			<p class="text-sm" data-i18n="dashboard.metaSettings.dangerZoneDesc">Permanently delete this project and all its content.</p>
-			<button id="delete-book-btn" class="btn btn-error" data-i18n="dashboard.metaSettings.deleteProject">Delete Project</button>
-		</div>
-		
-		<div class="modal-action">
-			<form method="dialog" class="flex gap-3">
-				<button class="btn" data-i18n="common.cancel">Cancel</button>
-				<button id="save-meta-settings-btn" class="btn btn-primary" data-i18n="dashboard.metaSettings.saveButton">Save Changes</button>
-			</form>
+		<!-- MODIFIED: Fixed Bottom Footer container featuring border division and responsive submit flex action -->
+		<div class="flex-shrink-0 px-6 py-4 border-t border-base-300">
+			<div class="modal-action p-0 mt-0">
+				<form method="dialog" class="flex gap-3 w-full">
+					<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
+					<button id="save-meta-settings-btn" class="btn btn-primary flex-1"
+					        data-i18n="dashboard.metaSettings.saveButton">Save Changes
+					</button>
+				</form>
+			</div>
 		</div>
 	</div>
 </dialog>
@@ -196,20 +214,24 @@
 <dialog id="new-project-modal" class="modal">
 	<div class="modal-box w-11/12 max-w-lg">
 		<h3 class="font-bold text-lg" data-i18n="dashboard.newProjectModal.title">Create New Blank Project</h3>
-		<p class="py-4 text-sm text-base-content/70" data-i18n="dashboard.newProjectModal.description">Provide a title and languages for your new project. It will be created with a default structure of 3 acts and 10 chapters per act.</p>
+		<p class="py-4 text-sm text-base-content/70" data-i18n="dashboard.newProjectModal.description">Provide a title and
+			languages for your new project. It will be created with a default structure of 3 acts and 10 chapters per act.</p>
 		<form id="new-project-form" class="space-y-4">
 			<div class="form-control">
-				<label for="new-project-title" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.projectTitle">Project Title</span></label>
+				<label for="new-project-title" class="label"><span class="label-text"
+				                                                   data-i18n="dashboard.newProjectModal.projectTitle">Project Title</span></label>
 				<input type="text" id="new-project-title" name="title" class="input input-bordered" required>
 			</div>
 			<div class="form-control">
-				<label for="new-project-source-language" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.sourceLanguage">Source Language</span></label>
+				<label for="new-project-source-language" class="label"><span class="label-text"
+				                                                             data-i18n="dashboard.newProjectModal.sourceLanguage">Source Language</span></label>
 				<select id="new-project-source-language" name="source_language" class="select select-bordered" required>
 					<!-- Options populated by JS -->
 				</select>
 			</div>
 			<div class="form-control">
-				<label for="new-project-target-language" class="label"><span class="label-text" data-i18n="dashboard.newProjectModal.targetLanguage">Target Language</span></label>
+				<label for="new-project-target-language" class="label"><span class="label-text"
+				                                                             data-i18n="dashboard.newProjectModal.targetLanguage">Target Language</span></label>
 				<select id="new-project-target-language" name="target_language" class="select select-bordered" required>
 					<!-- Options populated by JS -->
 				</select>
@@ -218,7 +240,9 @@
 		<div class="modal-action">
 			<form method="dialog" class="flex gap-3 w-full">
 				<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
-				<button id="create-project-btn" type="submit" form="new-project-form" class="btn btn-primary flex-1" data-i18n="dashboard.newProjectModal.createButton">Create Project</button>
+				<button id="create-project-btn" type="submit" form="new-project-form" class="btn btn-primary flex-1"
+				        data-i18n="dashboard.newProjectModal.createButton">Create Project
+				</button>
 			</form>
 		</div>
 	</div>
@@ -243,13 +267,12 @@
 		<div class="modal-action">
 			<form method="dialog" class="flex gap-3 w-full">
 				<button class="btn flex-1" data-i18n="common.close">Later</button>
-				<a id="update-modal-link" href="#" class="btn btn-primary flex-1" data-i18n="dashboard.update.updateNow">Update Now</a>
+				<a id="update-modal-link" href="#" class="btn btn-primary flex-1" data-i18n="dashboard.update.updateNow">Update
+					Now</a>
 			</form>
 		</div>
 	</div>
 </dialog>
-
-<!-- MODIFIED: Removed the old login modal from here -->
 
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>

@@ -25,11 +25,12 @@
 		<form id="register-form" class="space-y-4">
 			<div class="form-control">
 				<label class="label" for="username"><span class="label-text">Username</span></label>
-				<input type="text" id="username" name="username" required class="input input-bordered w-full" />
+				<input type="text" id="username" name="username" required class="input input-bordered w-full"/>
 			</div>
 			<div class="form-control">
 				<label class="label" for="password"><span class="label-text">Password (min. 8 characters)</span></label>
-				<input type="password" id="password" name="password" required minlength="8" class="input input-bordered w-full" />
+				<input type="password" id="password" name="password" required minlength="8"
+				       class="input input-bordered w-full"/>
 			</div>
 			<div class="form-control mt-6">
 				<button type="submit" class="btn btn-primary" id="register-btn">Register</button>

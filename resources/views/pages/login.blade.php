@@ -31,7 +31,9 @@
 			</div>
 			<p id="login-error-message" class="text-error text-sm hidden"></p>
 			<div class="form-control mt-6">
-				<button id="login-submit-btn" type="submit" class="btn btn-primary w-full" data-i18n="dashboard.login.signIn">Sign In</button>
+				<button id="login-submit-btn" type="submit" class="btn btn-primary w-full" data-i18n="dashboard.login.signIn">
+					Sign In
+				</button>
 			</div>
 		</form>
 		<div class="text-center text-sm mt-4">
@@ -47,15 +49,15 @@
 		errorMsg.textContent = 'Google sign in failed. Please try again.';
 		errorMsg.classList.remove('hidden');
 	}
-
+	
 	document.getElementById('login-form').addEventListener('submit', async (e) => {
 		e.preventDefault();
 		const username = document.getElementById('login-username').value;
 		const password = document.getElementById('login-password').value;
 		const errorMsg = document.getElementById('login-error-message');
-
+		
 		try {
-			const result = await window.api.login({ username, password });
+			const result = await window.api.login({username, password});
 			if (result && result.session) {
 				window.location.href = '/dashboard';
 			} else {
