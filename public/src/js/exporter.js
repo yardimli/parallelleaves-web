@@ -1,4 +1,4 @@
-import { t } from './i18n.js';
+import {t} from './i18n.js';
 
 /**
  * Handles the entire process of exporting a book to a DOCX file.
@@ -36,7 +36,7 @@ export async function exportBook(bookId) {
 			targetLanguage: book.target_language,
 			dialogStrings: {
 				title: t('export.exportDialogTitle'),
-				message: t('export.exportDialogMessage', { title: book.title }),
+				message: t('export.exportDialogMessage', {title: book.title}),
 				detail: t('export.exportDialogDetail'), // {filePath} is a placeholder for the main process
 				openFolder: t('export.exportDialogOpenFolder'),
 				ok: t('export.exportDialogOK'),
@@ -52,7 +52,7 @@ export async function exportBook(bookId) {
 	} catch (error) {
 		console.error('Export failed:', error);
 		window.showAlert(
-			t('export.exportErrorMessage', { message: error.message }),
+			t('export.exportErrorMessage', {message: error.message}),
 			t('export.exportErrorTitle')
 		);
 	}

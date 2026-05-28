@@ -14,11 +14,11 @@ const STORAGE_KEY = 'typographySettings';
 
 // Mappings from setting values to actual CSS values.
 const MAPPINGS = {
-	text_size: { sm: '0.9rem', base: '1rem', lg: '1.2rem', xl: '1.6rem' },
-	line_height: { '1': '1.5', '2': '1.65', '3': '1.8', '4': '2.0' },
-	text_indent: { '1': '0', '2': '1.5em', '3': '2em', '4': '2.5em' },
-	paragraph_spacing: { '1': '0', '2': '0.25em', '3': '0.50em', '4': '1em' },
-	page_width: { '1': '24rem', '2': '36rem', '3': '48rem', '4': '56rem', '5': 'none' },
+	text_size: {sm: '0.9rem', base: '1rem', lg: '1.2rem', xl: '1.6rem'},
+	line_height: {'1': '1.5', '2': '1.65', '3': '1.8', '4': '2.0'},
+	text_indent: {'1': '0', '2': '1.5em', '3': '2em', '4': '2.5em'},
+	paragraph_spacing: {'1': '0', '2': '0.25em', '3': '0.50em', '4': '1em'},
+	page_width: {'1': '24rem', '2': '36rem', '3': '48rem', '4': '56rem', '5': 'none'},
 };
 
 /**
@@ -28,10 +28,10 @@ const MAPPINGS = {
 export function getTypographySettings() {
 	try {
 		const saved = localStorage.getItem(STORAGE_KEY);
-		return saved ? { ...DEFAULTS, ...JSON.parse(saved) } : { ...DEFAULTS };
+		return saved ? {...DEFAULTS, ...JSON.parse(saved)} : {...DEFAULTS};
 	} catch (e) {
 		console.error('Failed to parse typography settings from localStorage', e);
-		return { ...DEFAULTS };
+		return {...DEFAULTS};
 	}
 }
 
@@ -97,7 +97,7 @@ function updateModalUI(modal, settings) {
  * @param {string} config.formId - The ID of the form within the modal.
  * @param {function} config.applyCallback - A function to call to apply the styles.
  */
-export function setupTypographySettings({ buttonId, modalId, formId, applyCallback }) {
+export function setupTypographySettings({buttonId, modalId, formId, applyCallback}) {
 	const btn = document.getElementById(buttonId);
 	const modal = document.getElementById(modalId);
 	const form = document.getElementById(formId);
@@ -122,7 +122,7 @@ export function setupTypographySettings({ buttonId, modalId, formId, applyCallba
 	
 	const handleFormChange = () => {
 		const formData = new FormData(form);
-		const newSettings = { ...currentSettings };
+		const newSettings = {...currentSettings};
 		
 		// Update from selects and text inputs
 		for (let [key, value] of formData.entries()) {

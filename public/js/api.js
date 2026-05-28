@@ -63,7 +63,7 @@ const API_ENDPOINTS = {
 	'codex:process-batch': '/api/codex/process-batch'
 };
 
-function showAjaxErrorDialog (message, title = 'Error') {
+function showAjaxErrorDialog(message, title = 'Error') {
 	let dialog = document.getElementById('ajax-error-dialog');
 	if (!dialog) {
 		dialog = document.createElement('dialog');
@@ -82,10 +82,10 @@ function showAjaxErrorDialog (message, title = 'Error') {
 		`;
 		document.body.appendChild(dialog);
 	}
-
+	
 	dialog.querySelector('[data-ajax-error-title]').textContent = title;
 	dialog.querySelector('[data-ajax-error-message]').textContent = message || 'An unexpected request error occurred.';
-
+	
 	if (typeof dialog.showModal === 'function') {
 		if (!dialog.open) dialog.showModal();
 	} else {
@@ -93,7 +93,7 @@ function showAjaxErrorDialog (message, title = 'Error') {
 	}
 }
 
-async function parseAjaxResponse (res, channel = 'request') {
+async function parseAjaxResponse(res, channel = 'request') {
 	let json = null;
 	try {
 		json = await res.json();
@@ -102,34 +102,34 @@ async function parseAjaxResponse (res, channel = 'request') {
 		showAjaxErrorDialog(message);
 		throw new Error(message);
 	}
-
+	
 	if (json.redirect) {
 		window.location.href = json.redirect;
 		return json;
 	}
-
+	
 	if (!res.ok || json.success === false) {
 		const message = json.message || `The ${channel} request failed with status ${res.status}.`;
 		showAjaxErrorDialog(message);
 		throw new Error(message);
 	}
-
+	
 	return json;
 }
 
-async function rpcInvoke (channel, ...args) {
+async function rpcInvoke(channel, ...args) {
 	const endpoint = API_ENDPOINTS[channel];
 	if (!endpoint) throw new Error(`API endpoint not mapped: ${channel}`);
 	const res = await fetch(endpoint, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-		body: JSON.stringify({ args })
+		headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+		body: JSON.stringify({args})
 	});
 	const json = await parseAjaxResponse(res, channel);
 	return json.data;
 }
 
-function rpcSend (channel, ...args) {
+function rpcSend(channel, ...args) {
 	const endpoint = API_ENDPOINTS[channel];
 	if (!endpoint) {
 		console.error(`API endpoint not mapped: ${channel}`);
@@ -137,40 +137,46 @@ function rpcSend (channel, ...args) {
 	}
 	fetch(endpoint, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-		body: JSON.stringify({ args })
+		headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+		body: JSON.stringify({args})
 	}).then(res => parseAjaxResponse(res, channel)).catch(console.error);
 }
 
 window.api = {
-	openImportWindow: () => { window.location.href = '/import-document'; },
-	openChatWindow: (bookId) => { window.open(`/chat/${bookId}`, '_blank'); },
+	openImportWindow: () => {
+		window.location.href = '/import-document';
+	},
+	openChatWindow: (bookId) => {
+		window.open(`/chat/${bookId}`, '_blank');
+	},
 	
 	translationMemoryGenerateInBackground: async (bookId) => {
 		try {
 			const res = await rpcInvoke('translation-memory:start', bookId);
 			if (!res || !res.job_id) {
-				if (tmUpdateCb) tmUpdateCb({}, { finished: true, processedCount: 0 });
+				if (tmUpdateCb) tmUpdateCb({}, {finished: true, processedCount: 0});
 				return;
 			}
 			const processNext = async () => {
 				const status = await rpcInvoke('translation-memory:process-batch', res.job_id);
-				if (tmUpdateCb) tmUpdateCb({}, { processed: status.processed_blocks, total: status.total_blocks });
+				if (tmUpdateCb) tmUpdateCb({}, {processed: status.processed_blocks, total: status.total_blocks});
 				
 				if (status.status === 'complete') {
-					if (tmUpdateCb) tmUpdateCb({}, { finished: true, processedCount: status.processed_blocks });
+					if (tmUpdateCb) tmUpdateCb({}, {finished: true, processedCount: status.processed_blocks});
 				} else if (status.status === 'error') {
-					if (tmUpdateCb) tmUpdateCb({}, { error: true, message: status.error_message });
+					if (tmUpdateCb) tmUpdateCb({}, {error: true, message: status.error_message});
 				} else {
 					setTimeout(processNext, 1000);
 				}
 			};
 			processNext();
 		} catch (err) {
-			if (tmUpdateCb) tmUpdateCb({}, { error: true, message: err.message });
+			if (tmUpdateCb) tmUpdateCb({}, {error: true, message: err.message});
 		}
 	},
-	onTranslationMemoryProgressUpdate: (cb) => { tmUpdateCb = cb; },
+	onTranslationMemoryProgressUpdate: (cb) => {
+		tmUpdateCb = cb;
+	},
 	
 	getLangFile: (lang) => rpcInvoke('i18n:get-lang-file', lang),
 	login: (credentials) => rpcInvoke('auth:login', credentials),
@@ -178,11 +184,17 @@ window.api = {
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
 	setApiKey: (key) => rpcInvoke('user:set-api-key', key),
-	openExternalRegister: () => { window.location.href = '/register'; },
+	openExternalRegister: () => {
+		window.location.href = '/register';
+	},
 	
 	splashGetInitData: () => rpcInvoke('splash:get-init-data'),
-	splashClose: () => { window.location.href = '/dashboard'; },
-	splashFinished: () => { window.location.href = '/dashboard'; },
+	splashClose: () => {
+		window.location.href = '/dashboard';
+	},
+	splashFinished: () => {
+		window.location.href = '/dashboard';
+	},
 	openExternalUrl: (url) => window.open(url, '_blank'),
 	appReset: () => rpcSend('app:reset'),
 	
@@ -204,35 +216,45 @@ window.api = {
 		return result;
 	},
 	
-	openEditor: (bookId) => { window.location.href = `/chapter-editor/${bookId}`; },
+	openEditor: (bookId) => {
+		window.location.href = `/chapter-editor/${bookId}`;
+	},
 	
 	codex: {
 		startGeneration: async (bookId) => {
 			try {
 				const res = await rpcInvoke('codex:start', bookId);
 				if (res.status === 'complete') {
-					if (codexFinishedCb) codexFinishedCb({}, { status: 'complete' });
+					if (codexFinishedCb) codexFinishedCb({}, {status: 'complete'});
 					return;
 				}
 				const processNext = async () => {
 					const status = await rpcInvoke('codex:process-batch', bookId);
-					if (codexUpdateCb) codexUpdateCb({}, { statusKey: 'editor.codex.status.generating', progress: status.processed, total: status.total });
+					if (codexUpdateCb) codexUpdateCb({}, {
+						statusKey: 'editor.codex.status.generating',
+						progress: status.processed,
+						total: status.total
+					});
 					
 					if (status.status === 'complete') {
-						if (codexFinishedCb) codexFinishedCb({}, { status: 'complete' });
+						if (codexFinishedCb) codexFinishedCb({}, {status: 'complete'});
 					} else if (status.status === 'error') {
-						if (codexFinishedCb) codexFinishedCb({}, { status: 'error', message: status.error_message });
+						if (codexFinishedCb) codexFinishedCb({}, {status: 'error', message: status.error_message});
 					} else {
 						setTimeout(processNext, 1000);
 					}
 				};
 				processNext();
 			} catch (err) {
-				if (codexFinishedCb) codexFinishedCb({}, { status: 'error', message: err.message });
+				if (codexFinishedCb) codexFinishedCb({}, {status: 'error', message: err.message});
 			}
 		},
-		onUpdate: (cb) => { codexUpdateCb = cb; },
-		onFinished: (cb) => { codexFinishedCb = cb; }
+		onUpdate: (cb) => {
+			codexUpdateCb = cb;
+		},
+		onFinished: (cb) => {
+			codexFinishedCb = cb;
+		}
 	},
 	
 	updateProseSettings: (data) => rpcInvoke('books:updateProseSettings', data),
@@ -243,12 +265,14 @@ window.api = {
 	updateBookCover: async (data) => {
 		const res = await rpcInvoke('books:updateBookCover', data);
 		if (res && res.success && coverUpdatedCb) {
-			coverUpdatedCb({}, { bookId: data.bookId, imagePath: res.imagePath });
+			coverUpdatedCb({}, {bookId: data.bookId, imagePath: res.imagePath});
 		}
 		return res;
 	},
 	deleteBook: (bookId) => rpcInvoke('books:delete', bookId),
-	onCoverUpdated: (cb) => { coverUpdatedCb = cb; },
+	onCoverUpdated: (cb) => {
+		coverUpdatedCb = cb;
+	},
 	
 	showOpenDocumentDialog: () => new Promise((resolve) => {
 		const input = document.createElement('input');
@@ -259,7 +283,7 @@ window.api = {
 			if (!file) return resolve(null);
 			const formData = new FormData();
 			formData.append('file', file);
-			const res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
+			const res = await fetch(UPLOAD_ENDPOINT, {method: 'POST', body: formData});
 			const data = await parseAjaxResponse(res, 'upload');
 			resolve(data.filePath);
 		};
@@ -273,14 +297,18 @@ window.api = {
 		}
 		return result;
 	},
-	onImportStatusUpdate: (cb) => { },
+	onImportStatusUpdate: (cb) => {
+	},
 	
 	getTemplate: (templateName) => rpcInvoke('templates:get', templateName),
 	getRawChapterContent: (data) => rpcInvoke('chapters:getRawContent', data),
 	getTranslationContext: (data) => rpcInvoke('chapters:getTranslationContext', data),
 	
-	openChapterEditor: (data) => { window.location.href = `/chapter-editor/${data.bookId}/${data.chapterId}`; },
-	onManuscriptScrollToChapter: (cb) => { },
+	openChapterEditor: (data) => {
+		window.location.href = `/chapter-editor/${data.bookId}/${data.chapterId}`;
+	},
+	onManuscriptScrollToChapter: (cb) => {
+	},
 	
 	updateChapterField: (data) => rpcInvoke('chapters:updateField', data),
 	renameChapter: (data) => rpcInvoke('chapters:rename', data),
@@ -295,7 +323,7 @@ window.api = {
 	
 	getAvailableSpellCheckerLanguages: () => Promise.resolve(['en-US']),
 	getCurrentSpellCheckerLanguage: () => Promise.resolve('en-US'),
-	setSpellCheckerLanguage: (lang) => Promise.resolve({ success: true }),
+	setSpellCheckerLanguage: (lang) => Promise.resolve({success: true}),
 	getSupportedLanguages: () => rpcInvoke('languages:get-supported'),
 	
 	getBookDictionary: (bookId) => rpcInvoke('dictionary:get', bookId),
@@ -314,7 +342,7 @@ window.api = {
 			if (!file) return resolve(null);
 			const formData = new FormData();
 			formData.append('file', file);
-			const res = await fetch(UPLOAD_ENDPOINT, { method: 'POST', body: formData });
+			const res = await fetch(UPLOAD_ENDPOINT, {method: 'POST', body: formData});
 			const data = await parseAjaxResponse(res, 'upload');
 			resolve(data);
 		};

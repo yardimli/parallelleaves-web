@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const loaderBar = document.getElementById('loader-bar');
 	
 	// Fetch initial data like version and user session from the main process.
-	const { version, user } = await window.api.splashGetInitData();
+	const {version, user} = await window.api.splashGetInitData();
 	
 	// 1. Populate UI elements with fetched data.
 	versionInfoEl.textContent = `Version ${version}`;

@@ -1,4 +1,4 @@
-import { t } from '../i18n.js';
+import {t} from '../i18n.js';
 
 /**
  * Shows a confirmation modal and returns a promise that resolves with true, false, or 'decline'.
@@ -9,7 +9,7 @@ import { t } from '../i18n.js';
  * @param {string} [options.declineKey] - An i18n key for the decline button's text.
  * @returns {Promise<boolean|'decline'>} - true if confirmed, false if canceled, 'decline' if the third button is clicked.
  */
-export function showConfirmationModal (title, message, options = {}) {
+export function showConfirmationModal(title, message, options = {}) {
 	return new Promise((resolve) => {
 		const modal = document.getElementById('confirmation-modal');
 		const titleEl = document.getElementById('confirmation-modal-title');
@@ -68,10 +68,10 @@ export function showConfirmationModal (title, message, options = {}) {
 			resolve(false);
 		};
 		
-		newConfirmBtn.addEventListener('click', handleConfirm, { once: true });
-		newCancelBtn.addEventListener('click', handleCancel, { once: true });
-		newDeclineBtn.addEventListener('click', handleDecline, { once: true });
-		modal.addEventListener('close', handleClose, { once: true });
+		newConfirmBtn.addEventListener('click', handleConfirm, {once: true});
+		newCancelBtn.addEventListener('click', handleCancel, {once: true});
+		newDeclineBtn.addEventListener('click', handleDecline, {once: true});
+		modal.addEventListener('close', handleClose, {once: true});
 		
 		modal.showModal();
 	});
@@ -84,7 +84,7 @@ export function showConfirmationModal (title, message, options = {}) {
  * @param {string} [initialValue=''] - The initial value for the input field.
  * @returns {Promise<string|null>} - The input value or null if canceled.
  */
-export function showInputModal (title, label, initialValue = '') {
+export function showInputModal(title, label, initialValue = '') {
 	return new Promise((resolve) => {
 		const modal = document.getElementById('input-modal');
 		const titleEl = document.getElementById('input-modal-title');

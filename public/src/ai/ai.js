@@ -1,8 +1,8 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
-const { htmlToPlainText } = require('../main/utils.js');
+const {app} = require('electron');
+const {htmlToPlainText} = require('../main/utils.js');
 
 /**
  * A generic function to call the AI proxy.
@@ -59,15 +59,15 @@ async function callOpenRouter(payload, token) {
  * @param {string|null} params.token - The user's session token.
  * @returns {Promise<string|null>} The generated prompt string, or null on failure.
  */
-async function generateCoverPrompt({ title, token }) {
+async function generateCoverPrompt({title, token}) {
 	const modelId = 'openai/gpt-4o-mini';
 	const prompt = `Using the book title "${title}", write a clear and simple description of a scene for an AI image generator to create a book cover. Include the setting, mood, and main objects. Include the "${title}" in the prompt Return the result as a JSON with one key "prompt". Example: with title "Blue Scape" {"prompt": "An astronaut on a red planet looking at a big cosmic cloud, realistic, add the title "Blue Scape" to the image."}`;
 	
 	try {
 		const content = await callOpenRouter({
 			model: modelId,
-			messages: [{ role: 'user', content: prompt }],
-			response_format: { type: 'json_object' },
+			messages: [{role: 'user', content: prompt}],
+			response_format: {type: 'json_object'},
 			temperature: 0.7
 		}, token);
 		return content.prompt || null;
@@ -84,7 +84,7 @@ async function generateCoverPrompt({ title, token }) {
  * @param {string|null} params.token - The user's session token.
  * @returns {Promise<any>} The JSON response from the proxy (which is the Fal.ai response).
  */
-async function generateCoverImageViaProxy({ prompt, token }) {
+async function generateCoverImageViaProxy({prompt, token}) {
 	const payload = {
 		prompt: prompt
 	};
@@ -97,7 +97,7 @@ async function generateCoverImageViaProxy({ prompt, token }) {
 	
 	const response = await fetch(`/parallelleaves-web/sever/ai-proxy.php?action=generate_cover`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: {'Content-Type': 'application/json'},
 		body: JSON.stringify(payload)
 	});
 	
@@ -128,21 +128,29 @@ async function generateCoverImageViaProxy({ prompt, token }) {
  * @param {number|null} [params.bookId=null] - The book ID.
  * @returns {Promise<object>} The AI response object.
  */
-async function processLLMText({ prompt, model, token, temperature = 0.7, response_format = null, translation_memory_ids = [], bookId = null }) {
+async function processLLMText({
+	                              prompt,
+	                              model,
+	                              token,
+	                              temperature = 0.7,
+	                              response_format = null,
+	                              translation_memory_ids = [],
+	                              bookId = null
+                              }) {
 	const messages = [];
 	if (prompt.system) {
-		messages.push({ role: 'system', content: prompt.system });
+		messages.push({role: 'system', content: prompt.system});
 	}
 	if (prompt.context_pairs && Array.isArray(prompt.context_pairs)) {
 		messages.push(...prompt.context_pairs);
 	}
 	
 	if (prompt.user) {
-		messages.push({ role: 'user', content: prompt.user });
+		messages.push({role: 'user', content: prompt.user});
 	}
 	
 	if (prompt.ai) {
-		messages.push({ role: 'assistant', content: prompt.ai });
+		messages.push({role: 'assistant', content: prompt.ai});
 	}
 	
 	if (messages.length === 0) {
@@ -219,7 +227,7 @@ async function getOpenRouterModels(forceRefresh = false, token) {
 	const processedModelsData = await response.json(); // This is now the grouped array
 	
 	try {
-		fs.mkdirSync(cachePath, { recursive: true });
+		fs.mkdirSync(cachePath, {recursive: true});
 		fs.writeFileSync(cacheFile, JSON.stringify(processedModelsData));
 	} catch (error) {
 		console.error('Failed to write model cache:', error);

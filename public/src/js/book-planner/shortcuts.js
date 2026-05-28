@@ -77,7 +77,7 @@ export function setupShortcuts(dependencies) {
 						if (firstEditor) {
 							firstEditor.focus();
 						} else if (sourceContainer) {
-							sourceContainer.focus({ preventScroll: true });
+							sourceContainer.focus({preventScroll: true});
 						}
 					}
 					break;
@@ -86,7 +86,7 @@ export function setupShortcuts(dependencies) {
 					e.preventDefault();
 					const editorToFocus = getActiveEditor();
 					if (editorToFocus) {
-						editorToFocus.postMessage({ type: 'focusEditor' }, window.location.origin);
+						editorToFocus.postMessage({type: 'focusEditor'}, window.location.origin);
 					} else {
 						// Fallback: try to focus the editor for the currently active chapter
 						const navDropdown = document.getElementById('js-chapter-nav-dropdown');
@@ -94,7 +94,7 @@ export function setupShortcuts(dependencies) {
 						if (activeChapterId) {
 							const viewInfo = chapterEditorViews.get(activeChapterId.toString());
 							if (viewInfo && viewInfo.isReady) {
-								viewInfo.contentWindow.postMessage({ type: 'focusEditor' }, window.location.origin);
+								viewInfo.contentWindow.postMessage({type: 'focusEditor'}, window.location.origin);
 							}
 						}
 					}
@@ -104,7 +104,7 @@ export function setupShortcuts(dependencies) {
 					const activeTargetEditor = getActiveEditor();
 					if (activeTargetEditor) {
 						e.preventDefault();
-						activeTargetEditor.postMessage({ type: 'triggerTranslate' }, window.location.origin);
+						activeTargetEditor.postMessage({type: 'triggerTranslate'}, window.location.origin);
 					}
 					break;
 				}

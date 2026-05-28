@@ -1,4 +1,4 @@
-import { keymap } from 'prosemirror-keymap';
+import {keymap} from 'prosemirror-keymap';
 
 /**
  * Creates a ProseMirror keymap plugin for handling application-wide shortcuts
@@ -29,11 +29,11 @@ export function createShortcutKeymap(postToParent) {
 			// We query the DOM within the iframe to find the button.
 			const floatingBtn = view.dom.ownerDocument.body.querySelector('.floating-translate-btn');
 			if (floatingBtn) {
-				const { selection } = state;
+				const {selection} = state;
 				if (selection.empty) {
-					const { $from } = selection;
+					const {$from} = selection;
 					const pos = $from.pos;
-					postToParent('requestTranslation', { from: pos, to: pos });
+					postToParent('requestTranslation', {from: pos, to: pos});
 					// Remove the button immediately for a responsive feel.
 					floatingBtn.remove();
 				}

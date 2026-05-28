@@ -1,6 +1,6 @@
-import { openPromptEditor } from '../prompt-editor.js';
-import { t } from '../i18n.js';
-import { createIframeEditorInterface } from './editor-interface.js';
+import {openPromptEditor} from '../prompt-editor.js';
+import {t} from '../i18n.js';
+import {createIframeEditorInterface} from './editor-interface.js';
 
 let activeContentWindow = null;
 let currentToolbarState = {};
@@ -8,11 +8,11 @@ const toolbar = document.getElementById('top-toolbar');
 const wordCountEl = document.getElementById('js-word-count');
 let toolbarConfig = {};
 
-export function setActiveContentWindow (contentWindow) {
+export function setActiveContentWindow(contentWindow) {
 	activeContentWindow = contentWindow;
 }
 
-export function updateToolbarState (newState) {
+export function updateToolbarState(newState) {
 	currentToolbarState = newState || {};
 	const allBtns = toolbar.querySelectorAll('.js-toolbar-btn, .js-ai-action-btn');
 	
@@ -79,30 +79,30 @@ export function updateToolbarState (newState) {
 		
 		if (newState.isTextSelected) {
 			const words = newState.selectionText.trim().split(/\s+/).filter(Boolean);
-			wordCountEl.textContent = t('editor.wordsSelected', { count: words.length });
+			wordCountEl.textContent = t('editor.wordsSelected', {count: words.length});
 		} else {
 			wordCountEl.textContent = t('editor.noTextSelected');
 		}
 	}
 }
 
-function applyCommand (command, attrs = {}) {
+function applyCommand(command, attrs = {}) {
 	if (!activeContentWindow) return;
 	activeContentWindow.postMessage({
 		type: 'command',
-		payload: { command, attrs }
+		payload: {command, attrs}
 	}, window.location.origin);
 }
 
-function applyHighlight (color) {
+function applyHighlight(color) {
 	if (!activeContentWindow) return;
 	activeContentWindow.postMessage({
 		type: 'command',
-		payload: { command: 'highlight', attrs: { color } }
+		payload: {command: 'highlight', attrs: {color}}
 	}, window.location.origin);
 }
 
-async function handleToolbarAction (button) {
+async function handleToolbarAction(button) {
 	if (button.id === 'js-open-dictionary-btn') {
 		if (typeof toolbarConfig.onOpenDictionary === 'function') {
 			await toolbarConfig.onOpenDictionary();
@@ -174,12 +174,12 @@ async function handleToolbarAction (button) {
 		if (document.activeElement) document.activeElement.blur();
 	} else if (button.classList.contains('js-heading-option')) {
 		const level = parseInt(button.dataset.level, 10);
-		applyCommand('heading', { level });
+		applyCommand('heading', {level});
 		if (document.activeElement) document.activeElement.blur();
 	}
 }
 
-export function setupTopToolbar (config = {}) {
+export function setupTopToolbar(config = {}) {
 	toolbarConfig = config;
 	if (!toolbar) return;
 	

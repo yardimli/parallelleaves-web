@@ -1,4 +1,4 @@
-import { t, applyTranslationsTo } from '../i18n.js';
+import {t, applyTranslationsTo} from '../i18n.js';
 
 let dictionaryModal;
 let dictionaryTableBody;
@@ -8,7 +8,7 @@ let dictionaryDeleteSelectedBtn;
 let dictionarySaveBtn;
 let currentBookId;
 let currentDictionaryData = []; // [{source: "term", target: "translation", type: "translation"}]
-let currentSort = { sortBy: null, direction: 'asc' };
+let currentSort = {sortBy: null, direction: 'asc'};
 
 /**
  * Updates the currentDictionaryData array with values from the DOM inputs.
@@ -111,7 +111,7 @@ function renderDictionaryTable() {
  */
 function addRow(sourceText = '', targetText = '') {
 	updateCurrentDictionaryDataFromDOM();
-	currentDictionaryData.push({ source: sourceText, target: targetText, type: 'translation' });
+	currentDictionaryData.push({source: sourceText, target: targetText, type: 'translation'});
 	renderDictionaryTable();
 }
 
@@ -191,7 +191,7 @@ function sortDictionary(sortBy, direction, shouldRender = true) {
 		return 0;
 	});
 	
-	currentSort = { sortBy, direction };
+	currentSort = {sortBy, direction};
 	if (shouldRender) {
 		renderDictionaryTable();
 	}
@@ -295,7 +295,7 @@ export function initDictionaryModal(bookId) {
 	
 	// When the modal is closed via the 'X' button or backdrop click, reset the sort state.
 	dictionaryModal.addEventListener('close', () => {
-		currentSort = { sortBy: null, direction: 'asc' }; // Reset sort state on close.
+		currentSort = {sortBy: null, direction: 'asc'}; // Reset sort state on close.
 	});
 }
 
@@ -309,7 +309,7 @@ export async function openDictionaryModal(selectedText = '', sourceOrTarget = ''
 	
 	try {
 		// This new flow fetches data, modifies it in memory, and then renders the table just once.
-		currentSort = { sortBy: null, direction: 'asc' }; // Reset sort state before loading.
+		currentSort = {sortBy: null, direction: 'asc'}; // Reset sort state before loading.
 		
 		const data = await window.api.getBookDictionary(currentBookId);
 		currentDictionaryData = data || [];
@@ -317,9 +317,9 @@ export async function openDictionaryModal(selectedText = '', sourceOrTarget = ''
 		// If text is selected, add a pre-filled row directly to the data array.
 		if (selectedText) {
 			if (sourceOrTarget === 'source') {
-				currentDictionaryData.push({ source: selectedText, target: '', type: 'translation' });
+				currentDictionaryData.push({source: selectedText, target: '', type: 'translation'});
 			} else if (sourceOrTarget === 'target') {
-				currentDictionaryData.push({ source: '', target: selectedText, type: 'translation' });
+				currentDictionaryData.push({source: '', target: selectedText, type: 'translation'});
 			}
 		}
 		

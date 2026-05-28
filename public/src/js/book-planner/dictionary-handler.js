@@ -1,5 +1,5 @@
-import { openDictionaryModal } from '../dictionary/dictionary-modal.js';
-import { createIframeEditorInterface } from './editor-interface.js';
+import {openDictionaryModal} from '../dictionary/dictionary-modal.js';
+import {createIframeEditorInterface} from './editor-interface.js';
 
 /**
  * Handles opening the dictionary modal, checking for selected text in either
@@ -7,7 +7,7 @@ import { createIframeEditorInterface } from './editor-interface.js';
  * @param {object|null} activeEditor - The contentWindow of the currently active iframe editor.
  * @param {object} currentSourceSelection - An object containing info about the current selection in the source column.
  */
-export async function handleOpenDictionaryWithSelection (activeEditor, currentSourceSelection) {
+export async function handleOpenDictionaryWithSelection(activeEditor, currentSourceSelection) {
 	let selectedText = '';
 	let sourceOrTarget = '';
 	

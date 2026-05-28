@@ -1,10 +1,10 @@
-import { t, applyTranslationsTo } from '../i18n.js';
-import { htmlToPlainText } from '../../utils/html-processing.js';
+import {t, applyTranslationsTo} from '../i18n.js';
+import {htmlToPlainText} from '../../utils/html-processing.js';
 
 // Add debounce utility
 const debounce = (func, delay) => {
 	let timeout;
-	return function(...args) {
+	return function (...args) {
 		const context = this;
 		clearTimeout(timeout);
 		timeout = setTimeout(() => func.apply(context, args), delay);
@@ -21,17 +21,17 @@ const buildSurroundingTextBlock = (wordsBefore, wordsAfter) => {
 		return '';
 	}
 	if (wordsBefore && wordsAfter) {
-		return t('prompt.rephrase.user.surroundingTextBlock', { wordsBefore, wordsAfter });
+		return t('prompt.rephrase.user.surroundingTextBlock', {wordsBefore, wordsAfter});
 	}
 	if (wordsBefore) {
-		return t('prompt.rephrase.user.surroundingTextBlockBeforeOnly', { wordsBefore });
+		return t('prompt.rephrase.user.surroundingTextBlockBeforeOnly', {wordsBefore});
 	}
 	// if (wordsAfter)
-	return t('prompt.rephrase.user.surroundingTextBlockAfterOnly', { wordsAfter });
+	return t('prompt.rephrase.user.surroundingTextBlockAfterOnly', {wordsAfter});
 };
 
 export const buildPromptJson = (formData, context, userDictionary = '') => {
-	const { selectedText, wordCount, languageForPrompt, wordsBefore, wordsAfter } = context;
+	const {selectedText, wordCount, languageForPrompt, wordsBefore, wordsAfter} = context;
 	
 	const system = t('prompt.rephrase.system.base', {
 		instructions: formData.instructions,
@@ -45,7 +45,7 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 	const surroundingText = buildSurroundingTextBlock(wordsBefore, wordsAfter);
 	
 	const userParts = [];
-
+	
 	if (surroundingText) {
 		userParts.push(surroundingText);
 	}
@@ -79,8 +79,8 @@ const updatePreview = async (container, context) => {
 	if (!systemPreview || !userPreview || !aiPreview) return;
 	
 	let dictionaryContextualContent = await window.api.getDictionaryContentForAI(context.bookId, 'translation');
-
-	const previewContext = { ...context };
+	
+	const previewContext = {...context};
 	
 	try {
 		const promptJson = buildPromptJson(formData, previewContext, dictionaryContextualContent);
@@ -119,7 +119,7 @@ export const init = async (container, context) => {
 		applyTranslationsTo(container);
 		
 		const wordCount = context.selectedText ? context.selectedText.trim().split(/\s+/).filter(Boolean).length : 0;
-		const fullContext = { ...context, wordCount };
+		const fullContext = {...context, wordCount};
 		
 		populateForm(container, context.initialState || defaultState, context.bookId);
 		

@@ -5,7 +5,7 @@
  * @returns {object} An interface object with methods to interact with the iframe.
  */
 export const createIframeEditorInterface = (contentWindow) => {
-	const post = (type, payload) => contentWindow.postMessage({ type, payload }, window.location.origin);
+	const post = (type, payload) => contentWindow.postMessage({type, payload}, window.location.origin);
 	
 	return {
 		type: 'iframe',
@@ -20,7 +20,7 @@ export const createIframeEditorInterface = (contentWindow) => {
 			window.addEventListener('message', listener);
 			
 			// Both actions now just need the current selection state from the editor.
-			post('prepareForRephrase', { isRephrase: action === 'rephrase' });
+			post('prepareForRephrase', {isRephrase: action === 'rephrase'});
 		}),
 		getSelectionText: () => new Promise((resolve) => {
 			const listener = (event) => {
@@ -42,19 +42,23 @@ export const createIframeEditorInterface = (contentWindow) => {
 			window.addEventListener('message', listener);
 			post('prepareForGetFullHtml');
 		}),
-		setEditable: (isEditable) => post('setEditable', { isEditable }),
+		setEditable: (isEditable) => post('setEditable', {isEditable}),
 		cleanupSuggestion: () => post('cleanupAiSuggestion'),
-		discardAiSuggestion: (from, to, originalFragmentJson) => post('discardAiSuggestion', { from, to, originalFragmentJson }),
+		discardAiSuggestion: (from, to, originalFragmentJson) => post('discardAiSuggestion', {
+			from,
+			to,
+			originalFragmentJson
+		}),
 		
 		replaceRangeWithSuggestion: (from, to, newContentHtml) => new Promise((resolve) => {
 			const listener = (event) => {
 				if (event.source === contentWindow && event.data.type === 'replacementComplete') {
 					window.removeEventListener('message', listener);
-					resolve({ finalRange: event.data.payload.finalRange, endCoords: event.data.payload.endCoords });
+					resolve({finalRange: event.data.payload.finalRange, endCoords: event.data.payload.endCoords});
 				}
 			};
 			window.addEventListener('message', listener);
-			post('replaceRange', { from, to, newContentHtml });
+			post('replaceRange', {from, to, newContentHtml});
 		})
 	};
 };

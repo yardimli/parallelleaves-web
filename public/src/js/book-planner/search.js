@@ -1,4 +1,4 @@
-import { t } from '../i18n.js';
+import {t} from '../i18n.js';
 
 let globalSearchMatches = [];
 let currentMatchIndex = -1;
@@ -10,7 +10,7 @@ let searchResponsesPending = 0;
  * @param {function} registerSearchResultHandler - A function to register a callback for search results from iframes.
  * @returns {{toggle: function(boolean): void, isHidden: function(): boolean}} An API to control the search bar.
  */
-export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
+export function setupSearch(chapterEditorViews, registerSearchResultHandler) {
 	const searchBtn = document.getElementById('js-search-btn');
 	const searchBar = document.getElementById('js-search-bar');
 	const searchInput = document.getElementById('js-search-input');
@@ -46,7 +46,7 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 		clearHighlightsInSource();
 		chapterEditorViews.forEach(view => {
 			if (view.isReady) {
-				view.contentWindow.postMessage({ type: 'search:clear' }, window.location.origin);
+				view.contentWindow.postMessage({type: 'search:clear'}, window.location.origin);
 			}
 		});
 		globalSearchMatches = [];
@@ -106,7 +106,7 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 	const updateSearchResultsUI = () => {
 		const total = globalSearchMatches.length;
 		searchResultsCount.textContent = total > 0
-			? t('editor.searchBar.results', { current: currentMatchIndex + 1, total })
+			? t('editor.searchBar.results', {current: currentMatchIndex + 1, total})
 			: t('editor.searchBar.noResults');
 		searchPrevBtn.disabled = total <= 1;
 		searchNextBtn.disabled = total <= 1;
@@ -122,7 +122,10 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 			} else {
 				const view = chapterEditorViews.get(oldMatch.chapterId.toString());
 				if (view?.isReady) {
-					view.contentWindow.postMessage({ type: 'search:navigateTo', payload: { matchIndex: oldMatch.matchIndex, isActive: false } }, window.location.origin);
+					view.contentWindow.postMessage({
+						type: 'search:navigateTo',
+						payload: {matchIndex: oldMatch.matchIndex, isActive: false}
+					}, window.location.origin);
 				}
 			}
 		}
@@ -132,11 +135,14 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 		
 		if (newMatch.scope === 'source') {
 			newMatch.element.classList.add('search-highlight-active');
-			newMatch.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			newMatch.element.scrollIntoView({behavior: 'smooth', block: 'center'});
 		} else {
 			const view = chapterEditorViews.get(newMatch.chapterId.toString());
 			if (view?.isReady) {
-				view.contentWindow.postMessage({ type: 'search:navigateTo', payload: { matchIndex: newMatch.matchIndex, isActive: true } }, window.location.origin);
+				view.contentWindow.postMessage({
+					type: 'search:navigateTo',
+					payload: {matchIndex: newMatch.matchIndex, isActive: true}
+				}, window.location.origin);
 			}
 		}
 		
@@ -161,7 +167,7 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 		
 		if (scope === 'source') {
 			const matches = findAndHighlightInSource(query);
-			globalSearchMatches = matches.map(el => ({ scope: 'source', element: el }));
+			globalSearchMatches = matches.map(el => ({scope: 'source', element: el}));
 			if (globalSearchMatches.length > 0) navigateToMatch(0);
 			updateSearchResultsUI();
 		} else {
@@ -169,7 +175,7 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 			globalSearchMatches = [];
 			chapterEditorViews.forEach(view => {
 				if (view.isReady) {
-					view.contentWindow.postMessage({ type: 'search:findAndHighlight', payload: { query } }, window.location.origin);
+					view.contentWindow.postMessage({type: 'search:findAndHighlight', payload: {query}}, window.location.origin);
 				} else {
 					searchResponsesPending--;
 				}
@@ -200,9 +206,9 @@ export function setupSearch (chapterEditorViews, registerSearchResultHandler) {
 	// for centralized shortcut management.
 	
 	registerSearchResultHandler((payload) => {
-		const { chapterId, matchCount } = payload;
+		const {chapterId, matchCount} = payload;
 		for (let i = 0; i < matchCount; i++) {
-			globalSearchMatches.push({ scope: 'target', chapterId, matchIndex: i });
+			globalSearchMatches.push({scope: 'target', chapterId, matchIndex: i});
 		}
 		
 		searchResponsesPending--;

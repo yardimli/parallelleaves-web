@@ -73,4 +73,4 @@ function mapLanguageToIsoCode(languageName) {
 	return 'en-US'; // Default to English (US) if no match is found.
 }
 
-module.exports = { supportedLanguages, mapLanguageToIsoCode };
+module.exports = {supportedLanguages, mapLanguageToIsoCode};

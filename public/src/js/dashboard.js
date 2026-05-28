@@ -1,5 +1,5 @@
-import { initI18n, t, applyTranslationsTo, setLanguage, appLanguages } from './i18n.js';
-import { exportBook } from './exporter.js';
+import {initI18n, t, applyTranslationsTo, setLanguage, appLanguages} from './i18n.js';
+import {exportBook} from './exporter.js';
 
 /**
  * Compares two semantic version strings (e.g., '1.10.2' vs '1.2.0').
@@ -23,7 +23,7 @@ function compareVersions(v1, v2) {
 document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n(true);
 	
-	const { version: appVersion } = await window.api.splashGetInitData();
+	const {version: appVersion} = await window.api.splashGetInitData();
 	const dashboardTitle = t('dashboard.title');
 	document.title = `${dashboardTitle} - v${appVersion}`;
 	
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	 * @param {string} message - The message to display.
 	 * @param {string} [title='Error'] - The title for the alert modal.
 	 */
-	window.showAlert = function(message, title = t('common.error')) {
+	window.showAlert = function (message, title = t('common.error')) {
 		const modal = document.getElementById('alert-modal');
 		if (modal) {
 			const modalTitle = modal.querySelector('#alert-modal-title');
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		if (session && session.user) {
 			authMenuSection.innerHTML = `
-                <li class="menu-title"><span>${t('dashboard.welcome', { username: session.user.username })}</span></li>
+                <li class="menu-title"><span>${t('dashboard.welcome', {username: session.user.username})}</span></li>
                 <li><a id="api-key-btn"><i class="bi bi-key"></i>${t('dashboard.setApiKey')}</a></li>
                 <li><a id="logout-btn"><i class="bi bi-box-arrow-right"></i>${t('dashboard.signOut')}</a></li>
             `;
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const lang = loginForm.elements.language.value;
 		
 		try {
-			const result = await window.api.login({ username, password });
+			const result = await window.api.login({username, password});
 			if (result.success) {
 				if (lang !== (localStorage.getItem('app_lang') || 'en')) {
 					await setLanguage(lang);
@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			bookCard.dataset.bookId = book.id;
 			
 			const coverHtml = book.cover_path
-				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', { title: book.title })}" class="w-full">`
+				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', {title: book.title})}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
 			
 			// MODIFIED: Added Codex and Translation Memory buttons directly to the book card actions
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			if (targetWords) targetWords.textContent = `${numberFormat.format(book.target_word_count)} ${wordLabel}`;
 			if (chapterCountEl) chapterCountEl.textContent = book.chapter_count;
 			
-			const dateFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+			const dateFormatOptions = {year: 'numeric', month: 'short', day: 'numeric'};
 			if (createdDateEl && book.created_at) {
 				createdDateEl.textContent = new Date(book.created_at).toLocaleDateString(undefined, dateFormatOptions);
 			}
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 			} catch (error) {
 				console.error('Failed to create blank project:', error);
-				showAlert(t('dashboard.newProjectModal.errorCreate', { message: error.message }));
+				showAlert(t('dashboard.newProjectModal.errorCreate', {message: error.message}));
 			}
 		});
 	}
@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			updateBookCardUI(bookId);
 			
 			if (stagedCover) {
-				await window.api.updateBookCover({ bookId, coverInfo: stagedCover });
+				await window.api.updateBookCover({bookId, coverInfo: stagedCover});
 			}
 			
 			metaModal.close();
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		const bookTitle = metaForm.querySelector('#meta-title').value;
 		try {
-			const result = await window.api.generateCoverPrompt({ bookTitle });
+			const result = await window.api.generateCoverPrompt({bookTitle});
 			if (result.success && result.prompt) {
 				metaAiPrompt.value = result.prompt;
 			} else {
@@ -631,10 +631,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		</div>`;
 		
 		try {
-			const result = await window.api.generateCover({ bookId, prompt });
+			const result = await window.api.generateCover({bookId, prompt});
 			if (result.success && result.filePath) {
 				// MODIFIED: Use 'existing' type and localPath for already saved generated images
-				stagedCover = { type: 'existing', data: result.localPath };
+				stagedCover = {type: 'existing', data: result.localPath};
 				metaCoverPreview.innerHTML = `<img src="${result.filePath}?t=${Date.now()}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
 			} else {
 				throw new Error(result.message || 'Failed to generate cover.');
@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const result = await window.api.showOpenImageDialog();
 		// MODIFIED: Handle the result object properly
 		if (result && result.success) {
-			stagedCover = { type: 'local', data: result.filePath };
+			stagedCover = {type: 'local', data: result.filePath};
 			metaCoverPreview.innerHTML = `<img src="${result.url}" alt="${t('dashboard.metaSettings.altStagedCover')}" class="w-full h-auto">`;
 		}
 	});
@@ -667,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const book = booksData.find(n => n.id === bookId);
 		if (!book) return;
 		
-		const confirmation = confirm(t('dashboard.metaSettings.deleteConfirm', { title: book.title }));
+		const confirmation = confirm(t('dashboard.metaSettings.deleteConfirm', {title: book.title}));
 		if (confirmation) {
 			try {
 				await window.api.deleteBook(bookId);
@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	// --- IPC Listeners ---
 	
-	window.api.onCoverUpdated((event, { bookId, imagePath }) => {
+	window.api.onCoverUpdated((event, {bookId, imagePath}) => {
 		const bookIndex = booksData.findIndex(n => n.id === bookId);
 		if (bookIndex !== -1) {
 			booksData[bookIndex].cover_path = imagePath;
@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const figure = card.querySelector('figure');
 			if (figure) {
 				const book = booksData.find(n => n.id === bookId);
-				const altText = t('dashboard.metaSettings.altCoverFor', { title: book ? book.title : bookId });
+				const altText = t('dashboard.metaSettings.altCoverFor', {title: book ? book.title : bookId});
 				figure.innerHTML = `<img src="${imagePath}?t=${Date.now()}" alt="${altText}" class="w-full">`;
 			}
 		}

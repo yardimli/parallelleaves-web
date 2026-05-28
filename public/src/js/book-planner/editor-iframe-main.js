@@ -1,13 +1,13 @@
-import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
-import { EditorView, Decoration, DecorationSet } from 'prosemirror-view';
-import { DOMParser, DOMSerializer, Fragment, Schema } from 'prosemirror-model';
-import { history, undo, redo } from 'prosemirror-history';
-import { keymap } from 'prosemirror-keymap';
-import { baseKeymap, toggleMark, setBlockType, wrapIn, lift } from 'prosemirror-commands';
-import { wrapInList, liftListItem } from 'prosemirror-schema-list';
-import { schema as basicSchema } from 'prosemirror-schema-basic';
-import { addListNodes } from 'prosemirror-schema-list';
-import { createShortcutKeymap } from './editor-shortcuts.js';
+import {EditorState, Plugin, TextSelection} from 'prosemirror-state';
+import {EditorView, Decoration, DecorationSet} from 'prosemirror-view';
+import {DOMParser, DOMSerializer, Fragment, Schema} from 'prosemirror-model';
+import {history, undo, redo} from 'prosemirror-history';
+import {keymap} from 'prosemirror-keymap';
+import {baseKeymap, toggleMark, setBlockType, wrapIn, lift} from 'prosemirror-commands';
+import {wrapInList, liftListItem} from 'prosemirror-schema-list';
+import {schema as basicSchema} from 'prosemirror-schema-basic';
+import {addListNodes} from 'prosemirror-schema-list';
+import {createShortcutKeymap} from './editor-shortcuts.js';
 
 const debounce = (func, delay) => {
 	let timeout;
@@ -22,8 +22,8 @@ const debounce = (func, delay) => {
 const highlightMarkSpec = (colorClass) => {
 	return {
 		attrs: {},
-		parseDOM: [{ tag: `span.${colorClass}` }],
-		toDOM: () => ['span', { class: colorClass }, 0],
+		parseDOM: [{tag: `span.${colorClass}`}],
+		toDOM: () => ['span', {class: colorClass}, 0],
 	};
 };
 
@@ -31,41 +31,46 @@ const nodes = basicSchema.spec.nodes.update('blockquote', {
 	content: 'paragraph+',
 	group: 'block',
 	defining: true,
-	parseDOM: [{ tag: 'blockquote' }],
-	toDOM() { return ['blockquote', 0]; },
+	parseDOM: [{tag: 'blockquote'}],
+	toDOM() {
+		return ['blockquote', 0];
+	},
 });
 
 const schema = new Schema({
 	nodes: addListNodes(nodes, 'paragraph+', 'block'),
 	marks: {
 		link: {
-			attrs: { href: {}, title: { default: null } },
+			attrs: {href: {}, title: {default: null}},
 			inclusive: false,
-			parseDOM: [{ tag: 'a[href]', getAttrs: dom => ({ href: dom.getAttribute('href'), title: dom.getAttribute('title') }) }],
+			parseDOM: [{
+				tag: 'a[href]',
+				getAttrs: dom => ({href: dom.getAttribute('href'), title: dom.getAttribute('title')})
+			}],
 			toDOM: node => ['a', node.attrs, 0],
 		},
 		em: {
-			parseDOM: [{ tag: 'i' }, { tag: 'em' }, { style: 'font-style=italic' }],
+			parseDOM: [{tag: 'i'}, {tag: 'em'}, {style: 'font-style=italic'}],
 			toDOM: () => ['em', 0],
 		},
 		strong: {
 			parseDOM: [
-				{ tag: 'strong' },
-				{ tag: 'b', getAttrs: node => node.style.fontWeight !== 'normal' && null },
-				{ style: 'font-weight', getAttrs: value => /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null },
+				{tag: 'strong'},
+				{tag: 'b', getAttrs: node => node.style.fontWeight !== 'normal' && null},
+				{style: 'font-weight', getAttrs: value => /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null},
 			],
 			toDOM: () => ['strong', 0],
 		},
 		code: {
-			parseDOM: [{ tag: 'code' }],
+			parseDOM: [{tag: 'code'}],
 			toDOM: () => ['code', 0],
 		},
 		underline: {
-			parseDOM: [{ tag: 'u' }, { style: 'text-decoration=underline' }],
+			parseDOM: [{tag: 'u'}, {style: 'text-decoration=underline'}],
 			toDOM: () => ['u', 0],
 		},
 		strike: {
-			parseDOM: [{ tag: 's' }, { tag: 'del' }, { style: 'text-decoration=line-through' }],
+			parseDOM: [{tag: 's'}, {tag: 'del'}, {style: 'text-decoration=line-through'}],
 			toDOM: () => ['s', 0],
 		},
 		highlight_yellow: highlightMarkSpec('highlight-yellow'),
@@ -73,8 +78,8 @@ const schema = new Schema({
 		highlight_blue: highlightMarkSpec('highlight-blue'),
 		highlight_red: highlightMarkSpec('highlight-red'),
 		ai_suggestion: {
-			parseDOM: [{ tag: 'span.ai-suggestion' }],
-			toDOM: () => ['span', { class: 'ai-suggestion' }, 0],
+			parseDOM: [{tag: 'span.ai-suggestion'}],
+			toDOM: () => ['span', {class: 'ai-suggestion'}, 0],
 		},
 	},
 });
@@ -146,13 +151,13 @@ const searchReplacePlugin = new Plugin({
  */
 const postToParent = (type, payload) => {
 	if (!parentOrigin || !parent.window) return;
-	parent.window.postMessage({ type, payload }, parentOrigin);
+	parent.window.postMessage({type, payload}, parentOrigin);
 };
 
 const debouncedLogEdit = debounce(() => {
 	if (!editorView) return;
 	
-	const { doc, selection } = editorView.state;
+	const {doc, selection} = editorView.state;
 	const cursorPos = selection.from;
 	const markerRegex = /(\[\[#(\d+)\]\])|(\{\{#(\d+)\}\})/g;
 	
@@ -213,7 +218,7 @@ const sendResize = () => {
 	// Use a small timeout to allow the DOM to render before calculating height
 	setTimeout(() => {
 		const height = document.body.scrollHeight + 75;
-		postToParent('resize', { height });
+		postToParent('resize', {height});
 	}, 50);
 };
 
@@ -223,8 +228,8 @@ const sendResize = () => {
  * @returns {object} A plain object representing the toolbar's state.
  */
 const getToolbarState = (state) => {
-	const { $from, from, to, empty } = state.selection;
-	const { schema } = state;
+	const {$from, from, to, empty} = state.selection;
+	const {schema} = state;
 	
 	const isMarkActive = (type) => {
 		if (!type) return false;
@@ -268,14 +273,14 @@ function manageFloatingButton(view) {
 		floatingTranslateBtn = null;
 	}
 	
-	const { state } = view;
-	const { selection } = state;
+	const {state} = view;
+	const {selection} = state;
 	
 	// Conditions to show the button: cursor must be in one spot (not a selection),
 	// and there must be a text selection in the source pane.
 	if (!selection.empty || !hasSourceSelection) return;
 	
-	const { $from } = selection;
+	const {$from} = selection;
 	const parentNode = $from.parent;
 	
 	// Only show for empty paragraphs
@@ -297,7 +302,7 @@ function manageFloatingButton(view) {
 		// Use mousedown to prevent the editor from losing focus, which would hide the button
 		floatingTranslateBtn.addEventListener('mousedown', (e) => {
 			e.preventDefault();
-			postToParent('requestTranslation', { from: pos, to: pos });
+			postToParent('requestTranslation', {from: pos, to: pos});
 			if (floatingTranslateBtn) {
 				floatingTranslateBtn.remove();
 				floatingTranslateBtn = null;
@@ -311,8 +316,8 @@ function manageFloatingButton(view) {
  * @param {HTMLElement} mount - The element to mount the editor in.
  * @param {object} config - The initialization configuration.
  */
-function createEditorView (mount, config) {
-	const { initialHtml, isEditable, chapterId: id, field: fieldName, i18n } = config;
+function createEditorView(mount, config) {
+	const {initialHtml, isEditable, chapterId: id, field: fieldName, i18n} = config;
 	chapterId = id;
 	field = fieldName;
 	
@@ -320,10 +325,10 @@ function createEditorView (mount, config) {
 		props: {
 			editable: () => isEditable,
 			handleDOMEvents: {
-				focus (view) {
-					postToParent('editorFocused', { chapterId, state: getToolbarState(view.state) });
+				focus(view) {
+					postToParent('editorFocused', {chapterId, state: getToolbarState(view.state)});
 				},
-				blur (view) {
+				blur(view) {
 					// Use a timeout to allow a click on the floating button to register before it's removed
 					setTimeout(() => {
 						if (document.activeElement !== floatingTranslateBtn && floatingTranslateBtn) {
@@ -331,7 +336,7 @@ function createEditorView (mount, config) {
 							floatingTranslateBtn = null;
 						}
 					}, 100);
-					postToParent('editorBlurred', { chapterId });
+					postToParent('editorBlurred', {chapterId});
 				},
 			},
 			handleClick(view, pos, event) {
@@ -354,7 +359,7 @@ function createEditorView (mount, config) {
 							const markerId = match[2] || match[4];
 							const markerType = match[1] ? 'opening' : 'closing';
 							
-							postToParent('markerClicked', { markerId, markerType });
+							postToParent('markerClicked', {markerId, markerType});
 							break;
 						}
 					}
@@ -372,7 +377,7 @@ function createEditorView (mount, config) {
 			doc: doc,
 			plugins: [
 				history(),
-				keymap({ 'Mod-z': undo, 'Mod-y': redo }),
+				keymap({'Mod-z': undo, 'Mod-y': redo}),
 				keymap(baseKeymap),
 				createShortcutKeymap(postToParent),
 				editorPlugin,
@@ -381,7 +386,7 @@ function createEditorView (mount, config) {
 			],
 		}),
 		
-		dispatchTransaction (transaction) {
+		dispatchTransaction(transaction) {
 			const newState = this.state.apply(transaction);
 			this.updateState(newState);
 			
@@ -391,13 +396,13 @@ function createEditorView (mount, config) {
 				const fragment = serializer.serializeFragment(this.state.doc.content);
 				const tempDiv = document.createElement('div');
 				tempDiv.appendChild(fragment);
-				postToParent('contentChanged', { chapterId, field, value: tempDiv.innerHTML });
+				postToParent('contentChanged', {chapterId, field, value: tempDiv.innerHTML});
 				
 				debouncedLogEdit();
 			}
 			
 			if (transaction.selectionSet || transaction.docChanged) {
-				postToParent('stateUpdate', { chapterId, state: getToolbarState(this.state) });
+				postToParent('stateUpdate', {chapterId, state: getToolbarState(this.state)});
 			}
 			
 			if (transaction.docChanged) {
@@ -415,10 +420,10 @@ function createEditorView (mount, config) {
  * Executes a formatting or editor command received from the parent window.
  * @param {object} payload - The command details.
  */
-function executeCommand ({ command, attrs }) {
+function executeCommand({command, attrs}) {
 	if (!editorView) return;
-	const { state, dispatch } = editorView;
-	const { schema } = state;
+	const {state, dispatch} = editorView;
+	const {schema} = state;
 	let cmd;
 	
 	switch (command) {
@@ -453,11 +458,11 @@ function executeCommand ({ command, attrs }) {
 			dispatch(state.tr.replaceSelectionWith(schema.nodes.horizontal_rule.create()));
 			break;
 		case 'heading':
-			cmd = (attrs.level === 0) ? setBlockType(schema.nodes.paragraph) : setBlockType(schema.nodes.heading, { level: attrs.level });
+			cmd = (attrs.level === 0) ? setBlockType(schema.nodes.paragraph) : setBlockType(schema.nodes.heading, {level: attrs.level});
 			break;
 		case 'highlight':
 			let tr = state.tr;
-			const { from, to } = state.selection;
+			const {from, to} = state.selection;
 			Object.keys(schema.marks).forEach(markName => {
 				if (markName.startsWith('highlight_')) tr = tr.removeMark(from, to, schema.marks[markName]);
 			});
@@ -474,7 +479,7 @@ function executeCommand ({ command, attrs }) {
 }
 
 // Applies typography styles received from the parent window.
-function applyTypography ({ styleProps, settings }) {
+function applyTypography({styleProps, settings}) {
 	const root = document.documentElement;
 	Object.entries(styleProps).forEach(([prop, value]) => {
 		root.style.setProperty(prop, value);
@@ -488,7 +493,7 @@ function applyTypography ({ styleProps, settings }) {
  */
 function clearSearchDecorations() {
 	localSearchMatches = [];
-	const tr = editorView.state.tr.setMeta('search', { decorations: DecorationSet.empty });
+	const tr = editorView.state.tr.setMeta('search', {decorations: DecorationSet.empty});
 	editorView.dispatch(tr);
 }
 
@@ -500,7 +505,7 @@ function performSearch(query) {
 	clearSearchDecorations();
 	if (!query) return;
 	
-	const { doc } = editorView.state;
+	const {doc} = editorView.state;
 	const decorations = [];
 	const regex = new RegExp(query, 'gi');
 	
@@ -511,16 +516,16 @@ function performSearch(query) {
 		while ((match = regex.exec(node.text)) !== null) {
 			const from = pos + match.index;
 			const to = from + match[0].length;
-			localSearchMatches.push({ from, to });
-			decorations.push(Decoration.inline(from, to, { class: 'search-highlight' }));
+			localSearchMatches.push({from, to});
+			decorations.push(Decoration.inline(from, to, {class: 'search-highlight'}));
 		}
 	});
 	
 	const decorationSet = DecorationSet.create(doc, decorations);
-	const tr = editorView.state.tr.setMeta('search', { decorations: decorationSet });
+	const tr = editorView.state.tr.setMeta('search', {decorations: decorationSet});
 	editorView.dispatch(tr);
 	
-	postToParent('search:results', { chapterId, matchCount: localSearchMatches.length });
+	postToParent('search:results', {chapterId, matchCount: localSearchMatches.length});
 }
 
 /**
@@ -536,17 +541,17 @@ function navigateToSearchMatch(matchIndex, isActive) {
 		const className = (isActive && i === matchIndex)
 			? 'search-highlight search-highlight-active'
 			: 'search-highlight';
-		return Decoration.inline(match.from, match.to, { class: className });
+		return Decoration.inline(match.from, match.to, {class: className});
 	});
 	
 	const decorationSet = DecorationSet.create(editorView.state.doc, decorations);
-	const tr = editorView.state.tr.setMeta('search', { decorations: decorationSet });
+	const tr = editorView.state.tr.setMeta('search', {decorations: decorationSet});
 	editorView.dispatch(tr);
 	
 	// If activating a match, scroll it into view and notify the parent.
 	if (isActive && localSearchMatches[matchIndex]) {
 		const match = localSearchMatches[matchIndex];
-		const { from } = match;
+		const {from} = match;
 		
 		// Create a transaction to scroll the view.
 		const scrollTr = editorView.state.tr.scrollIntoView();
@@ -554,14 +559,14 @@ function navigateToSearchMatch(matchIndex, isActive) {
 		
 		// The parent will then use these coordinates to scroll its own container.
 		const coords = editorView.coordsAtPos(from);
-		postToParent('scrollToCoordinates', { top: coords.top });
+		postToParent('scrollToCoordinates', {top: coords.top});
 	}
 }
 
 function clearSearchReplaceDecorations() {
 	localSearchReplaceMatches = [];
 	if (editorView) {
-		const tr = editorView.state.tr.setMeta('search-replace', { decorations: DecorationSet.empty });
+		const tr = editorView.state.tr.setMeta('search-replace', {decorations: DecorationSet.empty});
 		editorView.dispatch(tr);
 	}
 }
@@ -577,7 +582,7 @@ window.addEventListener('message', (event) => {
 		return;
 	}
 	
-	const { type, payload } = event.data;
+	const {type, payload} = event.data;
 	
 	switch (type) {
 		case 'init':
@@ -606,9 +611,9 @@ window.addEventListener('message', (event) => {
 			break;
 		
 		case 'replaceRange': {
-			const { from, to, newContentHtml } = payload;
-			const { state, dispatch } = editorView;
-			const { schema } = state;
+			const {from, to, newContentHtml} = payload;
+			const {state, dispatch} = editorView;
+			const {schema} = state;
 			
 			const tempDiv = document.createElement('div');
 			tempDiv.innerHTML = newContentHtml;
@@ -630,7 +635,7 @@ window.addEventListener('message', (event) => {
 			if (nodeBefore && nodeBefore.type.name === 'paragraph' && nodeBefore.content.size === 0) {
 				const paraFrom = from - nodeBefore.nodeSize;
 				const paraTo = from;
-				if (paraFrom>=0 && paraTo<=currentState.doc.content.size && paraFrom < paraTo) {
+				if (paraFrom >= 0 && paraTo <= currentState.doc.content.size && paraFrom < paraTo) {
 					
 					// Create and dispatch a NEW transaction
 					const deleteTr = currentState.tr.delete(paraFrom, paraTo);
@@ -640,18 +645,18 @@ window.addEventListener('message', (event) => {
 				}
 			}
 			
-			const finalRange = { from, to: finalTo };
+			const finalRange = {from, to: finalTo};
 			const endCoords = editorView.coordsAtPos(finalTo);
-			postToParent('replacementComplete', { finalRange: finalRange, endCoords: endCoords });
+			postToParent('replacementComplete', {finalRange: finalRange, endCoords: endCoords});
 			break;
 		}
 		
 		case 'findAndScrollToText': {
-			const { text } = payload;
+			const {text} = payload;
 			if (!editorView || !text) break;
 			
-			const { state } = editorView;
-			const { doc } = state;
+			const {state} = editorView;
+			const {doc} = state;
 			let foundPos = -1;
 			
 			// Iterate through all text nodes in the document to find the marker.
@@ -673,10 +678,10 @@ window.addEventListener('message', (event) => {
 				
 				// Focus the editor to make the selection visible.
 				editorView.focus();
-				const { from } = editorView.state.selection;
+				const {from} = editorView.state.selection;
 				const coords = editorView.coordsAtPos(from);
 				
-				postToParent('scrollToCoordinates', { top: coords.top });
+				postToParent('scrollToCoordinates', {top: coords.top});
 			}
 			break;
 		}
@@ -696,14 +701,14 @@ window.addEventListener('message', (event) => {
 		}
 		
 		case 'search-replace:find': {
-			const { query, caseSensitive } = payload;
+			const {query, caseSensitive} = payload;
 			clearSearchReplaceDecorations();
 			if (!query) {
-				postToParent('search-replace:results', { chapterId, matchCount: 0 });
+				postToParent('search-replace:results', {chapterId, matchCount: 0});
 				break;
 			}
 			
-			const { doc } = editorView.state;
+			const {doc} = editorView.state;
 			const decorations = [];
 			const flags = caseSensitive ? 'g' : 'gi';
 			const regex = new RegExp(query, flags);
@@ -714,59 +719,59 @@ window.addEventListener('message', (event) => {
 				while ((match = regex.exec(node.text)) !== null) {
 					const from = pos + match.index;
 					const to = from + match[0].length;
-					localSearchReplaceMatches.push({ from, to });
-					decorations.push(Decoration.inline(from, to, { class: 'search-replace-highlight' }));
+					localSearchReplaceMatches.push({from, to});
+					decorations.push(Decoration.inline(from, to, {class: 'search-replace-highlight'}));
 				}
 			});
 			
 			const decorationSet = DecorationSet.create(doc, decorations);
-			const tr = editorView.state.tr.setMeta('search-replace', { decorations: decorationSet });
+			const tr = editorView.state.tr.setMeta('search-replace', {decorations: decorationSet});
 			editorView.dispatch(tr);
 			
-			postToParent('search-replace:results', { chapterId, matchCount: localSearchReplaceMatches.length });
+			postToParent('search-replace:results', {chapterId, matchCount: localSearchReplaceMatches.length});
 			break;
 		}
 		
 		case 'search-replace:navigateTo': {
-			const { matchIndex, isActive } = payload;
+			const {matchIndex, isActive} = payload;
 			if (!editorView) break;
 			
 			const decorations = localSearchReplaceMatches.map((match, i) => {
 				const className = (isActive && i === matchIndex)
 					? 'search-replace-highlight search-replace-highlight-active'
 					: 'search-replace-highlight';
-				return Decoration.inline(match.from, match.to, { class: className });
+				return Decoration.inline(match.from, match.to, {class: className});
 			});
 			
 			const decorationSet = DecorationSet.create(editorView.state.doc, decorations);
-			const tr = editorView.state.tr.setMeta('search-replace', { decorations: decorationSet });
+			const tr = editorView.state.tr.setMeta('search-replace', {decorations: decorationSet});
 			editorView.dispatch(tr);
 			
 			if (isActive && localSearchReplaceMatches[matchIndex]) {
-				const { from } = localSearchReplaceMatches[matchIndex];
+				const {from} = localSearchReplaceMatches[matchIndex];
 				editorView.dispatch(editorView.state.tr.scrollIntoView());
 				const coords = editorView.coordsAtPos(from);
-				postToParent('scrollToCoordinates', { top: coords.top });
+				postToParent('scrollToCoordinates', {top: coords.top});
 			}
 			break;
 		}
 		
 		case 'search-replace:replace': {
-			const { matchIndex, replaceText } = payload;
+			const {matchIndex, replaceText} = payload;
 			const match = localSearchReplaceMatches[matchIndex];
 			if (!match) break;
 			
-			const { from, to } = match;
+			const {from, to} = match;
 			const tr = editorView.state.tr.replaceWith(from, to, editorView.state.schema.text(replaceText));
 			editorView.dispatch(tr);
 			
-			postToParent('search-replace:replaced', { chapterId });
+			postToParent('search-replace:replaced', {chapterId});
 			break;
 		}
 		
 		case 'search-replace:replaceAll': {
-			const { query, replaceText, caseSensitive } = payload;
-			let { tr } = editorView.state;
+			const {query, replaceText, caseSensitive} = payload;
+			let {tr} = editorView.state;
 			let replacementsMade = 0;
 			const flags = caseSensitive ? 'g' : 'gi';
 			const regex = new RegExp(query, flags);
@@ -785,7 +790,7 @@ window.addEventListener('message', (event) => {
 				}
 				
 				for (let i = matchesInNode.length - 1; i >= 0; i--) {
-					const { from, to } = matchesInNode[i];
+					const {from, to} = matchesInNode[i];
 					const mapping = tr.mapping;
 					tr.replaceWith(mapping.map(from), mapping.map(to), editorView.state.schema.text(replaceText));
 					replacementsMade++;
@@ -797,7 +802,7 @@ window.addEventListener('message', (event) => {
 				editorView.dispatch(tr);
 			}
 			
-			postToParent('search-replace:replacedAll', { chapterId, count: replacementsMade });
+			postToParent('search-replace:replacedAll', {chapterId, count: replacementsMade});
 			break;
 		}
 		
@@ -814,14 +819,14 @@ window.addEventListener('message', (event) => {
 		
 		case 'triggerTranslate':
 			if (floatingTranslateBtn && document.body.contains(floatingTranslateBtn)) {
-				const { state } = editorView;
-				const { selection } = state;
+				const {state} = editorView;
+				const {selection} = state;
 				
 				if (selection.empty) {
-					const { $from } = selection;
+					const {$from} = selection;
 					const pos = $from.pos;
 					
-					postToParent('requestTranslation', { from: pos, to: pos });
+					postToParent('requestTranslation', {from: pos, to: pos});
 					
 					floatingTranslateBtn.remove();
 					floatingTranslateBtn = null;
@@ -833,14 +838,14 @@ window.addEventListener('message', (event) => {
 			//editorView.setProps({ editable: () => payload.isEditable });
 			break;
 		case 'cleanupAiSuggestion': {
-			const { tr } = editorView.state;
+			const {tr} = editorView.state;
 			tr.removeMark(0, editorView.state.doc.content.size, schema.marks.ai_suggestion);
 			editorView.dispatch(tr);
 			editorView.focus();
 			break;
 		}
 		case 'discardAiSuggestion': {
-			const { from, to, originalFragmentJson } = payload;
+			const {from, to, originalFragmentJson} = payload;
 			const originalFragment = Fragment.fromJSON(schema, originalFragmentJson);
 			
 			let tr = editorView.state.tr.replaceWith(from, to, originalFragment);
@@ -852,21 +857,21 @@ window.addEventListener('message', (event) => {
 			break;
 		}
 		case 'setSelection': {
-			const { from, to } = payload;
+			const {from, to} = payload;
 			const tr = editorView.state.tr.setSelection(TextSelection.create(editorView.state.doc, from, to));
 			editorView.dispatch(tr);
 			break;
 		}
 		case 'prepareForRephrase': {
-			const { state } = editorView;
+			const {state} = editorView;
 			const isForRephrase = payload && payload.isRephrase;
 			if (isForRephrase && state.selection.empty) {
 				postToParent('selectionResponse', null);
 				return;
 			}
 			
-			const { doc, selection } = state;
-			const { from, to } = selection;
+			const {doc, selection} = state;
+			const {from, to} = selection;
 			
 			const textBefore = doc.textBetween(0, from, ' ');
 			const wordsBefore = textBefore.trim().split(/\s+/).slice(-200).join(' ');
@@ -886,24 +891,24 @@ window.addEventListener('message', (event) => {
 		}
 		case 'prepareForGetFullHtml': {
 			if (!editorView) {
-				postToParent('fullHtmlResponse', { html: '' });
+				postToParent('fullHtmlResponse', {html: ''});
 				return;
 			}
 			const serializer = DOMSerializer.fromSchema(editorView.state.schema);
 			const fragment = serializer.serializeFragment(editorView.state.doc.content);
 			const tempDiv = document.createElement('div');
 			tempDiv.appendChild(fragment);
-			postToParent('fullHtmlResponse', { html: tempDiv.innerHTML });
+			postToParent('fullHtmlResponse', {html: tempDiv.innerHTML});
 			break;
 		}
 		case 'getSelectionText': {
 			if (!editorView) {
-				postToParent('selectionResponse', { selectedText: '' });
+				postToParent('selectionResponse', {selectedText: ''});
 				return;
 			}
-			const { selection, doc } = editorView.state;
+			const {selection, doc} = editorView.state;
 			const selectedText = selection.empty ? '' : doc.textBetween(selection.from, selection.to, ' ');
-			postToParent('selectionResponse', { selectedText: selectedText.trim() });
+			postToParent('selectionResponse', {selectedText: selectedText.trim()});
 			break;
 		}
 	}

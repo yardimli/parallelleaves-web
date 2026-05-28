@@ -14,7 +14,7 @@ export const appLanguages = {
  * @param {string} lang - The language code (e.g., 'en', 'tr').
  * @returns {Promise<object|null>} The parsed language data or null on error.
  */
-async function loadLanguageFile (lang) {
+async function loadLanguageFile(lang) {
 	try {
 		const langData = await window.api.getLangFile(lang);
 		return JSON.parse(langData);
@@ -30,7 +30,7 @@ async function loadLanguageFile (lang) {
  * @param {string} path - The dot-notation path (e.g., 'common.save').
  * @returns {*} The value if found, otherwise undefined.
  */
-function getNested (obj, path) {
+function getNested(obj, path) {
 	return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 }
 
@@ -40,7 +40,7 @@ function getNested (obj, path) {
  * @param {object} [substitutions={}] - An object of substitutions for placeholders.
  * @returns {string} The translated string.
  */
-export function t (key, substitutions = {}) {
+export function t(key, substitutions = {}) {
 	let result = getNested(translations, key);
 	let isFallback = false;
 	
@@ -73,7 +73,7 @@ export function t (key, substitutions = {}) {
  * Applies translations to a single DOM element based on its data-i18n attributes.
  * @param {HTMLElement} element - The element to translate.
  */
-function translateElement (element) {
+function translateElement(element) {
 	const key = element.dataset.i18n;
 	if (key) {
 		if (element.children.length === 0 || element.tagName.toLowerCase() === 'title') {
@@ -101,7 +101,7 @@ function translateElement (element) {
  * Scans a given DOM element and its children and applies all translations.
  * @param {HTMLElement} rootElement - The root element to start scanning from.
  */
-export function applyTranslationsTo (rootElement) {
+export function applyTranslationsTo(rootElement) {
 	if (!rootElement) return;
 	
 	if (rootElement.matches('[data-i18n], [data-i18n-title], [data-i18n-placeholder]')) {
@@ -114,7 +114,7 @@ export function applyTranslationsTo (rootElement) {
 /**
  * Scans the entire document and applies all translations.
  */
-function applyTranslations () {
+function applyTranslations() {
 	applyTranslationsTo(document.body);
 	document.documentElement.lang = localStorage.getItem(LANG_KEY) || 'en';
 }
@@ -122,7 +122,7 @@ function applyTranslations () {
 /**
  * Populates the language switcher dropdown menu.
  */
-function populateLanguageSwitcher () {
+function populateLanguageSwitcher() {
 	const menus = document.querySelectorAll('#js-lang-switcher-menu');
 	if (menus.length === 0) return;
 	
@@ -155,7 +155,7 @@ function populateLanguageSwitcher () {
  * Sets the application language, saves it, and reloads the application.
  * @param {string} lang - The language code to set.
  */
-export function setLanguage (lang) {
+export function setLanguage(lang) {
 	localStorage.setItem(LANG_KEY, lang);
 	window.location.reload();
 }
@@ -164,7 +164,7 @@ export function setLanguage (lang) {
  * Initializes the internationalization module.
  * @param {boolean} [isDashboard=false] - Kept for call compatibility, but no longer used for special logic.
  */
-export async function initI18n (isDashboard = false) {
+export async function initI18n(isDashboard = false) {
 	const lang = localStorage.getItem(LANG_KEY) || 'en';
 	
 	// Always load English for fallback.

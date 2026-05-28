@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Models;
+	namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+	use Illuminate\Database\Eloquent\Model;
 
-class TmGenerationJob extends Model
-{
-    protected $table = 'tm_generation_jobs';
+	class TmGenerationJob extends Model
+	{
+		protected $table = 'tm_generation_jobs';
 
-    protected $fillable = ['book_id', 'status', 'total_blocks', 'processed_blocks', 'error_message'];
-}
+		protected $fillable = ['book_id', 'status', 'total_blocks', 'processed_blocks', 'error_message'];
+	}

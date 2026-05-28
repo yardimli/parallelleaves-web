@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-const { app } = require('electron');
+const {app} = require('electron');
 
 // Define a consistent place to store user-generated images.
 const IMAGES_DIR = path.join(app.getPath('userData'), 'images');
@@ -25,7 +25,7 @@ async function storeImageFromUrl(url, bookId, filenameBase) {
 		const bookDir = path.join(IMAGES_DIR, 'books', String(bookId));
 		
 		// Ensure the directory exists.
-		fs.mkdirSync(bookDir, { recursive: true });
+		fs.mkdirSync(bookDir, {recursive: true});
 		
 		let extension = '.png'; // Default to png for AI generated images
 		try {
@@ -78,7 +78,7 @@ async function storeImageFromPath(sourcePath, bookId, filenameBase) {
 		let targetDir = path.join(IMAGES_DIR, 'books', String(bookId));
 		
 		// Ensure the directory exists.
-		fs.mkdirSync(targetDir, { recursive: true });
+		fs.mkdirSync(targetDir, {recursive: true});
 		
 		const extension = path.extname(sourcePath);
 		const filename = `${filenameBase}-${Date.now()}${extension}`;
@@ -101,4 +101,4 @@ async function storeImageFromPath(sourcePath, bookId, filenameBase) {
 	}
 }
 
-module.exports = { storeImageFromUrl, storeImageFromPath, IMAGES_DIR };
+module.exports = {storeImageFromUrl, storeImageFromPath, IMAGES_DIR};

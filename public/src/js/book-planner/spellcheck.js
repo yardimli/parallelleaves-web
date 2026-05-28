@@ -1,9 +1,9 @@
-import { t } from '../i18n.js';
+import {t} from '../i18n.js';
 
 /**
  * Populates and configures the spellcheck language dropdown.
  */
-export async function setupSpellcheckDropdown () {
+export async function setupSpellcheckDropdown() {
 	const dropdown = document.getElementById('js-spellcheck-lang-dropdown');
 	if (!dropdown) {
 		console.error('[setupSpellcheckDropdown] Dropdown element not found.');

@@ -5,7 +5,7 @@ let isScrollingProgrammatically = false;
  * @param {string} chapterId - The ID of the chapter to sync.
  * @param {string} direction - 'source-to-target' or 'target-to-source'.
  */
-export function syncChapterScroll (chapterId, direction) {
+export function syncChapterScroll(chapterId, direction) {
 	const sourceChapterEl = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	const targetChapterEl = document.getElementById(`target-chapter-scroll-target-${chapterId}`);
 	const sourceContainer = document.getElementById('js-source-column-container');
@@ -51,7 +51,7 @@ export function syncChapterScroll (chapterId, direction) {
  * @param {string} chapterId - The ID of the chapter to scroll to.
  * @param {function} setActiveChapterIdCallback - Callback to update the active chapter ID state.
  */
-export function scrollToChapter (chapterId, setActiveChapterIdCallback) {
+export function scrollToChapter(chapterId, setActiveChapterIdCallback) {
 	const sourceTarget = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	const targetTarget = document.getElementById(`target-chapter-scroll-target-${chapterId}`);
 	const sourceContainer = document.getElementById('js-source-column-container');
@@ -90,7 +90,7 @@ export function scrollToChapter (chapterId, setActiveChapterIdCallback) {
  * @param {string} markerType - The type of marker clicked ('opening' or 'closing').
  * @param {Map} chapterEditorViews - The map of chapter editor views.
  */
-export function scrollToTargetMarker (chapterId, markerId, markerType, chapterEditorViews) {
+export function scrollToTargetMarker(chapterId, markerId, markerType, chapterEditorViews) {
 	const viewInfo = chapterEditorViews.get(chapterId.toString());
 	if (!viewInfo || !viewInfo.isReady) {
 		console.warn(`Iframe for chapter ${chapterId} is not ready or not found.`);
@@ -102,7 +102,7 @@ export function scrollToTargetMarker (chapterId, markerId, markerType, chapterEd
 	
 	viewInfo.contentWindow.postMessage({
 		type: 'findAndScrollToText',
-		payload: { text: searchText }
+		payload: {text: searchText}
 	}, window.location.origin);
 }
 
@@ -111,7 +111,7 @@ export function scrollToTargetMarker (chapterId, markerId, markerType, chapterEd
  * @param {string} markerId - The numerical ID of the marker to find.
  * @param {string} markerType - The type of marker clicked in the target editor.
  */
-export function scrollToSourceMarker (markerId, markerType) {
+export function scrollToSourceMarker(markerId, markerType) {
 	const sourceContainer = document.getElementById('js-source-column-container');
 	if (!sourceContainer) return;
 	
@@ -120,7 +120,7 @@ export function scrollToSourceMarker (markerId, markerType) {
 	const markerLink = sourceContainer.querySelector(selector);
 	
 	if (markerLink) {
-		markerLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		markerLink.scrollIntoView({behavior: 'smooth', block: 'center'});
 		markerLink.classList.add('search-highlight-active');
 		setTimeout(() => {
 			markerLink.classList.remove('search-highlight-active');
@@ -134,7 +134,7 @@ export function scrollToSourceMarker (markerId, markerType) {
  * Sets up the intersection observer to track the active chapter in the source column.
  * @param {function} setActiveChapterIdCallback - Callback to update the active chapter ID state.
  */
-export function setupIntersectionObserver (setActiveChapterIdCallback) {
+export function setupIntersectionObserver(setActiveChapterIdCallback) {
 	const container = document.getElementById('js-source-column-container');
 	const navDropdown = document.getElementById('js-chapter-nav-dropdown');
 	

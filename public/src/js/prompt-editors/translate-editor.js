@@ -1,10 +1,10 @@
-import { t, applyTranslationsTo } from '../i18n.js';
-import { htmlToPlainText } from '../../utils/html-processing.js';
+import {t, applyTranslationsTo} from '../i18n.js';
+import {htmlToPlainText} from '../../utils/html-processing.js';
 
 // Add debounce utility
 const debounce = (func, delay) => {
 	let timeout;
-	return function(...args) {
+	return function (...args) {
 		const context = this;
 		clearTimeout(timeout);
 		timeout = setTimeout(() => func.apply(context, args), delay);
@@ -49,7 +49,7 @@ const buildTranslationContextBlock = (translationPairs, languageForPrompt, targe
 };
 
 export const buildPromptJson = (formData, context, userDictionary = '') => {
-	const { selectedText, languageForPrompt, targetLanguage, translationPairs } = context;
+	const {selectedText, languageForPrompt, targetLanguage, translationPairs} = context;
 	
 	const plainTextToTranslate = selectedText;
 	
@@ -101,7 +101,7 @@ const updatePreview = async (container, context) => {
 		return;
 	}
 	
-	const previewContext = { ...context, translationPairs: [] };
+	const previewContext = {...context, translationPairs: []};
 	
 	if (formData.contextPairs > 0 && context.chapterId) {
 		try {
@@ -118,7 +118,7 @@ const updatePreview = async (container, context) => {
 		}
 	}
 	
-	let userDictionaryContent= await window.api.getDictionaryContentForAI(context.bookId, 'translation');
+	let userDictionaryContent = await window.api.getDictionaryContentForAI(context.bookId, 'translation');
 	
 	try {
 		const promptJson = buildPromptJson(formData, previewContext, userDictionaryContent);
@@ -130,7 +130,7 @@ const updatePreview = async (container, context) => {
 		if (promptJson.context_pairs && promptJson.context_pairs.length > 0) {
 			promptJson.context_pairs.forEach((message, index) => {
 				const pairNumber = Math.floor(index / 2) + 1;
-				const roleTitle = message.role === 'user' ? t('prompt.preview.contextUser', { number: pairNumber }) : t('prompt.preview.contextAssistant', { number: pairNumber });
+				const roleTitle = message.role === 'user' ? t('prompt.preview.contextUser', {number: pairNumber}) : t('prompt.preview.contextAssistant', {number: pairNumber});
 				
 				const title = document.createElement('h3');
 				title.className = 'text-lg font-semibold mt-4 font-mono';
@@ -184,7 +184,7 @@ export const init = async (container, context) => {
 		container.innerHTML = templateHtml;
 		applyTranslationsTo(container);
 		
-		const fullContext = { ...context };
+		const fullContext = {...context};
 		
 		populateForm(container, context.initialState || defaultState, context.bookId);
 		// MODIFIED: Removed call to populateTranslationMemoriesDropdown

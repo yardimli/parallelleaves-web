@@ -1,4 +1,4 @@
-import { t } from '../i18n.js';
+import {t} from '../i18n.js';
 
 let chapterEditorViews;
 let globalMatches = [];
@@ -7,7 +7,8 @@ let searchResponsesPending = 0;
 let resultHandlerCallback;
 
 // UI Elements
-let searchReplaceBar, searchInput, replaceInput, prevBtn, nextBtn, replaceBtn, replaceAllBtn, resultsCount, closeBtn, caseSensitiveBtn;
+let searchReplaceBar, searchInput, replaceInput, prevBtn, nextBtn, replaceBtn, replaceAllBtn, resultsCount, closeBtn,
+	caseSensitiveBtn;
 
 const debounce = (func, delay) => {
 	let timeout;
@@ -53,7 +54,7 @@ function openSearchAndReplaceWithValues(findValue, replaceValue) {
 function clearSearch() {
 	chapterEditorViews.forEach(view => {
 		if (view.isReady) {
-			view.contentWindow.postMessage({ type: 'search-replace:clear' }, window.location.origin);
+			view.contentWindow.postMessage({type: 'search-replace:clear'}, window.location.origin);
 		}
 	});
 	globalMatches = [];
@@ -68,7 +69,7 @@ function clearSearch() {
 function updateResultsUI() {
 	const total = globalMatches.length;
 	resultsCount.textContent = total > 0
-		? t('editor.searchReplace.results', { current: currentMatchIndex + 1, total })
+		? t('editor.searchReplace.results', {current: currentMatchIndex + 1, total})
 		: t('editor.searchReplace.noResults');
 	
 	const hasMatches = total > 0;
@@ -85,7 +86,10 @@ function navigateToMatch(index) {
 		const oldMatch = globalMatches[currentMatchIndex];
 		const oldView = chapterEditorViews.get(oldMatch.chapterId.toString());
 		if (oldView?.isReady) {
-			oldView.contentWindow.postMessage({ type: 'search-replace:navigateTo', payload: { matchIndex: oldMatch.matchIndex, isActive: false } }, window.location.origin);
+			oldView.contentWindow.postMessage({
+				type: 'search-replace:navigateTo',
+				payload: {matchIndex: oldMatch.matchIndex, isActive: false}
+			}, window.location.origin);
 		}
 	}
 	
@@ -93,7 +97,10 @@ function navigateToMatch(index) {
 	const newMatch = globalMatches[currentMatchIndex];
 	const newView = chapterEditorViews.get(newMatch.chapterId.toString());
 	if (newView?.isReady) {
-		newView.contentWindow.postMessage({ type: 'search-replace:navigateTo', payload: { matchIndex: newMatch.matchIndex, isActive: true } }, window.location.origin);
+		newView.contentWindow.postMessage({
+			type: 'search-replace:navigateTo',
+			payload: {matchIndex: newMatch.matchIndex, isActive: true}
+		}, window.location.origin);
 	}
 	
 	updateResultsUI();
@@ -113,7 +120,10 @@ const startSearch = debounce(() => {
 	chapterEditorViews.forEach(view => {
 		if (view.isReady) {
 			searchResponsesPending++;
-			view.contentWindow.postMessage({ type: 'search-replace:find', payload: { query, caseSensitive } }, window.location.origin);
+			view.contentWindow.postMessage({
+				type: 'search-replace:find',
+				payload: {query, caseSensitive}
+			}, window.location.origin);
 		}
 	});
 }, 300);
@@ -147,7 +157,10 @@ function handleReplaceAll() {
 	chapterEditorViews.forEach(view => {
 		if (view.isReady) {
 			searchResponsesPending++;
-			view.contentWindow.postMessage({ type: 'search-replace:replaceAll', payload: { query, replaceText, caseSensitive } }, window.location.origin);
+			view.contentWindow.postMessage({
+				type: 'search-replace:replaceAll',
+				payload: {query, replaceText, caseSensitive}
+			}, window.location.origin);
 		}
 	});
 	
@@ -157,7 +170,7 @@ function handleReplaceAll() {
 			searchResponsesPending--;
 			if (searchResponsesPending === 0) {
 				clearSearch();
-				resultsCount.textContent = t('editor.searchReplace.replaceAllResult', { count: totalReplaced });
+				resultsCount.textContent = t('editor.searchReplace.replaceAllResult', {count: totalReplaced});
 				resultHandlerCallback = null;
 			}
 		}
@@ -169,9 +182,9 @@ function handleReplaceAll() {
 function handleIframeResponse(type, payload) {
 	switch (type) {
 		case 'search-replace:results': {
-			const { chapterId, matchCount } = payload;
+			const {chapterId, matchCount} = payload;
 			for (let i = 0; i < matchCount; i++) {
-				globalMatches.push({ chapterId, matchIndex: i });
+				globalMatches.push({chapterId, matchIndex: i});
 			}
 			
 			searchResponsesPending--;

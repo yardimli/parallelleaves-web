@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const password = form.elements.password.value;
 		
 		try {
-			const result = await window.api.register({ username, password });
+			const result = await window.api.register({username, password});
 			if (result.success) {
 				alertBox.className = 'alert alert-success my-4';
 				alertMsg.textContent = 'Registration successful! You can now log in.';

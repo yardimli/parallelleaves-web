@@ -1,8 +1,8 @@
-import { init as initRephraseEditor, buildPromptJson as buildRephraseJson } from './prompt-editors/rephrase-editor.js';
-import { init as initTranslateEditor, buildPromptJson as buildTranslateJson } from './prompt-editors/translate-editor.js';
-import { updateToolbarState as updateChapterToolbarState } from './book-planner/toolbar.js';
-import { t, applyTranslationsTo } from './i18n.js';
-import { htmlToPlainText, processSourceContentForMarkers } from '../utils/html-processing.js';
+import {init as initRephraseEditor, buildPromptJson as buildRephraseJson} from './prompt-editors/rephrase-editor.js';
+import {init as initTranslateEditor, buildPromptJson as buildTranslateJson} from './prompt-editors/translate-editor.js';
+import {updateToolbarState as updateChapterToolbarState} from './book-planner/toolbar.js';
+import {t, applyTranslationsTo} from './i18n.js';
+import {htmlToPlainText, processSourceContentForMarkers} from '../utils/html-processing.js';
 
 const AI_SETTINGS_KEYS = {
 	MODEL: 'parallel-leaves-ai-model',
@@ -10,8 +10,8 @@ const AI_SETTINGS_KEYS = {
 };
 
 const editors = {
-	'rephrase': { init: initRephraseEditor },
-	'translate': { init: initTranslateEditor }
+	'rephrase': {init: initRephraseEditor},
+	'translate': {init: initTranslateEditor}
 };
 
 const promptBuilders = {
@@ -90,7 +90,7 @@ const loadPrompt = async (promptId) => {
 		console.error(`No editor configured for promptId: ${promptId}`);
 		placeholder.classList.remove('hidden');
 		customEditorPane.classList.add('hidden');
-		placeholder.innerHTML = `<p class="text-error">${t('prompt.errorNoEditorForPrompt', { promptId })}</p>`;
+		placeholder.innerHTML = `<p class="text-error">${t('prompt.errorNoEditorForPrompt', {promptId})}</p>`;
 		return;
 	}
 	
@@ -329,7 +329,7 @@ async function startAiAction(params) {
 							const desiredScrollTop = container.scrollTop + contentEndRelativeY - container.clientHeight + 50;
 							
 							if (desiredScrollTop > container.scrollTop) {
-								container.scrollTo({ top: desiredScrollTop, behavior: 'smooth' });
+								container.scrollTo({top: desiredScrollTop, behavior: 'smooth'});
 							}
 						}
 					}, 100);
@@ -417,7 +417,7 @@ async function handleModalApply() {
 	const builder = promptBuilders[action];
 	const extractor = formDataExtractors[action];
 	if (!builder || !extractor) {
-		window.showAlert(t('prompt.errorNoBuilder', { action }));
+		window.showAlert(t('prompt.errorNoBuilder', {action}));
 		return;
 	}
 	
@@ -433,8 +433,8 @@ async function handleModalApply() {
 	
 	const bookId = document.body.dataset.bookId;
 	if (bookId) {
-		const settingsToSave = { ...formDataObj };
-		window.api.updatePromptSettings({ bookId, promptType: action, settings: settingsToSave })
+		const settingsToSave = {...formDataObj};
+		window.api.updatePromptSettings({bookId, promptType: action, settings: settingsToSave})
 			.catch(err => console.error('Failed to save prompt settings:', err));
 	}
 	
@@ -458,7 +458,7 @@ async function handleModalApply() {
 		}
 	}
 	
-	aiActionRange = { from: selectionInfo.from, to: selectionInfo.to };
+	aiActionRange = {from: selectionInfo.from, to: selectionInfo.to};
 	originalFragmentJson = selectionInfo.originalFragmentJson;
 	
 	const wordCount = selectionInfo.selectedText ? selectionInfo.selectedText.trim().split(/\s+/).filter(Boolean).length : 0;
@@ -481,7 +481,7 @@ async function handleModalApply() {
 			promptContext.translationPairs = pairs;
 		} catch (error) {
 			console.error('Failed to fetch translation context:', error);
-			window.showAlert(t('prompt.errorFetchContext', { message: error.message }));
+			window.showAlert(t('prompt.errorFetchContext', {message: error.message}));
 		}
 	}
 	
@@ -510,7 +510,7 @@ async function handleModalApply() {
 			openingMarker = `[[#${newMarkerNum}]]`;
 			closingMarker = `{{#${newMarkerNum}}}`;
 			
-			currentActionMarkers = { opening: openingMarker, closing: closingMarker };
+			currentActionMarkers = {opening: openingMarker, closing: closingMarker};
 			
 			try {
 				const chapterId = currentContext.chapterId;
@@ -657,7 +657,7 @@ export async function openPromptEditor(context, promptId, initialState = null) {
 		console.error('Failed to verify session API key:', error);
 	}
 	
-	currentContext = { ...context, initialState };
+	currentContext = {...context, initialState};
 	currentPromptId = promptId;
 	
 	const placeholder = modalEl.querySelector('.js-prompt-placeholder');

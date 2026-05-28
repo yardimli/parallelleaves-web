@@ -1,9 +1,9 @@
-import { initI18n, t } from './i18n.js';
+import {initI18n, t} from './i18n.js';
 
 // Debounce utility for search input
 const debounce = (func, delay) => {
 	let timeout;
-	return function(...args) {
+	return function (...args) {
 		const context = this;
 		clearTimeout(timeout);
 		timeout = setTimeout(() => func.apply(context, args), delay);
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	 * @param {string} message - The message to display.
 	 * @param {string} [title='Error'] - The title for the alert modal.
 	 */
-	window.showAlert = function(message, title = t('common.information')) {
+	window.showAlert = function (message, title = t('common.information')) {
 		const modal = document.getElementById('alert-modal');
 		if (modal) {
 			const modalTitle = modal.querySelector('#alert-modal-title');
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			importStatus.textContent = t('import.status');
 		} else {
 			const chapterLabel = t(chapterCount === 1 ? 'import.chapterLabel_one' : 'import.chapterLabel_other');
-			importStatus.textContent = t('import.statusSummary', { chapterCount, chapterLabel });
+			importStatus.textContent = t('import.statusSummary', {chapterCount, chapterLabel});
 		}
 		
 		updateNavButtonState();
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const updateSearchResultsUI = () => {
 			const total = globalSearchMatches.length;
 			if (total > 0) {
-				searchResultsCount.textContent = t('editor.searchBar.results', { current: currentMatchIndex + 1, total });
+				searchResultsCount.textContent = t('editor.searchBar.results', {current: currentMatchIndex + 1, total});
 			} else {
 				searchResultsCount.textContent = t('editor.searchBar.noResults');
 			}
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			currentMatchIndex = index;
 			const newMatch = globalSearchMatches[currentMatchIndex];
 			newMatch.classList.add('search-highlight-active');
-			newMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			newMatch.scrollIntoView({behavior: 'smooth', block: 'center'});
 			
 			updateSearchResultsUI();
 		};
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				
 			} catch (error) {
 				console.error('Error reading file:', error);
-				documentContent.innerHTML = `<p class="text-error">${t('import.errorReadFile', { message: error.message })}</p>`;
+				documentContent.innerHTML = `<p class="text-error">${t('import.errorReadFile', {message: error.message})}</p>`;
 				currentFilePath = null;
 			}
 			updateStatus();
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	documentContent.addEventListener('click', (event) => {
 		const p = event.target.closest('p');
 		if (p && documentContent.contains(p)) {
-			showPopover({ target: p, clientX: event.clientX, clientY: event.clientY });
+			showPopover({target: p, clientX: event.clientX, clientY: event.clientY});
 		}
 	});
 	
@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			currentMarkIndex = 0;
 		}
 		
-		marks[currentMarkIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+		marks[currentMarkIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
 	});
 	
 	prevMarkBtn.addEventListener('click', () => {
@@ -566,7 +566,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			currentMarkIndex = marks.length - 1;
 		}
 		
-		marks[currentMarkIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+		marks[currentMarkIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
 	});
 	
 	titleInput.addEventListener('input', checkFormValidity);
@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 		
 		const chaptersForValidation = [];
-		let currentChapter = { title: 'Chapter 1', content: [] };
+		let currentChapter = {title: 'Chapter 1', content: []};
 		
 		const allNodes = documentContent.childNodes;
 		
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				if (currentChapter.content.length > 0) {
 					chaptersForValidation.push(currentChapter);
 				}
-				currentChapter = { title: node.dataset.title || `Chapter ${chaptersForValidation.length + 1}`, content: [] };
+				currentChapter = {title: node.dataset.title || `Chapter ${chaptersForValidation.length + 1}`, content: []};
 			} else if (node.tagName === 'P') {
 				currentChapter.content.push(node.textContent.trim());
 			}
@@ -616,7 +616,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		for (const chapter of chaptersForValidation) {
 			const wordCount = countWords(chapter.content.join(' '));
 			if (wordCount > WORD_LIMIT) {
-				window.showAlert(t('import.errorChapterTooLong', { chapterTitle: chapter.title, wordCount: wordCount }), t('common.error'));
+				window.showAlert(t('import.errorChapterTooLong', {
+					chapterTitle: chapter.title,
+					wordCount: wordCount
+				}), t('common.error'));
 				return;
 			}
 		}
@@ -625,7 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		importOverlay.classList.remove('hidden');
 		
 		const chapters = [];
-		currentChapter = { title: 'Chapter 1', content: [] };
+		currentChapter = {title: 'Chapter 1', content: []};
 		
 		// Final Import Loop
 		for (const node of allNodes) {
@@ -638,7 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					currentChapter.content = currentChapter.content.join('\n');
 					chapters.push(currentChapter);
 				}
-				currentChapter = { title: node.dataset.title || `Chapter ${chapters.length + 1}`, content: [] };
+				currentChapter = {title: node.dataset.title || `Chapter ${chapters.length + 1}`, content: []};
 			} else if (node.tagName === 'P') {
 				currentChapter.content.push(node.outerHTML);
 			}
@@ -675,12 +678,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 			});
 		} catch (error) {
 			console.error('Import failed:', error);
-			window.showAlert(t('import.errorImport', { message: error.message }), t('common.error'));
+			window.showAlert(t('import.errorImport', {message: error.message}), t('common.error'));
 			importOverlay.classList.add('hidden');
 		}
 	});
 	
-	window.api.onImportStatusUpdate((event, { statusKey }) => {
+	window.api.onImportStatusUpdate((event, {statusKey}) => {
 		if (statusKey) {
 			importOverlayStatus.textContent = t(statusKey);
 		}

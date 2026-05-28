@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Models;
+	namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+	use Illuminate\Database\Eloquent\Model;
 
-class UserBookTranslationMemory extends Model
-{
-    public $timestamps = false;
+	class UserBookTranslationMemory extends Model
+	{
+		public $timestamps = false;
 
-    protected $table = 'user_books_translation_memory';
+		protected $table = 'user_books_translation_memory';
 
-    protected $fillable = ['book_id', 'block_id', 'source_sentence', 'target_sentence'];
-}
+		protected $fillable = ['book_id', 'block_id', 'source_sentence', 'target_sentence'];
+	}
