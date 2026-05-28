@@ -257,8 +257,8 @@ async function renderManuscript(bookData) {
 			if (wasModified) {
 				window.api.updateChapterField({chapterId: chapter.id, field: 'source_content', value: cleanedSourceContent});
 			}
-
-// Use the cleaned content for rendering.
+			
+			// Use the cleaned content for rendering.
 			const rawSourceContent = cleanedSourceContent || '';
 			
 			const finalSourceContent = processSourceContentForMarkers(rawSourceContent);
@@ -374,8 +374,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
 	
 	document.getElementById('js-refresh-page-btn')?.addEventListener('click', () => window.location.reload());
-
-// MODIFIED: Read parameters from window.routeParams instead of parsing URL
+	
+	// MODIFIED: Read parameters from window.routeParams instead of parsing URL
 	const bookId = window.routeParams?.bookId || null;
 	const initialChapterId = window.routeParams?.chapterId || null;
 	
@@ -396,6 +396,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 	}
 	
 	document.body.dataset.bookId = bookId;
+	
+	// MODIFIED: Set the href for Codex and TM links dynamically
+	const toolbarCodexBtn = document.getElementById('js-toolbar-codex-btn');
+	const toolbarTmBtn = document.getElementById('js-toolbar-tm-btn');
+	if (toolbarCodexBtn) {
+		toolbarCodexBtn.href = `/codex/${bookId}`;
+	}
+	if (toolbarTmBtn) {
+		toolbarTmBtn.href = `/translation-memory/${bookId}`;
+	}
 	
 	try {
 		const bookData = await window.api.getFullManuscript(bookId);
@@ -481,8 +491,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		const tmStatusEl = document.getElementById('js-tm-status');
 		const codexStatusEl = document.getElementById('js-codex-status');
-
-// Start background codex generation on load
+		
+		// Start background codex generation on load
 		window.api.codex.startGeneration(bookId);
 		
 		window.api.codex.onUpdate((event, {statusKey, progress, total}) => {
@@ -547,15 +557,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 					total: update.total
 				});
 			} else {
-// Fallback for general status messages like "Syncing..."
+				// Fallback for general status messages like "Syncing..."
 				tmStatusEl.textContent = update.message;
 			}
 		});
-
-// Initial TM update run on load
+		
+		// Initial TM update run on load
 		runTmUpdate();
-
-// Set interval for subsequent updates every 5 minutes
+		
+		// Set interval for subsequent updates every 5 minutes
 		setInterval(runTmUpdate, 60000 * 5);
 		
 		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));

@@ -145,7 +145,16 @@
 		        data-i18n-title="prompt.common.dictionary">
 			<i class="bi bi-book text-lg"></i>
 		</button>
-		<!-- MODIFIED: Removed the Translation Memory button -->
+		<!-- MODIFIED: Added Codex Editor Link opening in a new tab -->
+		<a id="js-toolbar-codex-btn" href="#" target="_blank" class="btn btn-ghost btn-sm btn-square"
+		   data-i18n-title="dashboard.codexEditor" title="Codex Editor">
+			<i class="bi bi-journal-bookmark-fill text-lg"></i>
+		</a>
+		<!-- MODIFIED: Added Translation Memory Link opening in a new tab -->
+		<a id="js-toolbar-tm-btn" href="#" target="_blank" class="btn btn-ghost btn-sm btn-square"
+		   data-i18n-title="dashboard.translationMemory" title="Translation Memory">
+			<i class="bi bi-book-fill text-lg"></i>
+		</a>
 	</div>
 	<div class="flex-grow"></div>
 	<button id="typography-settings-btn" class="btn btn-ghost btn-circle" data-i18n-title="common.typography">
@@ -164,9 +173,13 @@
 	<button id="js-refresh-page-btn" class="btn btn-ghost btn-circle" data-i18n-title="common.refresh">
 		<i class="bi bi-arrow-clockwise text-xl"></i>
 	</button>
-	<button id="theme-toggle" class="btn btn-ghost btn-circle mr-2" data-i18n-title="common.changeTheme">
+	<button id="theme-toggle" class="btn btn-ghost btn-circle" data-i18n-title="common.changeTheme">
 		<i class="bi bi-sun-fill text-xl"></i>
 	</button>
+	<!-- MODIFIED: Home Button taking the user to the dashboard, positioned at the absolute right -->
+	<a href="/dashboard" class="btn btn-ghost btn-circle mr-2" data-i18n-title="common.home" title="Home">
+		<i class="bi bi-house-door text-xl"></i>
+	</a>
 </div>
 
 <!-- Search Bar -->
