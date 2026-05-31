@@ -25,6 +25,9 @@
   "chapterLabel_other": "Chapters",
   "importingContent": "Importing content...",
   "generatingCover": "Generating AI cover...",
+  "warningChapterTooLongTitle": "Warning: Long Chapters Detected",
+  "warningChapterTooLongDesc": "The following chapters exceed the recommended limit of {limit} words. Extremely long chapters can cause UI performance issues. We recommend splitting them, but you can choose to continue anyway:",
+  "warningChapterTooLongContinue": "Continue Anyway",
   "autoDetectModal": {
     "title": "Auto-detection Options",
     "numericLabel": "Numeric or Roman Numerals",

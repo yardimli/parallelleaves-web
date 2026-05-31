@@ -38,7 +38,7 @@
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 		<div class="form-control">
 			<label for="title" class="label"><span class="label-text"
-			                                      >{{ $tr('import.projectTitle', 'Project Title') }}</span></label>
+				>{{ $tr('import.projectTitle', 'Project Title') }}</span></label>
 			<input type="text" id="title" name="title" class="input input-bordered" required>
 		</div>
 		<div class="form-control">
@@ -128,6 +128,20 @@
 	</div>
 </dialog>
 
+<!-- NEW: Warning Modal for Long Chapters -->
+<dialog id="warning-confirm-modal" class="modal">
+	<div class="modal-box w-11/12 max-w-md">
+		<h3 id="warning-confirm-title" class="font-bold text-lg text-warning">{{ $tr('import.warningChapterTooLongTitle', 'Warning: Long Chapters Detected') }}</h3>
+		<div id="warning-confirm-content" class="py-4"></div>
+		<div class="modal-action">
+			<form method="dialog" class="flex gap-2 w-full justify-end">
+				<button id="warning-confirm-cancel" class="btn">{{ $tr('common.cancel', 'Cancel') }}</button>
+				<button id="warning-confirm-continue" class="btn btn-warning">{{ $tr('import.warningChapterTooLongContinue', 'Continue Anyway') }}</button>
+			</form>
+		</div>
+	</div>
+</dialog>
+
 <dialog id="auto-detect-modal" class="modal">
 	<div class="modal-box">
 		<h3 class="font-bold text-lg">{{ $tr('import.autoDetectModal.title', 'Auto-detection Options') }}</h3>
@@ -145,7 +159,7 @@
 				<label class="label cursor-pointer">
 					<div>
 						<span class="label-text font-semibold"
-						     >{{ $tr('import.autoDetectModal.keywordLabel', 'Keywords (Chapter)') }}</span>
+						>{{ $tr('import.autoDetectModal.keywordLabel', 'Keywords (Chapter)') }}</span>
 						<p class="text-xs text-base-content/60">{{ $tr('import.autoDetectModal.keywordDesc', 'Detects lines starting with "Chapter".') }}</p>
 					</div>
 					<input type="checkbox" id="detect-keyword" class="toggle toggle-primary" checked/>
@@ -175,7 +189,7 @@
 			<form method="dialog" class="flex gap-2">
 				<button class="btn">{{ $tr('common.cancel', 'Cancel') }}</button>
 				<button id="run-detection-btn" type="button" class="btn btn-primary"
-				       >{{ $tr('import.autoDetectModal.runDetection', 'Run Detection') }}</button>
+				>{{ $tr('import.autoDetectModal.runDetection', 'Run Detection') }}</button>
 			</form>
 		</div>
 	</div>

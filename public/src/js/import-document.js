@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const nodesToProcess = [];
 			let node;
 			while ((node = walker.nextNode())) {
-				if (node.parentElement.closest('script, style, .chapter-break-marker')) continue;
+				if (node.parentNode.closest('script, style, .chapter-break-marker')) continue;
 				if (new RegExp(query, 'gi').test(node.textContent)) {
 					nodesToProcess.push(node);
 				}
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 	}
 	
-	// MODIFIED: Recursive function to extract leaf block elements and flatten them into paragraphs
+	// Recursive function to extract leaf block elements and flatten them into paragraphs
 	function extractParagraphs(node, container) {
 		if (node.nodeType === Node.TEXT_NODE) {
 			const text = node.textContent.trim();
@@ -297,7 +297,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 				const p = document.createElement('p');
 				p.innerHTML = node.innerHTML;
 				
-				// MODIFIED: Strip inline 'font-family' property from child elements (e.g. <span>) to prevent template override issues.
 				p.querySelectorAll('[style]').forEach(el => {
 					el.style.removeProperty('font-family');
 					if (!el.style.cssText || el.style.cssText.trim() === '') {
@@ -341,7 +340,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 					const parser = new DOMParser();
 					const doc = parser.parseFromString(content, 'text/html');
 					
-					// MODIFIED: Use the recursive extractor to prevent the entire document from becoming one paragraph
 					extractParagraphs(doc.body, documentContent);
 				} else {
 					// Fallback for plain text (.txt)
@@ -395,7 +393,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 			titleSpan.textContent = title;
 			marker.appendChild(titleSpan);
 			
-			// MODIFIED: Safely insert before the targeted paragraph using parentNode
 			targetedParagraph.parentNode.insertBefore(marker, targetedParagraph);
 		}
 		
@@ -493,7 +490,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 				titleSpan.textContent = text;
 				marker.appendChild(titleSpan);
 				
-				// MODIFIED: Safely insert before the paragraph using parentNode
 				p.parentNode.insertBefore(marker, p);
 			}
 		});
@@ -533,7 +529,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 					titleSpan.textContent = splitTitle;
 					marker.appendChild(titleSpan);
 					
-					// MODIFIED: Safely insert before the node using parentNode
 					node.parentNode.insertBefore(marker, node);
 					
 					currentWordCount = paragraphWordCount;
@@ -613,13 +608,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		}
 		
+		// MODIFIED: Changed failure logic to warning logic for long chapters.
+		// Instead of immediately breaking the validation chain and throwing an alert,
+		// we identify all violating chapters and show a decision dialog.
+		const longChapters = [];
 		for (const chapter of chaptersForValidation) {
 			const wordCount = countWords(chapter.content.join(' '));
 			if (wordCount > WORD_LIMIT) {
-				window.showAlert(t('import.errorChapterTooLong', {
-					chapterTitle: chapter.title,
-					wordCount: wordCount
-				}), t('common.error'));
+				longChapters.push({ title: chapter.title, wordCount });
+			}
+		}
+		
+		if (longChapters.length > 0) {
+			const proceed = await showWarningConfirmModal(longChapters);
+			if (!proceed) {
 				return;
 			}
 		}
@@ -688,6 +690,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 			importOverlayStatus.textContent = t(statusKey);
 		}
 	});
+	
+	// NEW: Helper function to escape HTML characters
+	function escapeHtml(str) {
+		return str
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
+	}
+	
+	// NEW: Show a confirmation modal for long chapters but allow import to proceed
+	function showWarningConfirmModal(longChapters) {
+		return new Promise((resolve) => {
+			const modal = document.getElementById('warning-confirm-modal');
+			const contentEl = document.getElementById('warning-confirm-content');
+			const cancelBtn = document.getElementById('warning-confirm-cancel');
+			const continueBtn = document.getElementById('warning-confirm-continue');
+			
+			let listHtml = '<ul class="list-disc pl-5 mt-2 space-y-1 text-sm">';
+			longChapters.forEach(ch => {
+				listHtml += `<li><strong>${escapeHtml(ch.title)}</strong> (${ch.wordCount.toLocaleString()} ${t('common.words')})</li>`;
+			});
+			listHtml += '</ul>';
+			
+			contentEl.innerHTML = `
+				<p>${t('import.warningChapterTooLongDesc', { limit: WORD_LIMIT.toLocaleString() })}</p>
+				${listHtml}
+			`;
+			
+			const handleCancel = (e) => {
+				e.preventDefault();
+				modal.close();
+				cleanup();
+				resolve(false);
+			};
+			
+			const handleContinue = (e) => {
+				e.preventDefault();
+				modal.close();
+				cleanup();
+				resolve(true);
+			};
+			
+			const handleClose = () => {
+				cleanup();
+				resolve(false);
+			};
+			
+			const cleanup = () => {
+				cancelBtn.removeEventListener('click', handleCancel);
+				continueBtn.removeEventListener('click', handleContinue);
+				modal.removeEventListener('close', handleClose);
+			};
+			
+			cancelBtn.addEventListener('click', handleCancel);
+			continueBtn.addEventListener('click', handleContinue);
+			modal.addEventListener('close', handleClose);
+			
+			modal.showModal();
+		});
+	}
 	
 	populateLanguages();
 	setupSearch();

@@ -1,6 +1,6 @@
 import {init as initRephraseEditor, buildPromptJson as buildRephraseJson} from './prompt-editors/rephrase-editor.js';
 import {init as initTranslateEditor, buildPromptJson as buildTranslateJson} from './prompt-editors/translate-editor.js';
-import {updateToolbarState as updateChapterToolbarState} from './book-planner/toolbar.js';
+import {updateToolbarState as updateChapterToolbarState} from './book-editor/toolbar.js';
 import {t, applyTranslationsTo} from './i18n.js';
 import {htmlToPlainText, processSourceContentForMarkers} from '../utils/html-processing.js';
 
