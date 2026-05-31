@@ -261,6 +261,15 @@ async function renderManuscript(bookData) {
 				.replace(/{{id}}/g, chapter.id)
 				.replace(/{{title}}/g, chapter.title)
 				.replace(/{{source_word_count}}/g, chapter.source_word_count.toLocaleString())
+				.replace(/{{words_label}}/g, t('common.words'))
+				.replace(/{{sync_source_title}}/g, t('editor.syncScrollSourceToTarget'))
+				.replace(/{{edit_label}}/g, t('common.edit'))
+				.replace(/{{save_label}}/g, t('common.save'))
+				.replace(/{{cancel_label}}/g, t('common.cancel'))
+				.replace(/{{rename_label}}/g, t('editor.renameChapter'))
+				.replace(/{{insert_above_label}}/g, t('editor.insertChapterAbove'))
+				.replace(/{{insert_below_label}}/g, t('editor.insertChapterBelow'))
+				.replace(/{{delete_label}}/g, t('editor.deleteChapter'))
 				.replace('{{source_content}}', finalSourceContent);
 			
 			tempDiv.innerHTML = sourceHtml.trim();
@@ -270,6 +279,8 @@ async function renderManuscript(bookData) {
 			const targetHtml = targetChapterTpl
 				.replace(/{{id}}/g, chapter.id)
 				.replace(/{{title}}/g, chapter.title)
+				.replace(/{{words_label}}/g, t('common.words'))
+				.replace(/{{sync_target_title}}/g, t('editor.syncScrollTargetToSource'))
 				.replace(/{{target_word_count}}/g, chapter.target_word_count.toLocaleString());
 			
 			tempDiv.innerHTML = targetHtml.trim();

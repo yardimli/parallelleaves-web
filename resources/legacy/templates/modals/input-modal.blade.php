@@ -11,8 +11,8 @@
 		</form>
 		<div class="modal-action">
 			<form method="dialog" class="w-full flex gap-3">
-				<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
-				<button type="submit" form="input-modal-form" class="btn btn-primary flex-1" data-i18n="common.save">Save</button>
+				<button class="btn flex-1">{{__i18n:common.cancel|Cancel__}}</button>
+				<button type="submit" form="input-modal-form" class="btn btn-primary flex-1">{{__i18n:common.save|Save__}}</button>
 			</form>
 		</div>
 	</div>

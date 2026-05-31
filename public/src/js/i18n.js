@@ -16,6 +16,9 @@ export const appLanguages = {
  */
 async function loadLanguageFile(lang) {
 	try {
+		if (window.initialLanguageFiles && window.initialLanguageFiles[lang]) {
+			return window.initialLanguageFiles[lang];
+		}
 		const langData = await window.api.getLangFile(lang);
 		return JSON.parse(langData);
 	} catch (error) {
@@ -112,14 +115,6 @@ export function applyTranslationsTo(rootElement) {
 }
 
 /**
- * Scans the entire document and applies all translations.
- */
-function applyTranslations() {
-	applyTranslationsTo(document.body);
-	document.documentElement.lang = localStorage.getItem(LANG_KEY) || 'en';
-}
-
-/**
  * Populates the language switcher dropdown menu.
  */
 function populateLanguageSwitcher() {
@@ -157,6 +152,7 @@ function populateLanguageSwitcher() {
  */
 export function setLanguage(lang) {
 	localStorage.setItem(LANG_KEY, lang);
+	document.cookie = `${LANG_KEY}=${encodeURIComponent(lang)}; path=/; max-age=31536000; SameSite=Lax`;
 	window.location.reload();
 }
 
@@ -165,7 +161,18 @@ export function setLanguage(lang) {
  * @param {boolean} [isDashboard=false] - Kept for call compatibility, but no longer used for special logic.
  */
 export async function initI18n(isDashboard = false) {
-	const lang = localStorage.getItem(LANG_KEY) || 'en';
+	const serverLang = window.appSelectedLanguage || 'en';
+	const localLang = localStorage.getItem(LANG_KEY);
+	const lang = localLang || serverLang;
+	if (localLang && localLang !== serverLang) {
+		document.cookie = `${LANG_KEY}=${encodeURIComponent(localLang)}; path=/; max-age=31536000; SameSite=Lax`;
+		if (!sessionStorage.getItem(`${LANG_KEY}_reload_pending`)) {
+			sessionStorage.setItem(`${LANG_KEY}_reload_pending`, '1');
+			window.location.reload();
+		}
+		return;
+	}
+	sessionStorage.removeItem(`${LANG_KEY}_reload_pending`);
 	
 	// Always load English for fallback.
 	enTranslations = await loadLanguageFile('en') || {};
@@ -178,6 +185,6 @@ export async function initI18n(isDashboard = false) {
 	}
 	
 	localStorage.setItem(LANG_KEY, lang);
-	applyTranslations();
+	document.documentElement.lang = lang;
 	populateLanguageSwitcher();
 }

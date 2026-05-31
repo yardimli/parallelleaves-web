@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title data-i18n="import.title">Parallel Leaves - Import Document</title>
+	<title>{{ $tr('import.title', 'Parallel Leaves - Import Document') }}</title>
 	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
@@ -11,44 +11,44 @@
 <!-- Header -->
 <div class="flex-shrink-0 p-4 border-b border-base-300 space-y-4">
 	<div class="flex justify-between items-center">
-		<h1 class="text-2xl font-bold" data-i18n="import.title">Import Document for Translation</h1>
+		<h1 class="text-2xl font-bold">{{ $tr('import.title', 'Import Document for Translation') }}</h1>
 		<div class="flex items-center gap-2">
-			<button id="js-search-btn" class="btn btn-ghost btn-square" data-i18n-title="editor.search">
+			<button id="js-search-btn" class="btn btn-ghost btn-square" title="{{ $tr('editor.search', '') }}">
 				<i class="bi bi-search text-lg"></i>
 			</button>
 			<div class="join">
-				<button id="prev-mark-btn" class="btn btn-neutral join-item" disabled data-i18n-title="import.prevMark">
+				<button id="prev-mark-btn" class="btn btn-neutral join-item" disabled title="{{ $tr('import.prevMark', '') }}">
 					<i class="bi bi-arrow-up"></i>
 				</button>
-				<button id="next-mark-btn" class="btn btn-neutral join-item" disabled data-i18n-title="import.nextMark">
+				<button id="next-mark-btn" class="btn btn-neutral join-item" disabled title="{{ $tr('import.nextMark', '') }}">
 					<i class="bi bi-arrow-down"></i>
 				</button>
 			</div>
 			<button id="auto-detect-btn" class="btn btn-neutral" disabled>
-				<i class="bi bi-magic"></i> <span data-i18n="import.autoDetect">Auto-detect Chapters</span>
+				<i class="bi bi-magic"></i> <span>{{ $tr('import.autoDetect', 'Auto-detect Chapters') }}</span>
 			</button>
 			<button id="auto-split-btn" class="btn btn-neutral" disabled>
-				<i class="bi bi-scissors"></i> <span data-i18n="import.autoSplit">Auto-split Chapters</span>
+				<i class="bi bi-scissors"></i> <span>{{ $tr('import.autoSplit', 'Auto-split Chapters') }}</span>
 			</button>
 			<button id="select-file-btn" class="btn btn-primary">
-				<i class="bi bi-file-earmark-text"></i> <span data-i18n="import.selectFile">Select File (.txt, .docx)</span>
+				<i class="bi bi-file-earmark-text"></i> <span>{{ $tr('import.selectFile', 'Select File (.txt, .docx)') }}</span>
 			</button>
 		</div>
 	</div>
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 		<div class="form-control">
 			<label for="title" class="label"><span class="label-text"
-			                                       data-i18n="import.projectTitle">Project Title</span></label>
+			                                      >{{ $tr('import.projectTitle', 'Project Title') }}</span></label>
 			<input type="text" id="title" name="title" class="input input-bordered" required>
 		</div>
 		<div class="form-control">
-			<label for="source_language" class="label"><span class="label-text" data-i18n="import.sourceLanguage">Source Language</span></label>
+			<label for="source_language" class="label"><span class="label-text">{{ $tr('import.sourceLanguage', 'Source Language') }}</span></label>
 			<select id="source_language" name="source_language" class="select select-bordered" required>
 				<!-- Options populated by JS -->
 			</select>
 		</div>
 		<div class="form-control">
-			<label for="target_language" class="label"><span class="label-text" data-i18n="import.targetLanguage">Target Language</span></label>
+			<label for="target_language" class="label"><span class="label-text">{{ $tr('import.targetLanguage', 'Target Language') }}</span></label>
 			<select id="target_language" name="target_language" class="select select-bordered" required>
 				<!-- Options populated by JS -->
 			</select>
@@ -59,20 +59,20 @@
 <div id="js-search-bar"
      class="hidden flex-shrink-0 h-12 bg-base-200 flex items-center px-4 gap-4 z-40 border-b border-base-300">
 	<input type="text" id="js-search-input" class="input input-sm input-bordered w-full max-w-xs"
-	       data-i18n-placeholder="editor.searchBar.placeholder">
+	       placeholder="{{ $tr('editor.searchBar.placeholder', '') }}">
 	<div class="flex items-center gap-1">
-		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.previous"
+		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.previous', '') }}"
 		        disabled>
 			<i class="bi bi-chevron-up"></i>
 		</button>
-		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.next"
+		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.next', '') }}"
 		        disabled>
 			<i class="bi bi-chevron-down"></i>
 		</button>
 	</div>
 	<span id="js-search-results-count" class="text-sm text-base-content/70 w-24 text-center"></span>
 	<div class="flex-grow"></div>
-	<button id="js-search-close-btn" class="btn btn-ghost btn-sm btn-square" data-i18n-title="editor.searchBar.close">
+	<button id="js-search-close-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.close', '') }}">
 		<i class="bi bi-x-lg"></i>
 	</button>
 </div>
@@ -82,7 +82,7 @@
 	<div id="document-content" class="space-y-4">
 		<div class="text-center text-base-content/60 py-16">
 			<i class="bi bi-book text-6xl"></i>
-			<p class="mt-4" data-i18n="import.begin">Select a file to begin.</p>
+			<p class="mt-4">{{ $tr('import.begin', 'Select a file to begin.') }}</p>
 		</div>
 	</div>
 </div>
@@ -90,12 +90,12 @@
 <!-- Footer -->
 <div class="flex-shrink-0 p-4 border-t border-base-300 flex justify-between items-center">
 	<div class="text-sm text-base-content/70">
-		<p><i class="bi bi-info-circle-fill"></i> <span data-i18n="import.instructions">Click any paragraph to mark it as the start of a new chapter.</span>
+		<p><i class="bi bi-info-circle-fill"></i> <span>{{ $tr('import.instructions', 'Click any paragraph to mark it as the start of a new chapter.') }}</span>
 		</p>
-		<p id="js-import-status" class="font-bold mt-1" data-i18n="import.status">No content to import.</p>
+		<p id="js-import-status" class="font-bold mt-1">{{ $tr('import.status', 'No content to import.') }}</p>
 	</div>
 	<button id="start-import-btn" class="btn btn-accent w-48" disabled>
-		<span class="js-btn-content" data-i18n="import.startImport">Start Import</span>
+		<span class="js-btn-content">{{ $tr('import.startImport', 'Start Import') }}</span>
 		<span class="js-btn-spinner animate-spin hidden">
                 <i class="bi bi-arrow-repeat"></i>
             </span>
@@ -107,22 +107,22 @@
 	<ul class="menu p-2 shadow-lg bg-base-200 rounded-box w-48">
 		<li>
 			<button data-action="set-chapter"><i class="bi bi-card-text"></i> <span
-					data-i18n="import.newChapter">New Chapter</span></button>
+				>{{ $tr('import.newChapter', 'New Chapter') }}</span></button>
 		</li>
 		<div class="divider my-1"></div>
 		<li data-action="remove-break">
-			<button><i class="bi bi-x-circle"></i> <span data-i18n="import.removeBreak">Remove Break</span></button>
+			<button><i class="bi bi-x-circle"></i> <span>{{ $tr('import.removeBreak', 'Remove Break') }}</span></button>
 		</li>
 	</ul>
 </div>
 
 <dialog id="alert-modal" class="modal">
 	<div class="modal-box w-11/12 max-w-md">
-		<h3 id="alert-modal-title" class="font-bold text-lg text-error" data-i18n="common.information">Information</h3>
+		<h3 id="alert-modal-title" class="font-bold text-lg text-error">{{ $tr('common.information', 'Information') }}</h3>
 		<p id="alert-modal-content" class="py-4"></p>
 		<div class="modal-action">
 			<form method="dialog">
-				<button class="btn" data-i18n="common.close">Close</button>
+				<button class="btn">{{ $tr('common.close', 'Close') }}</button>
 			</form>
 		</div>
 	</div>
@@ -130,14 +130,13 @@
 
 <dialog id="auto-detect-modal" class="modal">
 	<div class="modal-box">
-		<h3 class="font-bold text-lg" data-i18n="import.autoDetectModal.title">Auto-detection Options</h3>
+		<h3 class="font-bold text-lg">{{ $tr('import.autoDetectModal.title', 'Auto-detection Options') }}</h3>
 		<div id="auto-detect-form" class="py-4 space-y-4">
 			<div class="form-control">
 				<label class="label cursor-pointer">
 					<div>
-						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.numericLabel">Numeric or Roman Numerals</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.numericDesc">Detects lines
-							containing only a number (e.g., "2", "IV").</p>
+						<span class="label-text font-semibold">{{ $tr('import.autoDetectModal.numericLabel', 'Numeric or Roman Numerals') }}</span>
+						<p class="text-xs text-base-content/60">{{ $tr('import.autoDetectModal.numericDesc', 'Detects lines containing only a number (e.g., "2", "IV").') }}</p>
 					</div>
 					<input type="checkbox" id="detect-numeric" class="toggle toggle-primary" checked/>
 				</label>
@@ -146,9 +145,8 @@
 				<label class="label cursor-pointer">
 					<div>
 						<span class="label-text font-semibold"
-						      data-i18n="import.autoDetectModal.keywordLabel">Keywords (Chapter)</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.keywordDesc">Detects lines
-							starting with "Chapter".</p>
+						     >{{ $tr('import.autoDetectModal.keywordLabel', 'Keywords (Chapter)') }}</span>
+						<p class="text-xs text-base-content/60">{{ $tr('import.autoDetectModal.keywordDesc', 'Detects lines starting with "Chapter".') }}</p>
 					</div>
 					<input type="checkbox" id="detect-keyword" class="toggle toggle-primary" checked/>
 				</label>
@@ -156,9 +154,8 @@
 			<div class="form-control">
 				<label class="label cursor-pointer">
 					<div>
-						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.allCapsLabel">All-Caps Lines</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.allCapsDesc">Detects short lines
-							(under 50 chars) written entirely in uppercase.</p>
+						<span class="label-text font-semibold">{{ $tr('import.autoDetectModal.allCapsLabel', 'All-Caps Lines') }}</span>
+						<p class="text-xs text-base-content/60">{{ $tr('import.autoDetectModal.allCapsDesc', 'Detects short lines (under 50 chars) written entirely in uppercase.') }}</p>
 					</div>
 					<input type="checkbox" id="detect-all-caps" class="toggle toggle-primary"/>
 				</label>
@@ -167,9 +164,8 @@
 			<div class="form-control">
 				<label class="label cursor-pointer">
 					<div>
-						<span class="label-text font-semibold" data-i18n="import.autoDetectModal.centeredShortLabel">Centered & Short</span>
-						<p class="text-xs text-base-content/60" data-i18n="import.autoDetectModal.centeredShortDesc">Detects
-							centered lines with 3 or fewer words.</p>
+						<span class="label-text font-semibold">{{ $tr('import.autoDetectModal.centeredShortLabel', 'Centered & Short') }}</span>
+						<p class="text-xs text-base-content/60">{{ $tr('import.autoDetectModal.centeredShortDesc', 'Detects centered lines with 3 or fewer words.') }}</p>
 					</div>
 					<input type="checkbox" id="detect-centered-short" class="toggle toggle-primary" checked/>
 				</label>
@@ -177,10 +173,9 @@
 		</div>
 		<div class="modal-action">
 			<form method="dialog" class="flex gap-2">
-				<button class="btn" data-i18n="common.cancel">Cancel</button>
+				<button class="btn">{{ $tr('common.cancel', 'Cancel') }}</button>
 				<button id="run-detection-btn" type="button" class="btn btn-primary"
-				        data-i18n="import.autoDetectModal.runDetection">Run Detection
-				</button>
+				       >{{ $tr('import.autoDetectModal.runDetection', 'Run Detection') }}</button>
 			</form>
 		</div>
 	</div>

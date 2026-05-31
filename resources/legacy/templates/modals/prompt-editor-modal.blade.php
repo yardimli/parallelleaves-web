@@ -3,7 +3,7 @@
 		<div class="flex flex-grow overflow-hidden">
 			<main class="w-full flex flex-col overflow-hidden">
 				<div class="js-prompt-placeholder flex-grow flex items-center justify-center">
-					<p class="text-base-content/60" data-i18n="editor.loadingEditor">Loading editor...</p>
+					<p class="text-base-content/60">{{__i18n:editor.loadingEditor|Loading editor...__}}</p>
 				</div>
 				<div class="js-custom-editor-pane hidden flex-grow flex flex-col min-h-0">
 					<div class="p-4 border-b border-base-300 flex-shrink-0">
@@ -19,19 +19,19 @@
 		</div>
 		<div class="modal-action px-6 py-4 border-t border-base-300 flex-shrink-0 flex justify-between items-center">
 			<div class="flex items-center gap-4">
-				<button type="button" class="js-toggle-preview-btn btn btn-ghost" data-i18n="editor.showPreview">Show Preview</button>
+				<button type="button" class="js-toggle-preview-btn btn btn-ghost">{{__i18n:editor.showPreview|Show Preview__}}</button>
 				<select class="js-llm-model-select select select-bordered select-sm w-full max-w-xs">
-					<option disabled selected data-i18n="editor.chat.loadingModels">Loading models...</option>
+					<option disabled selected>{{__i18n:editor.chat.loadingModels|Loading models...__}}</option>
 				</select>
 				<div class="flex items-center gap-2">
-					<label class="text-sm font-medium" data-i18n="editor.temperature">Temperature</label>
+					<label class="text-sm font-medium">{{__i18n:editor.temperature|Temperature__}}</label>
 					<input type="range" min="0" max="2" value="0.7" step="0.1" class="js-ai-temperature-slider range range-xs w-24" />
 					<span class="js-ai-temperature-value text-sm font-mono w-8 text-center">0.7</span>
 				</div>
-				<button type="button" class="js-prompt-apply-btn btn btn-accent" data-i18n="editor.applyChanges">Apply Changes</button>
+				<button type="button" class="js-prompt-apply-btn btn btn-accent">{{__i18n:editor.applyChanges|Apply Changes__}}</button>
 			</div>
 			<form method="dialog">
-				<button class="btn" data-i18n="common.close">Close</button>
+				<button class="btn">{{__i18n:common.close|Close__}}</button>
 			</form>
 		</div>
 	</div>

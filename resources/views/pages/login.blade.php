@@ -18,7 +18,7 @@
 
 <div class="card w-96 bg-base-100 shadow-xl">
 	<div class="card-body">
-		<h2 class="card-title justify-center text-2xl mb-4" data-i18n="dashboard.login.title">Sign In</h2>
+		<h2 class="card-title justify-center text-2xl mb-4">{{ $tr('dashboard.login.title', 'Sign In') }}</h2>
 		<a href="/login/google" class="btn btn-outline w-full mb-4">
 			<i class="bi bi-google"></i>
 			<span>Sign in with Google</span>
@@ -27,26 +27,24 @@
 		<form id="login-form" class="space-y-4">
 			<div class="form-control">
 				<label for="login-username" class="label">
-					<span class="label-text" data-i18n="dashboard.login.username">Username</span>
+					<span class="label-text">{{ $tr('dashboard.login.username', 'Username') }}</span>
 				</label>
 				<input type="text" id="login-username" name="username" class="input input-bordered" required>
 			</div>
 			<div class="form-control">
 				<label for="login-password" class="label">
-					<span class="label-text" data-i18n="dashboard.login.password">Password</span>
+					<span class="label-text">{{ $tr('dashboard.login.password', 'Password') }}</span>
 				</label>
 				<input type="password" id="login-password" name="password" class="input input-bordered" required>
 			</div>
 			<p id="login-error-message" class="text-error text-sm hidden"></p>
 			<div class="form-control mt-6">
-				<button id="login-submit-btn" type="submit" class="btn btn-primary w-full" data-i18n="dashboard.login.signIn">
-					Sign In
-				</button>
+				<button id="login-submit-btn" type="submit" class="btn btn-primary w-full">{{ $tr('dashboard.login.signIn', 'Sign In') }}</button>
 			</div>
 		</form>
 		<div class="text-center text-sm mt-4">
-			<span data-i18n="dashboard.login.noAccount">Don't have an account?</span>
-			<a id="signup-link" href="/register" class="link link-primary" data-i18n="dashboard.login.signUp">Sign Up</a>
+			<span>{{ $tr('dashboard.login.noAccount', 'Don\'t have an account?') }}</span>
+			<a id="signup-link" href="/register" class="link link-primary">{{ $tr('dashboard.login.signUp', 'Sign Up') }}</a>
 		</div>
 	</div>
 </div>

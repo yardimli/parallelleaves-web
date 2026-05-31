@@ -5,8 +5,8 @@
 			<form method="dialog">
 				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
 			</form>
-			<h3 class="font-bold text-lg mb-2" data-i18n="dictionary.title">Custom Dictionary</h3>
-			<p class="text-sm text-base-content/70" data-i18n="dictionary.description">Add custom terms and their translations to guide the AI. These entries will be used when 'Use Custom Dictionary' is enabled in AI prompt settings.</p>
+			<h3 class="font-bold text-lg mb-2">{{__i18n:dictionary.title|Custom Dictionary__}}</h3>
+			<p class="text-sm text-base-content/70">{{__i18n:dictionary.description|Add custom terms and their translations to guide the AI. These entries will be used when 'Use Custom Dictionary' is enabled in AI prompt settings.__}}</p>
 		</div>
 		
 		<!-- Scrollable Content Area -->
@@ -17,38 +17,35 @@
 						<thead>
 						<tr>
 							<th class="w-12"></th> <!-- Checkbox column -->
-							<th data-i18n="dictionary.sourceTerm">
-								<div class="flex items-center gap-1">
-									<span>Source Term</span>
+							<th><div class="flex items-center gap-1">
+									<span>{{__i18n:dictionary.sourceTerm|Source Term__}}</span>
 									<button type="button" class="js-sort-btn btn btn-ghost btn-xs btn-square" data-sort-by="source" data-sort-direction="asc">
 										<i class="bi bi-sort-alpha-down"></i>
 									</button>
 								</div>
 							</th>
-							<th data-i18n="dictionary.targetTranslation">
-								<div class="flex items-center gap-1">
-									<span>Target Translation</span>
+							<th><div class="flex items-center gap-1">
+									<span>{{__i18n:dictionary.targetTranslation|Target Translation__}}</span>
 									<button type="button" class="js-sort-btn btn btn-ghost btn-xs btn-square" data-sort-by="target" data-sort-direction="asc">
 										<i class="bi bi-sort-alpha-down"></i>
 									</button>
 								</div>
 							</th>
-							<th data-i18n="dictionary.type">
-								<div class="flex items-center gap-1">
-									<span>Type</span>
+							<th><div class="flex items-center gap-1">
+									<span>{{__i18n:dictionary.type|Type__}}</span>
 									<button type="button" class="js-sort-btn btn btn-ghost btn-xs btn-square" data-sort-by="type" data-sort-direction="asc">
 										<i class="bi bi-sort-alpha-down"></i>
 									</button>
 								</div>
 							</th>
-							<th data-i18n="dictionary.actions">Actions</th>
+							<th>{{__i18n:dictionary.actions|Actions__}}</th>
 						</tr>
 						</thead>
 						<tbody id="dictionary-table-body">
 						<!-- Dictionary rows will be inserted here by JS -->
 						</tbody>
 					</table>
-					<p id="dictionary-no-entries" class="text-center text-base-content/60 py-4 hidden" data-i18n="dictionary.noEntries">No dictionary entries yet. Click 'Add Row' to start.</p>
+					<p id="dictionary-no-entries" class="text-center text-base-content/60 py-4 hidden">{{__i18n:dictionary.noEntries|No dictionary entries yet. Click 'Add Row' to start.__}}</p>
 				</div>
 			</div>
 		</div>
@@ -57,14 +54,14 @@
 		<div class="flex-shrink-0 px-6 py-4 border-t border-base-300">
 			<div class="flex justify-between mb-4">
 				<div class="flex gap-2">
-					<button type="button" id="dictionary-add-row-btn" class="btn btn-sm btn-outline" data-i18n="dictionary.addRow">Add Row</button>
-					<button type="button" id="dictionary-delete-selected-btn" class="btn btn-sm btn-outline btn-error" disabled data-i18n="dictionary.deleteSelected">Delete Selected</button>
+					<button type="button" id="dictionary-add-row-btn" class="btn btn-sm btn-outline">{{__i18n:dictionary.addRow|Add Row__}}</button>
+					<button type="button" id="dictionary-delete-selected-btn" class="btn btn-sm btn-outline btn-error" disabled>{{__i18n:dictionary.deleteSelected|Delete Selected__}}</button>
 				</div>
 			</div>
 			<div class="modal-action p-0 mt-0">
 				<form method="dialog" class="flex gap-3 w-full">
-					<button class="btn flex-1" data-i18n="common.cancel">Cancel</button>
-					<button type="button" id="dictionary-save-btn" class="btn btn-primary flex-1" data-i18n="common.save">Save</button>
+					<button class="btn flex-1">{{__i18n:common.cancel|Cancel__}}</button>
+					<button type="button" id="dictionary-save-btn" class="btn btn-primary flex-1">{{__i18n:common.save|Save__}}</button>
 				</form>
 			</div>
 		</div>

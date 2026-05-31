@@ -1,4 +1,4 @@
-import {initI18n, t, applyTranslationsTo} from './i18n.js';
+import {initI18n, t} from './i18n.js';
 import {htmlToPlainText} from '../utils/html-processing.js';
 
 let bookId = null;
@@ -147,7 +147,7 @@ function renderChatList() {
  */
 async function populateModels() {
 	try {
-		const result = await window.api.getModels();
+		const result = window.initialModels || await window.api.getModels();
 		if (result.success) {
 			modelSelect.innerHTML = '';
 			result.models.forEach(group => {
@@ -186,12 +186,20 @@ async function populateChapterSelect() {
 	chapterSelect.add(new Option(t('editor.chat.noChapter'), 'none')); // Option to deselect chapter
 	
 	try {
-		const bookData = await window.api.getOneBook(bookId);
-		if (bookData && bookData.chapters) {
-			bookData.chapters.forEach(chapter => {
+		const chapters = Array.isArray(window.initialChapters) ? window.initialChapters : null;
+		if (chapters) {
+			chapters.forEach(chapter => {
 				const option = new Option(chapter.title, chapter.id);
 				chapterSelect.appendChild(option);
 			});
+		} else {
+			const bookData = await window.api.getOneBook(bookId);
+			if (bookData && bookData.chapters) {
+				bookData.chapters.forEach(chapter => {
+					const option = new Option(chapter.title, chapter.id);
+					chapterSelect.appendChild(option);
+				});
+			}
 		}
 		chapterSelect.value = currentChat?.selectedChapterId || 'none'; // Set the previously selected chapter or 'none'
 	} catch (error) {
@@ -345,7 +353,6 @@ function autoResizeTextarea() {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
-	applyTranslationsTo(document.body);
 	document.title = t('editor.chat.title');
 
 // MODIFIED: Read parameters from window.routeParams instead of parsing URL

@@ -185,9 +185,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 			if (authDivider) authDivider.classList.remove('hidden');
 			
 			bindRenderedBookCards();
-			window.api.getModels().catch(err => {
-				console.error('Failed to pre-fetch AI models on startup:', err);
-			});
 		} else {
 			authMenuSection.innerHTML = `
                  <li><a id="login-btn"><i class="bi bi-box-arrow-in-right"></i>${t('dashboard.signIn')}</a></li>

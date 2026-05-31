@@ -4,11 +4,11 @@
 		<p id="confirmation-modal-content" class="py-4"></p>
 		<div class="modal-action">
 			<form method="dialog" class="w-full flex justify-between items-center gap-3">
-				<button id="confirmation-modal-decline-btn" class="btn btn-ghost hidden" data-i18n="editor.declineSession">Don't ask again</button>
+				<button id="confirmation-modal-decline-btn" class="btn btn-ghost hidden">{{__i18n:editor.declineSession|Don't ask again__}}</button>
 				<!-- This div groups the primary actions to the right. -->
 				<div class="flex gap-3">
-					<button id="confirmation-modal-cancel-btn" class="btn flex-1" data-i18n="common.cancel">Cancel</button>
-					<button id="confirmation-modal-confirm-btn" class="btn btn-error flex-1" data-i18n="editor.confirmModalBtn">Confirm</button>
+					<button id="confirmation-modal-cancel-btn" class="btn flex-1">{{__i18n:common.cancel|Cancel__}}</button>
+					<button id="confirmation-modal-confirm-btn" class="btn btn-error flex-1">{{__i18n:editor.confirmModalBtn|Confirm__}}</button>
 				</div>
 			</form>
 		</div>

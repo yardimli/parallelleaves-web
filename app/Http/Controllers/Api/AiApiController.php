@@ -7,6 +7,7 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use App\Support\PageData;
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
@@ -31,32 +32,7 @@
 				$result = null;
 				do {
 					session_write_close();
-					$ch = curl_init('https://openrouter.ai/api/v1/models');
-					curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-					curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-					curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-					$response = curl_exec($ch);
-
-					$liveModelsData = $response ? json_decode($response, true) : [];
-
-					$availableModelIds = array_flip(array_column($liveModelsData['data'] ?? [], 'id'));
-					$staticGroupedModels = getStaticGroupedModels();
-					$verifiedGroupedModels = [];
-					foreach ($staticGroupedModels as $group) {
-						$verifiedModelsInGroup = [];
-						foreach ($group['models'] as $model) {
-							if (isset($availableModelIds[$model['id']])) {
-								$verifiedModelsInGroup[] = $model;
-							}
-						}
-						if (!empty($verifiedModelsInGroup)) {
-							$verifiedGroupedModels[] = [
-								'group' => $group['group'],
-								'models' => $verifiedModelsInGroup,
-							];
-						}
-					}
-					$result = ['success' => true, 'models' => $verifiedGroupedModels];
+					$result = PageData::models();
 					break;
 				} while (false);
 

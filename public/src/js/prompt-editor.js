@@ -406,7 +406,7 @@ async function populateModelDropdown() {
 	}
 	
 	try {
-		const result = await window.api.getModels();
+		const result = window.initialModels || await window.api.getModels();
 		if (!result.success || !result.models || result.models.length === 0) {
 			throw new Error(result.message || 'No models returned from API.');
 		}

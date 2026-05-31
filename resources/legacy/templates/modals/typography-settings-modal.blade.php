@@ -3,24 +3,24 @@
 		<form method="dialog">
 			<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
 		</form>
-		<h3 class="font-bold text-lg mb-4" data-i18n="common.typography">TYPOGRAPHY</h3>
+		<h3 class="font-bold text-lg mb-4">{{__i18n:common.typography|TYPOGRAPHY__}}</h3>
 		<form id="typography-settings-form" class="grid grid-cols-2 gap-x-8 gap-y-6 text-sm w-full">
 			<!-- Font family -->
 			<div>
-				<label for="font-family" class="block font-medium mb-2" data-i18n="common.fontFamily">Font family</label>
+				<label for="font-family" class="block font-medium mb-2">{{__i18n:common.fontFamily|Font family__}}</label>
 				<select name="font_family" class="select select-bordered select-sm w-full">
-					<optgroup data-i18n="common.serif" label="Serif">
+					<optgroup label="{{__i18n:common.serif|Serif__}}">
 						<option value="'Noto Serif', serif">Noto Serif</option>
 						<option value="'Zilla Slab', serif">Zilla Slab</option>
 						<option value="'Roboto Serif', serif">Roboto Serif</option>
 						<option value="'Literata', serif">Literata</option>
 					</optgroup>
-					<optgroup data-i18n="common.sansSerif" label="Sans Serif">
+					<optgroup label="{{__i18n:common.sansSerif|Sans Serif__}}">
 						<option value="'Barlow', sans-serif">Barlow</option>
 						<option value="'Exo 2', sans-serif">Exo 2</option>
 						<option value="'Atkinson Hyperlegible', sans-serif">Atkinson Hyperlegible</option>
 					</optgroup>
-					<optgroup data-i18n="common.monospace" label="Monospace">
+					<optgroup label="{{__i18n:common.monospace|Monospace__}}">
 						<option value="'iA Writer Duospace', monospace">iA Writer Duospace</option>
 						<option value="'Recursive', monospace">Recursive</option>
 						<option value="'Courier New', Courier, monospace">Courier</option>
@@ -30,7 +30,7 @@
 			</div>
 			<!-- Text size -->
 			<div>
-				<label class="block font-medium mb-2" data-i18n="common.textSize">Text size</label>
+				<label class="block font-medium mb-2">{{__i18n:common.textSize|Text size__}}</label>
 				<div class="btn-group w-full" data-setting="text_size">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="sm"><span class="text-xs">Ab</span></button>
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="base"><span class="text-sm">Ab</span></button>
@@ -40,7 +40,7 @@
 			</div>
 			<!-- Line height -->
 			<div>
-				<label class="block font-medium mb-2" data-i18n="common.lineHeight">Line height</label>
+				<label class="block font-medium mb-2">{{__i18n:common.lineHeight|Line height__}}</label>
 				<div class="btn-group w-full" data-setting="line_height">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="1">
 						<div class="flex flex-col items-center gap-0.5 py-1">
@@ -74,7 +74,7 @@
 			</div>
 			<!-- Text indent -->
 			<div>
-				<label class="block font-medium mb-2" data-i18n="common.textIndent">Text indent</label>
+				<label class="block font-medium mb-2">{{__i18n:common.textIndent|Text indent__}}</label>
 				<div class="btn-group w-full" data-setting="text_indent">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="1">
 						<div class="flex flex-col items-start gap-1 py-1">
@@ -108,7 +108,7 @@
 			</div>
 			<!-- Paragraph spacing -->
 			<div>
-				<label class="block font-medium mb-2" data-i18n="common.paragraphSpacing">Paragraph spacing</label>
+				<label class="block font-medium mb-2">{{__i18n:common.paragraphSpacing|Paragraph spacing__}}</label>
 				<div class="btn-group w-full" data-setting="paragraph_spacing">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="1">
 						<div class="flex flex-col items-center gap-1 py-1">
@@ -138,7 +138,7 @@
 			</div>
 			<!-- Page width -->
 			<div>
-				<label class="block font-medium mb-2" data-i18n="common.pageWidth">Page width</label>
+				<label class="block font-medium mb-2">{{__i18n:common.pageWidth|Page width__}}</label>
 				<div class="btn-group w-full" data-setting="page_width">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="1">
 						<span class="block w-2 h-4 border-y-2 border-current"></span>
@@ -156,15 +156,15 @@
 			</div>
 			<!-- Text Align -->
 			<div class="col-span-2">
-				<label class="block font-medium mb-2" data-i18n="common.textAlign">Text Align</label>
+				<label class="block font-medium mb-2">{{__i18n:common.textAlign|Text Align__}}</label>
 				<div class="btn-group w-full" data-setting="text_align">
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="left">
 						<i class="bi bi-text-left"></i>
-						<span class="ml-1" data-i18n="common.alignLeft">Left</span>
+						<span class="ml-1">{{__i18n:common.alignLeft|Left__}}</span>
 					</button>
 					<button type="button" class="btn btn-sm flex-1 min-w-0" data-value="justify">
 						<i class="bi bi-justify"></i>
-						<span class="ml-1" data-i18n="common.alignJustify">Justify</span>
+						<span class="ml-1">{{__i18n:common.alignJustify|Justify__}}</span>
 					</button>
 				</div>
 			</div>

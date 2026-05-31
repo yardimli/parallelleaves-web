@@ -2,9 +2,9 @@
 	<div class="flex justify-between items-center border-b pb-1 mb-2 pt-4">
 		<div
 			class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow"
-			data-chapter-id="{{id}}" data-direction="target-to-source" data-i18n-title="editor.syncScrollTargetToSource">
+			data-chapter-id="{{id}}" data-direction="target-to-source" title="{{__i18n:editor.syncScrollTargetToSource__}}">
 			<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}} (<span
-					class="js-target-word-count">{{target_word_count}} <span data-i18n="common.words">words</span></span>)</h3>
+					class="js-target-word-count">{{target_word_count}} <span>{{__i18n:common.words|words__}}</span></span>)</h3>
 			<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
 		</div>
 	</div>
