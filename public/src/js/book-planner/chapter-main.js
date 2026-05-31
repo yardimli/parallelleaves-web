@@ -8,7 +8,6 @@ import {
 import {initI18n, t, applyTranslationsTo} from '../i18n.js';
 import {processSourceContentForMarkers} from '../../utils/html-processing.js';
 import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
-import {loadModals} from '../../utils/modal-loader.js';
 import {showConfirmationModal, showInputModal} from './modals.js';
 import {
 	syncChapterScroll,
@@ -234,13 +233,8 @@ async function renderManuscript(bookData) {
 	const targetFragment = document.createDocumentFragment();
 	totalIframes = 0;
 	
-	const [
-		sourceChapterTpl,
-		targetChapterTpl
-	] = await Promise.all([
-		window.api.getTemplate('editor/source-chapter'),
-		window.api.getTemplate('editor/target-chapter')
-	]);
+	const sourceChapterTpl = document.getElementById('template-editor-source-chapter')?.innerHTML || '';
+	const targetChapterTpl = document.getElementById('template-editor-target-chapter')?.innerHTML || '';
 	
 	const tempDiv = document.createElement('div');
 	
@@ -366,11 +360,6 @@ function initializeView(bookId, bookData, initialChapterId) {
 
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-	await loadModals([
-		'prompt-editor-modal', 'alert-modal', 'typography-settings-modal',
-		'dictionary-modal', 'confirmation-modal', 'input-modal'
-	], 'modal-placeholders');
-	
 	await initI18n();
 	
 	document.getElementById('js-refresh-page-btn')?.addEventListener('click', () => window.location.reload());
@@ -788,28 +777,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 					const viewInfo = Array.from(chapterEditorViews.values()).find(v => v.contentWindow === sourceWindow);
 					if (!viewInfo || !currentSourceSelection.hasSelection) return;
 					
-					(async () => {
-						const bookData = await window.api.getOneBook(bookId);
-						let settings = {};
-						try {
-							settings = bookData.translate_settings ? JSON.parse(bookData.translate_settings) : {};
-						} catch (e) {
-							console.error('Error parsing translate_settings JSON', e);
-						}
-						
-						const context = {
-							selectedText: currentSourceSelection.text,
-							sourceSelectionRange: currentSourceSelection.range,
-							languageForPrompt: bookData.source_language || 'English',
-							targetLanguage: bookData.target_language || 'English',
-							activeEditorView: sourceWindow,
-							editorInterface: createIframeEditorInterface(sourceWindow),
-							chapterId: viewInfo.iframe.dataset.chapterId,
-							bookId: bookId,
-							insertionPoint: {from: payload.from, to: payload.to}
-						};
-						openPromptEditor(context, 'translate', settings);
-					})();
+					const context = {
+						selectedText: currentSourceSelection.text,
+						sourceSelectionRange: currentSourceSelection.range,
+						languageForPrompt: 'English',
+						targetLanguage: 'English',
+						activeEditorView: sourceWindow,
+						editorInterface: createIframeEditorInterface(sourceWindow),
+						chapterId: viewInfo.iframe.dataset.chapterId,
+						bookId: bookId,
+						insertionPoint: {from: payload.from, to: payload.to}
+					};
+					openPromptEditor(context, 'translate');
 					break;
 				}
 				case 'shortcut:find':

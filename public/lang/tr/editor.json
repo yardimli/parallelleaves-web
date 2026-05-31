@@ -111,6 +111,7 @@
     "errorNoActiveChapter": "Aktif bir fasıl olmadan not eklenemez."
   },
   "translationMemory": {
+    "openEditor": "Çeviri Belleğini Aç",
     "updateTitle": "Çeviri Belleğini Güncelle",
     "status": {
       "starting": "ÇB güncellemesi başlıyor...",
@@ -122,6 +123,7 @@
     }
   },
   "codex": {
+    "openEditor": "Codex Editörünü Aç",
     "status": {
       "checking": "Durum kontrol ediliyor...",
       "preparing": "İçerik hazırlanıyor...",

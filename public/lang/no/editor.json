@@ -111,6 +111,7 @@
     "errorNoActiveChapter": "Kan ikke legge til et notat uten et aktivt kapittel."
   },
   "translationMemory": {
+    "openEditor": "Åpne oversettelsesminne",
     "updateTitle": "Oppdater oversettelsesminne",
     "status": {
       "starting": "Starter TM-oppdatering...",
@@ -122,6 +123,7 @@
     }
   },
   "codex": {
+    "openEditor": "Åpne Codex-redigering",
     "status": {
       "checking": "Sjekker status...",
       "preparing": "Forbereder innhold...",

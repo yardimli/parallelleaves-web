@@ -45,6 +45,7 @@ let floatingToolbar = null;
 let currentAiParams = null;
 let currentPromptId = null;
 let currentActionMarkers = null;
+let isPromptEditorLoading = false;
 
 /**
  * Escapes special characters in a string for use in a regular expression.
@@ -101,6 +102,51 @@ const loadPrompt = async (promptId) => {
 	
 	await editorConfig.init(customFormContainer, currentContext);
 };
+
+function setPromptEditorLoading(isLoading) {
+	isPromptEditorLoading = isLoading;
+	if (!modalEl) {
+		return;
+	}
+	
+	modalEl.querySelectorAll('.js-prompt-apply-btn, .js-toggle-preview-btn, .js-llm-model-select, .js-ai-temperature-slider')
+		.forEach(el => {
+			el.disabled = isLoading;
+		});
+}
+
+async function hydratePromptContextFromBook(promptId) {
+	const bookDataPromise = currentContext?.bookDataPromise || (
+		currentContext?.bookId ? window.api.getOneBook(currentContext.bookId) : null
+	);
+	if (!bookDataPromise) {
+		return;
+	}
+	
+	const bookData = await bookDataPromise;
+	if (!bookData) {
+		return;
+	}
+	
+	let settings = currentContext.initialState || {};
+	const settingsJson = promptId === 'rephrase' ? bookData.rephrase_settings : bookData.translate_settings;
+	if (!currentContext.initialState && settingsJson) {
+		try {
+			settings = JSON.parse(settingsJson);
+		} catch (error) {
+			console.error(`Error parsing ${promptId}_settings JSON`, error);
+		}
+	}
+	
+	currentContext = {
+		...currentContext,
+		initialState: settings,
+		languageForPrompt: promptId === 'translate'
+			? (bookData.source_language || currentContext.languageForPrompt || 'English')
+			: (bookData.target_language || currentContext.languageForPrompt || 'English'),
+		targetLanguage: bookData.target_language || currentContext.targetLanguage || 'English'
+	};
+}
 
 async function cleanupAiAction() {
 	if (floatingToolbar) {
@@ -400,7 +446,7 @@ async function populateModelDropdown() {
 }
 
 async function handleModalApply() {
-	if (!modalEl || isAiActionActive) {
+	if (!modalEl || isAiActionActive || isPromptEditorLoading) {
 		return;
 	}
 	
@@ -644,34 +690,44 @@ export async function openPromptEditor(context, promptId, initialState = null) {
 		return;
 	}
 	
-	// MODIFIED: Verify if the user's OpenRouter API key is configured before continuing.
-	try {
-		const session = await window.api.getSession();
-		if (!session || !session.user || !session.user.openrouter_api_key) {
-			const errorMessage = t('prompt.errorApiKeyMissing') || 'OpenRouter API key is missing. Please set it in your account settings.';
-			const errorTitle = t('common.error') || 'Error';
-			window.showAlert(errorMessage, errorTitle);
-			return;
-		}
-	} catch (error) {
-		console.error('Failed to verify session API key:', error);
-	}
-	
 	currentContext = {...context, initialState};
 	currentPromptId = promptId;
 	
 	const placeholder = modalEl.querySelector('.js-prompt-placeholder');
 	const customEditorPane = modalEl.querySelector('.js-custom-editor-pane');
+	const customPromptTitle = customEditorPane.querySelector('.js-custom-prompt-title');
+	const customFormContainer = customEditorPane.querySelector('.js-custom-form-container');
 	
 	placeholder.classList.add('hidden');
 	customEditorPane.classList.remove('hidden');
+	customPromptTitle.textContent = t(`prompt.${promptId}.title`);
+	customFormContainer.innerHTML = `
+		<div class="p-8 text-center">
+			<span class="loading loading-spinner loading-lg"></span>
+			<p class="mt-3 text-sm text-base-content/70">${t('editor.loadingEditor')}</p>
+		</div>
+	`;
+	setPromptEditorLoading(true);
+	if (!modalEl.open) {
+		modalEl.showModal();
+	}
 	
 	try {
+		const session = await window.api.getSession();
+		if (!session || !session.user || !session.user.openrouter_api_key) {
+			const errorMessage = t('prompt.errorApiKeyMissing') || 'OpenRouter API key is missing. Please set it in your account settings.';
+			const errorTitle = t('common.error') || 'Error';
+			modalEl.close();
+			window.showAlert(errorMessage, errorTitle);
+			return;
+		}
+		await hydratePromptContextFromBook(promptId);
 		await populateModelDropdown();
 		await loadPrompt(promptId);
-		modalEl.showModal();
+		setPromptEditorLoading(false);
 	} catch (error) {
 		console.error('Error loading prompt editor:', error);
-		modalEl.showModal();
+		customFormContainer.innerHTML = `<p class="p-4 text-error">${error.message || t('prompt.errorLoadForm')}</p>`;
+		setPromptEditorLoading(false);
 	}
 }

@@ -11,7 +11,6 @@ const API_ENDPOINTS = {
 	'auth:logout': '/api/auth/logout',
 	'auth:get-session': '/api/auth/session',
 	'user:set-api-key': '/api/user/api-key',
-	'templates:get': '/api/templates/get',
 	'i18n:get-lang-file': '/api/i18n/lang-file',
 	'app:reset': '/api/app/reset',
 	'session:getAvailableSpellCheckerLanguages': '/api/session/spellchecker/languages',
@@ -300,7 +299,6 @@ window.api = {
 	onImportStatusUpdate: (cb) => {
 	},
 	
-	getTemplate: (templateName) => rpcInvoke('templates:get', templateName),
 	getRawChapterContent: (data) => rpcInvoke('chapters:getRawContent', data),
 	getTranslationContext: (data) => rpcInvoke('chapters:getTranslationContext', data),
 	

@@ -108,6 +108,7 @@
     "errorNoActiveChapter": "Cannot add a note without an active chapter."
   },
   "translationMemory": {
+    "openEditor": "Open Translation Memory",
     "updateTitle": "Update Translation Memory",
     "status": {
       "starting": "Starting TM update...",
@@ -119,6 +120,7 @@
     }
   },
   "codex": {
+    "openEditor": "Open Codex Editor",
     "status": {
       "checking": "Checking status...",
       "preparing": "Preparing content...",

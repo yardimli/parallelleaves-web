@@ -114,7 +114,10 @@ const populateForm = (container, state, bookId) => {
 
 export const init = async (container, context) => {
 	try {
-		const templateHtml = await window.api.getTemplate('prompt/rephrase-editor');
+		const templateHtml = document.getElementById('template-prompt-rephrase-editor')?.innerHTML || '';
+		if (!templateHtml) {
+			throw new Error('Rephrase editor template is missing.');
+		}
 		container.innerHTML = templateHtml;
 		applyTranslationsTo(container);
 		

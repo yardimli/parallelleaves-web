@@ -17,7 +17,6 @@
 	use App\Http\Controllers\Api\LogsApiController;
 	use App\Http\Controllers\Api\SessionApiController;
 	use App\Http\Controllers\Api\SplashApiController;
-	use App\Http\Controllers\Api\TemplatesApiController;
 	use App\Http\Controllers\Api\TmApiController;
 	use App\Http\Controllers\Api\TranslationMemoryApiController;
 	use App\Http\Controllers\Api\UserApiController;
@@ -55,7 +54,6 @@
 
 	Route::middleware('auth')->group(function () {
 		Route::post('/api/user/api-key', [UserApiController::class, 'setApiKey']);
-		Route::post('/api/templates/get', [TemplatesApiController::class, 'get']);
 		Route::post('/api/app/reset', [AppApiController::class, 'reset']);
 		Route::post('/api/session/spellchecker/languages', [SessionApiController::class, 'availableSpellCheckerLanguages']);
 		Route::post('/api/session/spellchecker/current', [SessionApiController::class, 'currentSpellCheckerLanguage']);

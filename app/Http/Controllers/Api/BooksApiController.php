@@ -554,7 +554,7 @@
 
 				$result = null;
 				do {
-					$result = findHighestMarkerNumber($args[0], $args[1]);
+					$result = findHighestMarkerNumber((string)($args[0] ?? ''), (string)($args[1] ?? ''));
 					break;
 				} while (false);
 

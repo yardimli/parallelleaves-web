@@ -84,9 +84,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const cancelGenerateCoverBtn = document.getElementById('cancel-generate-cover-btn');
 	const refreshBtn = document.getElementById('js-refresh-page-btn');
 	
-	let booksData = [];
+	let booksData = Array.isArray(window.dashboardBooks) ? window.dashboardBooks : [];
 	let stagedCover = null;
-	let isRefreshingData = false;
 	
 	async function populateLanguages() {
 		const supportedLanguages = await window.api.getSupportedLanguages();
@@ -120,25 +119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
-	// MODIFIED: Dynamically fetch the modal template if it's missing, with a native prompt fallback
+	// MODIFIED: The input modal is rendered by Blade with the dashboard page.
 	async function promptForApiKey(currentKey) {
 		let modal = document.getElementById('input-modal');
-		
-		// If the modal isn't in the DOM, fetch the template and inject it
-		if (!modal) {
-			try {
-				const templateHtml = await window.api.getTemplate('modals/input-modal');
-				if (templateHtml) {
-					const wrapper = document.createElement('div');
-					wrapper.innerHTML = templateHtml;
-					document.body.appendChild(wrapper.firstElementChild);
-					modal = document.getElementById('input-modal');
-					applyTranslationsTo(modal);
-				}
-			} catch (e) {
-				console.error('Failed to load input modal template', e);
-			}
-		}
 		
 		// Fallback to native browser prompt if template loading fails
 		if (!modal) {
@@ -201,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (authDivider) authDivider.classList.remove('hidden');
 			
-			loadInitialData(); // Load projects only when logged in
+			bindRenderedBookCards();
 			window.api.getModels().catch(err => {
 				console.error('Failed to pre-fetch AI models on startup:', err);
 			});
@@ -213,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			if (authDivider) authDivider.classList.add('hidden');
 			
 			bookList.innerHTML = `<p class="text-base-content/70 text-center">${t('dashboard.signInPrompt')}</p>`;
-			loadingMessage.style.display = 'none';
+			if (loadingMessage) loadingMessage.style.display = 'none';
 			
 			loginModal.showModal();
 		}
@@ -323,23 +306,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	}
 	
-	async function loadInitialData() {
-		if (isRefreshingData) {
-			return;
-		}
-		isRefreshingData = true;
-		
-		try {
-			booksData = await window.api.getBooksWithCovers();
-			renderBooks();
-		} catch (error) {
-			console.error('Failed to load initial data:', error);
-			loadingMessage.textContent = t('dashboard.errorLoading');
-		} finally {
-			isRefreshingData = false;
-		}
-	}
-	
 	function applyListViewStyles() {
 		const cards = document.querySelectorAll('#book-list > .card');
 		
@@ -352,9 +318,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 			card.querySelector('figure')?.classList.add('max-w-[200px]');
 		});
 	}
+
+	function bindBookCardEvents(bookCard, book) {
+		if (!bookCard || !book) return;
+		bookCard.querySelectorAll('.js-open-editor').forEach(el => {
+			if (el.dataset.boundOpenEditor) return;
+			el.dataset.boundOpenEditor = 'true';
+			el.addEventListener('click', () => window.api.openEditor(book.id));
+		});
+		const metaBtn = bookCard.querySelector('.js-meta-settings');
+		if (metaBtn && !metaBtn.dataset.boundMetaSettings) {
+			metaBtn.dataset.boundMetaSettings = 'true';
+			metaBtn.addEventListener('click', () => openMetaSettingsModal(book));
+		}
+		const exportBtn = bookCard.querySelector('.js-export-docx');
+		if (exportBtn && !exportBtn.dataset.boundExportDocx) {
+			exportBtn.dataset.boundExportDocx = 'true';
+			exportBtn.addEventListener('click', () => exportBook(book.id));
+		}
+	}
+
+	function bindRenderedBookCards() {
+		booksData.forEach(book => {
+			const bookCard = bookList.querySelector(`[data-book-id='${book.id}']`);
+			bindBookCardEvents(bookCard, book);
+		});
+		applyListViewStyles();
+	}
 	
 	function renderBooks() {
-		loadingMessage.style.display = 'none';
+		if (loadingMessage) loadingMessage.style.display = 'none';
 		
 		if (booksData.length === 0) {
 			bookList.innerHTML = `<p class="text-base-content/70 text-center" data-i18n="dashboard.noProjects">${t('dashboard.noProjects')}</p>`;
@@ -463,10 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				updatedDateEl.textContent = new Date(book.updated_at).toLocaleDateString(undefined, dateFormatOptions);
 			}
 			
-			bookCard.querySelectorAll('.js-open-editor').forEach(el => el.addEventListener('click', () => window.api.openEditor(book.id)));
-			// MODIFIED: Removed .js-prose-settings button listener binding
-			bookCard.querySelector('.js-meta-settings').addEventListener('click', () => openMetaSettingsModal(book));
-			bookCard.querySelector('.js-export-docx').addEventListener('click', () => exportBook(book.id));
+			bindBookCardEvents(bookCard, book);
 			
 			bookList.appendChild(bookCard);
 		});
@@ -512,11 +502,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			
 			try {
-				const result = await window.api.createBlankBook(data);
-				if (result.success) {
-					newProjectModal.close();
-					await loadInitialData(); // Refresh the project list
-				} else {
+			const result = await window.api.createBlankBook(data);
+			if (result.success) {
+				newProjectModal.close();
+				window.location.reload();
+			} else {
 					throw new Error(result.message || 'Failed to create project.');
 				}
 			} catch (error) {
@@ -690,7 +680,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 	window.addEventListener('focus', () => {
 		// Only refresh if the user is logged in (auth container has a logout button).
 		if (document.getElementById('logout-btn')) {
-			//loadInitialData();
 		}
 	});
 });

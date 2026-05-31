@@ -118,23 +118,6 @@ async function handleToolbarAction(button) {
 			return;
 		}
 		
-		const bookData = await window.api.getOneBook(bookId);
-		
-		let settings = {};
-		if (action === 'rephrase' && bookData.rephrase_settings) {
-			try {
-				settings = JSON.parse(bookData.rephrase_settings);
-			} catch (e) {
-				console.error('Error parsing rephrase_settings JSON', e);
-			}
-		} else if (action === 'translate' && bookData.translate_settings) {
-			try {
-				settings = JSON.parse(bookData.translate_settings);
-			} catch (e) {
-				console.error('Error parsing translate_settings JSON', e);
-			}
-		}
-		
 		if (!activeContentWindow) return;
 		
 		const editorInterface = createIframeEditorInterface(activeContentWindow);
@@ -151,13 +134,13 @@ async function handleToolbarAction(button) {
 			selectedText: selectionInfo.selectedText,
 			wordsBefore: selectionInfo.wordsBefore,
 			wordsAfter: selectionInfo.wordsAfter,
-			languageForPrompt: bookData.target_language || 'English',
+			languageForPrompt: 'English',
 			activeEditorView: activeContentWindow,
 			editorInterface: editorInterface,
 			chapterId: chapterId,
 			bookId: bookId
 		};
-		openPromptEditor(context, action, settings);
+		openPromptEditor(context, action);
 		return;
 	}
 	

@@ -13,6 +13,15 @@
 		<h1 class="text-2xl font-bold" data-i18n="dashboard.title">My Translation Projects</h1>
 		
 		<div class="flex items-center gap-2">
+			<button id="new-project-btn-menu" type="button" class="btn btn-primary btn-sm">
+				<i class="bi bi-file-earmark-plus"></i>
+				<span data-i18n="dashboard.newProject">New Blank Project</span>
+			</button>
+			<button id="import-doc-btn-menu" type="button" class="btn btn-outline btn-sm">
+				<i class="bi bi-file-earmark-arrow-up"></i>
+				<span data-i18n="dashboard.importDocument">Import Document</span>
+			</button>
+			
 			<!-- Refresh Page Button -->
 			<button id="js-refresh-page-btn" class="btn btn-ghost btn-circle" data-i18n-title="common.refresh">
 				<i class="bi bi-arrow-clockwise text-2xl"></i>
@@ -35,22 +44,6 @@
 					<!-- Divider is shown/hidden by JS -->
 					<div class="divider my-1" id="auth-divider"></div>
 					
-					<!-- Project Creation -->
-					<li>
-						<a id="new-project-btn-menu">
-							<i class="bi bi-file-earmark-plus"></i>
-							<span data-i18n="dashboard.newProject">New Blank Project</span>
-						</a>
-					</li>
-					<li>
-						<a id="import-doc-btn-menu">
-							<i class="bi bi-file-earmark-arrow-up"></i>
-							<span data-i18n="dashboard.importDocument">Import Document</span>
-						</a>
-					</li>
-					
-					<div class="divider my-1"></div>
-					
 					<!-- NEW DASHBOARD LINKS -->
 					<!-- MODIFIED: Removed Translation Memory and Codex Editor from the main menu -->
 					<li>
@@ -64,14 +57,15 @@
 					
 					<!-- Language Switcher Submenu -->
 					<li>
-						<a>
-							<i class="bi bi-translate"></i>
-							<span data-i18n="common.changeLanguage">Change Language</span>
-							<i class="bi bi-chevron-right ml-auto"></i>
-						</a>
-						<ul id="js-lang-switcher-menu" class="p-2 bg-base-300">
-							<!-- Populated by i18n.js -->
-						</ul>
+						<details>
+							<summary>
+								<i class="bi bi-translate"></i>
+								<span data-i18n="common.changeLanguage">Change Language</span>
+							</summary>
+							<ul id="js-lang-switcher-menu" class="p-2 bg-base-300">
+								<!-- Populated by i18n.js -->
+							</ul>
+						</details>
 					</li>
 				</ul>
 			</div>
@@ -79,7 +73,76 @@
 	</div>
 	
 	<div id="book-list" class="flex flex-col gap-6">
-		<p id="loading-message" data-i18n="dashboard.loadingProjects">Loading projects...</p>
+		@forelse($books ?? [] as $book)
+			@php
+				$sourceWords = (int) ($book['source_word_count'] ?? 0);
+				$targetWords = (int) ($book['target_word_count'] ?? 0);
+				$progress = $sourceWords > 0 ? round(($targetWords / $sourceWords) * 100) : ($targetWords > 0 ? 100 : 0);
+				$progress = min(100, max(0, $progress));
+				$updatedAt = $book['updated_at'] ?? null;
+				$coverPath = $book['cover_path'] ?? null;
+				$coverSrc = $coverPath
+					? $coverPath . ($updatedAt ? '?t=' . strtotime($updatedAt) : '')
+					: './assets/bookcover-placeholder.jpg';
+			@endphp
+			<div class="card bg-base-200 shadow-xl transition-shadow h-full flex card-side flex-row" data-book-id="{{ $book['id'] }}">
+				<figure class="cursor-pointer js-open-editor max-w-[200px]">
+					<img src="{{ $coverSrc }}" alt="{{ $coverPath ? 'Cover for ' . $book['title'] : 'No Cover' }}" class="w-full {{ $coverPath ? '' : 'h-auto' }}">
+				</figure>
+				<div class="card-body flex flex-col flex-grow">
+					<h2 class="card-title js-open-editor cursor-pointer">{{ $book['title'] }}</h2>
+					<p class="text-base-content/80 -mt-2 mb-2">{{ $book['author'] ?: 'Unknown Author' }}</p>
+					
+					<div class="text-xs space-y-2 text-base-content/70 mt-auto">
+						<div>
+							<div class="flex justify-between mb-1">
+								<span class="font-semibold" data-i18n="dashboard.card.progress">Progress</span>
+								<span class="js-progress-percent">{{ $progress }}%</span>
+							</div>
+							<progress class="progress progress-primary w-full js-progress-bar" value="{{ $progress }}" max="100"></progress>
+						</div>
+						
+						<div class="grid grid-cols-5 gap-x-4">
+							<div>
+								<div class="font-semibold" data-i18n="dashboard.card.sourceWords">Source</div>
+								<div class="js-source-words">{{ number_format($sourceWords) }} <span data-i18n="common.words">words</span></div>
+							</div>
+							<div>
+								<div class="font-semibold" data-i18n="dashboard.card.targetWords">Target</div>
+								<div class="js-target-words">{{ number_format($targetWords) }} <span data-i18n="common.words">words</span></div>
+							</div>
+							<div>
+								<div class="font-semibold" data-i18n="dashboard.card.chapters">Chapters</div>
+								<div class="js-chapter-count">{{ $book['chapter_count'] ?? 0 }}</div>
+							</div>
+							<div>
+								<div class="font-semibold" data-i18n="dashboard.card.created">Created:</div>
+								<div class="js-created-date">{{ !empty($book['created_at']) ? \Carbon\Carbon::parse($book['created_at'])->format('M j, Y') : '' }}</div>
+							</div>
+							<div>
+								<div class="font-semibold" data-i18n="dashboard.card.updated">Updated:</div>
+								<div class="js-updated-date">{{ !empty($book['updated_at']) ? \Carbon\Carbon::parse($book['updated_at'])->format('M j, Y') : '' }}</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="card-actions start items-center mt-4">
+						<button class="btn btn-primary btn-sm js-open-editor" data-i18n-title="dashboard.card.openEditor">
+							<i class="bi bi-pencil"></i>
+							<span data-i18n="dashboard.card.openEditor">Open Editor</span>
+						</button>
+						<button class="btn btn-ghost btn-sm js-meta-settings" data-i18n-title="common.edit">
+							<i class="bi bi-pencil-square text-lg"></i>
+						</button>
+						<button class="btn btn-ghost btn-sm js-export-docx" data-i18n-title="export.exportDocx">
+							<i class="bi bi-file-earmark-word text-lg"></i>
+						</button>
+					</div>
+				</div>
+			</div>
+		@empty
+			<p class="text-base-content/70 text-center" data-i18n="dashboard.noProjects">You haven't started any translation projects yet.</p>
+		@endforelse
 	</div>
 </div>
 
@@ -274,6 +337,11 @@
 	</div>
 </dialog>
 
+@php echo file_get_contents(resource_path('legacy/templates/modals/input-modal.blade.php')); @endphp
+
+<script>
+	window.dashboardBooks = @json($books ?? []);
+</script>
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>
 <script type="module" src="/src/js/dashboard.js"></script>

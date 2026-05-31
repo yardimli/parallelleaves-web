@@ -180,7 +180,10 @@ const populateForm = (container, state, bookId) => {
 
 export const init = async (container, context) => {
 	try {
-		const templateHtml = await window.api.getTemplate('prompt/translate-editor');
+		const templateHtml = document.getElementById('template-prompt-translate-editor')?.innerHTML || '';
+		if (!templateHtml) {
+			throw new Error('Translate editor template is missing.');
+		}
 		container.innerHTML = templateHtml;
 		applyTranslationsTo(container);
 		
