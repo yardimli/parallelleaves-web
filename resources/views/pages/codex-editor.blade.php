@@ -18,7 +18,13 @@
 	</div>
 </div>
 
-<!-- NEW: Pass route parameters to frontend JS -->
+<!-- NEW: Render dynamic HTML alert-modal & confirmation-modal blocks -->
+@php
+	echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/alert-modal.blade.php')), $translations ?? [], $englishTranslations ?? []);
+	echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/confirmation-modal.blade.php')), $translations ?? [], $englishTranslations ?? []);
+@endphp
+	
+	<!-- NEW: Pass route parameters to frontend JS -->
 <script>
 	window.routeParams = {
 		bookId: @json($bookId ?? null)
@@ -32,6 +38,8 @@
 </script>
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>
+<!-- NEW: Link centralized modal operations module -->
+<script src="/src/js/modals.js"></script>
 <script type="module" src="/src/js/codex-editor.js"></script>
 </body>
 </html>

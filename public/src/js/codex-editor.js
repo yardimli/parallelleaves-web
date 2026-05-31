@@ -103,17 +103,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 			activeBook = book;
 			
 			const backActionLabel = urlBookId ? 'Back to Dashboard' : 'Back';
+			
+			// MODIFIED: Added Codex Language dropdown option set & integrated hidden progressbar template markup
 			container.innerHTML = `
 				<div class="mb-4 flex items-center justify-between gap-3">
 					<button id="codex-back-btn" class="btn btn-sm btn-outline">← ${backActionLabel}</button>
 					<span id="codex-generation-status" class="text-sm text-base-content/70">${escapeHtml(statusLabel(book))}</span>
 				</div>
 				<h2 class="text-2xl font-semibold mb-4">Editing Codex for: <span class="italic">${escapeHtml(book.title)}</span></h2>
-				<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mb-4 items-end">
+				<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3 mb-4 items-end">
 					<label class="form-control">
 						<span class="label-text">Model</span>
 						<select id="codex-model-select" class="select select-bordered">
 							${modelOptionsHtml(defaultModel)}
+						</select>
+					</label>
+					<label class="form-control w-52">
+						<span class="label-text">Codex Language</span>
+						<select id="codex-language-select" class="select select-bordered">
+							<option value="${escapeHtml(book.source_language)}">Source (${escapeHtml(book.source_language)})</option>
+							<option value="${escapeHtml(book.target_language)}" selected>Target (${escapeHtml(book.target_language)})</option>
 						</select>
 					</label>
 					<label class="form-control w-40">
@@ -122,6 +131,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 					</label>
 					<button id="codex-rebuild-btn" class="btn btn-warning">Rebuild Codex</button>
 				</div>
+				
+				<!-- NEW: Progressbar template container -->
+				<div id="codex-progress-container" class="hidden mb-4 space-y-1">
+					<div class="flex justify-between text-xs font-semibold text-base-content/70">
+						<span>Generating Codex...</span>
+						<span id="codex-progress-percent">0%</span>
+					</div>
+					<progress id="codex-progress-bar" class="progress progress-primary w-full" value="0" max="100"></progress>
+				</div>
+
 				<div class="form-control">
 					<label class="label"><span class="label-text">Codex Plain Text Content</span></label>
 					<textarea id="codex-textarea" class="textarea textarea-bordered w-full h-96 font-mono">${escapeHtml(book.codex_content || '')}</textarea>
@@ -148,26 +167,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 	function getGenerationOptions(rebuild = false) {
 		const modelSelect = document.getElementById('codex-model-select');
 		const temperatureInput = document.getElementById('codex-temperature-input');
+		const languageSelect = document.getElementById('codex-language-select');
+		
 		const model = modelSelect?.value || defaultModel;
 		const temperature = Number(temperatureInput?.value || defaultTemperature);
+		const codex_language = languageSelect?.value || activeBook?.target_language;
+		
 		localStorage.setItem('parallel-leaves-codex-model', model);
 		localStorage.setItem('parallel-leaves-codex-temperature', String(temperature));
-		return {model, temperature, rebuild};
+		
+		return {model, temperature, rebuild, codex_language};
 	}
 	
 	async function saveCodex(bookId) {
 		const content = document.getElementById('codex-textarea').value;
 		try {
 			await window.api.saveCodex(bookId, content);
-			window.showAlert ? window.showAlert('Codex updated successfully!') : alert('Codex updated successfully!');
-			await editCodex(bookId);
+			window.showAlertModal('Codex updated successfully!', 'Saved');
 		} catch (error) {
-			window.showAlert ? window.showAlert('Error saving codex: ' + error.message) : alert('Error saving codex: ' + error.message);
+			window.showAlertModal('Error saving codex: ' + error.message, 'Save Failed');
 		}
 	}
 	
 	async function resetCodex(bookId) {
-		if (!confirm('Are you sure you want to reset the codex for this book? All content will be deleted.')) return;
+		// MODIFIED: Substituted standard window confirm with showConfirmationModal
+		const choice = await window.showConfirmationModal(
+			'Are you sure you want to reset the codex for this book? All content will be deleted.',
+			'Reset Codex'
+		);
+		if (choice !== 'confirm') {
+			return;
+		}
+		
 		try {
 			await window.api.resetCodex(bookId);
 			if (urlBookId || activeBook?.id == bookId) {
@@ -176,29 +207,89 @@ document.addEventListener('DOMContentLoaded', async () => {
 				await loadList();
 			}
 		} catch (error) {
-			alert('Error resetting codex: ' + error.message);
+			window.showAlertModal('Error resetting codex: ' + error.message, 'Reset Failed');
 		}
 	}
 	
 	async function rebuildCodex(bookId) {
 		if (isGenerating) return;
-		if (!confirm('Rebuild this codex from the source manuscript? Existing codex content will be replaced.')) return;
+		
+		const processed = Number(activeBook?.codex_chunks_processed || 0);
+		const total = Number(activeBook?.codex_chunks_total || 0);
+		const isPartial = processed > 0 && processed < total;
+		
+		let rebuild = true;
+		
+		// NEW: Ask to resume or rebuild if codex is partially built
+		if (isPartial) {
+			const choice = await window.showConfirmationModal(
+				'A partially generated codex was found. Do you want to resume the existing generation or start fresh?',
+				'Resume or Rebuild Codex',
+				{
+					confirmText: 'Start Fresh (Rebuild)',
+					cancelText: 'Cancel',
+					showExtra: true,
+					extraText: 'Resume Generation',
+					extraClass: 'btn btn-primary flex-1'
+				}
+			);
+			
+			if (choice === 'extra') {
+				rebuild = false; // Resume
+			} else if (choice === 'confirm') {
+				rebuild = true; // Start fresh / Rebuild
+			} else {
+				return; // Cancel
+			}
+		} else {
+			const choice = await window.showConfirmationModal(
+				'Rebuild this codex from the source manuscript? Existing codex content will be replaced.',
+				'Rebuild Codex'
+			);
+			if (choice !== 'confirm') {
+				return;
+			}
+			rebuild = true;
+		}
+		
 		isGenerating = true;
 		const statusEl = document.getElementById('codex-generation-status');
 		const rebuildBtn = document.getElementById('codex-rebuild-btn');
+		const saveBtn = document.getElementById('codex-save-btn');
+		const textarea = document.getElementById('codex-textarea');
+		const progressContainer = document.getElementById('codex-progress-container');
+		const progressBar = document.getElementById('codex-progress-bar');
+		const progressPercent = document.getElementById('codex-progress-percent');
+		
 		if (rebuildBtn) rebuildBtn.disabled = true;
+		if (saveBtn) saveBtn.disabled = true;
+		if (textarea) textarea.readOnly = true; // Make editor read-only during compilation
+		if (progressContainer) progressContainer.classList.remove('hidden');
 		
 		try {
-			const options = getGenerationOptions(true);
+			const options = getGenerationOptions(rebuild);
 			let start = await window.api.startCodex(bookId, options);
 			if (start.status === 'complete') {
 				if (statusEl) statusEl.textContent = 'Complete';
+				if (progressBar) progressBar.value = 100;
+				if (progressPercent) progressPercent.textContent = '100%';
 				await editCodex(bookId);
 				return;
 			}
 			
 			while (true) {
 				const status = await window.api.processCodexBatch(bookId, options);
+				
+				// MODIFIED: Realtime progress bar updating logic
+				const currentPercent = status.total > 0 ? Math.round((status.processed / status.total) * 100) : 0;
+				if (progressBar) progressBar.value = currentPercent;
+				if (progressPercent) progressPercent.textContent = `${currentPercent}%`;
+				
+				// MODIFIED: Live textarea stream updates during building process
+				if (status.codex_content && textarea) {
+					textarea.value = status.codex_content;
+				}
+				
 				if (status.status === 'complete') {
 					if (statusEl) statusEl.textContent = 'Complete';
 					break;
@@ -215,10 +306,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 			await editCodex(bookId);
 		} catch (error) {
 			if (statusEl) statusEl.textContent = 'Error: ' + error.message;
-			alert('Error rebuilding codex: ' + error.message);
+			window.showAlertModal('Error rebuilding codex: ' + error.message, 'Generation Failed');
 		} finally {
 			isGenerating = false;
 			if (rebuildBtn) rebuildBtn.disabled = false;
+			if (saveBtn) saveBtn.disabled = false;
+			if (textarea) textarea.readOnly = false;
+			if (progressContainer) progressContainer.classList.add('hidden');
 		}
 	}
 	

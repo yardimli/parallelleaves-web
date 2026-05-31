@@ -1,124 +1,132 @@
-import {t} from './i18n.js';
-
 /**
- * Shows a confirmation modal and returns a promise that resolves with true, false, or 'decline'.
- * @param {string} title - The title of the modal.
- * @param {string} message - The confirmation message.
- * @param {object} [options={}] - Optional settings.
- * @param {boolean} [options.showDecline=false] - If true, shows the "Don't ask again" button.
- * @param {string} [options.declineKey] - An i18n key for the decline button's text.
- * @returns {Promise<boolean|'decline'>} - true if confirmed, false if canceled, 'decline' if the third button is clicked.
+ * Centralized alert and confirmation modal controls using DaisyUI/HTML5 dialog tags.
  */
-export function showConfirmationModal(title, message, options = {}) {
-	return new Promise((resolve) => {
-		const modal = document.getElementById('confirmation-modal');
-		const titleEl = document.getElementById('confirmation-modal-title');
-		const contentEl = document.getElementById('confirmation-modal-content');
-		const confirmBtn = document.getElementById('confirmation-modal-confirm-btn');
-		const cancelBtn = document.getElementById('confirmation-modal-cancel-btn');
-		const declineBtn = document.getElementById('confirmation-modal-decline-btn');
-		
-		const newConfirmBtn = confirmBtn.cloneNode(true);
-		confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-		const newCancelBtn = cancelBtn.cloneNode(true);
-		cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-		const newDeclineBtn = declineBtn.cloneNode(true);
-		declineBtn.parentNode.replaceChild(newDeclineBtn, declineBtn);
-		
-		titleEl.innerHTML = title;
-		contentEl.innerHTML = message;
-		
-		if (options.showDecline) {
-			newDeclineBtn.classList.remove('hidden');
-			if (options.declineKey) {
-				newDeclineBtn.textContent = t(options.declineKey);
-			}
-		} else {
-			newDeclineBtn.classList.add('hidden');
+
+// NEW: Expose showAlertModal globally
+window.showAlertModal = function (message, title = 'Information') {
+	const modal = document.getElementById('alert-modal');
+	if (modal) {
+		const titleEl = modal.querySelector('#alert-modal-title');
+		const contentEl = modal.querySelector('#alert-modal-content');
+		if (titleEl) {
+			titleEl.textContent = title;
+		}
+		if (contentEl) {
+			contentEl.textContent = message;
 		}
 		
-		const cleanup = () => {
-			modal.removeEventListener('close', handleClose);
-			newConfirmBtn.removeEventListener('click', handleConfirm);
-			newCancelBtn.removeEventListener('click', handleCancel);
-			newDeclineBtn.removeEventListener('click', handleDecline);
-		};
-		
-		const handleConfirm = () => {
-			cleanup();
-			modal.close();
-			resolve(true);
-		};
-		
-		const handleCancel = () => {
-			cleanup();
-			modal.close();
-			resolve(false);
-		};
-		
-		const handleDecline = () => {
-			cleanup();
-			modal.close();
-			resolve('decline');
-		};
-		
-		// This handles closing the modal with the Escape key.
-		const handleClose = () => {
-			cleanup();
-			resolve(false);
-		};
-		
-		newConfirmBtn.addEventListener('click', handleConfirm, {once: true});
-		newCancelBtn.addEventListener('click', handleCancel, {once: true});
-		newDeclineBtn.addEventListener('click', handleDecline, {once: true});
-		modal.addEventListener('close', handleClose, {once: true});
-		
-		modal.showModal();
-	});
-}
+		if (typeof modal.showModal === 'function') {
+			if (!modal.open) {
+				modal.showModal();
+			}
+		} else {
+			alert(message);
+		}
+	} else {
+		alert(title + ': ' + message);
+	}
+};
 
-/**
- * Shows a modal with a text input and returns a promise that resolves with the input value or null.
- * @param {string} title - The title of the modal.
- * @param {string} label - The label for the input field.
- * @param {string} [initialValue=''] - The initial value for the input field.
- * @returns {Promise<string|null>} - The input value or null if canceled.
- */
-export function showInputModal(title, label, initialValue = '') {
+// NEW: Expose showConfirmationModal globally to handle 2-way and 3-way interactions elegantly
+window.showConfirmationModal = function (message, title = 'Confirm', options = {}) {
 	return new Promise((resolve) => {
-		const modal = document.getElementById('input-modal');
-		const titleEl = document.getElementById('input-modal-title');
-		const labelEl = document.getElementById('input-modal-label').querySelector('span');
-		const inputEl = document.getElementById('input-modal-input');
-		const form = document.getElementById('input-modal-form');
+		const modal = document.getElementById('confirmation-modal');
+		if (!modal) {
+			const res = confirm(message);
+			resolve(res ? 'confirm' : 'cancel');
+			return;
+		}
 		
-		titleEl.textContent = title;
-		labelEl.textContent = label;
-		inputEl.value = initialValue;
+		const titleEl = modal.querySelector('#confirmation-modal-title');
+		const contentEl = modal.querySelector('#confirmation-modal-content');
+		const confirmBtn = modal.querySelector('#confirmation-modal-confirm-btn');
+		const cancelBtn = modal.querySelector('#confirmation-modal-cancel-btn');
+		const declineBtn = modal.querySelector('#confirmation-modal-decline-btn');
 		
-		const handleSubmit = (e) => {
+		if (titleEl) {
+			titleEl.textContent = title;
+		}
+		if (contentEl) {
+			contentEl.textContent = message;
+		}
+		
+		if (confirmBtn) {
+			confirmBtn.textContent = options.confirmText || 'Confirm';
+			confirmBtn.className = options.confirmClass || 'btn btn-error flex-1';
+		}
+		if (cancelBtn) {
+			cancelBtn.textContent = options.cancelText || 'Cancel';
+			cancelBtn.className = options.cancelClass || 'btn flex-1';
+		}
+		
+		// MODIFIED: Support third action button if options.showExtra is true (e.g. for Resume vs Rebuild)
+		if (options.showExtra && declineBtn) {
+			declineBtn.textContent = options.extraText || 'Resume';
+			declineBtn.className = options.extraClass || 'btn btn-primary flex-1';
+			declineBtn.classList.remove('hidden');
+		} else {
+			if (declineBtn) {
+				declineBtn.classList.add('hidden');
+			}
+		}
+		
+		const handleConfirm = (e) => {
 			e.preventDefault();
-			const value = inputEl.value.trim();
-			resolve(value);
+			modal.close();
 			cleanup();
+			resolve('confirm');
+		};
+		
+		const handleCancel = (e) => {
+			e.preventDefault();
+			modal.close();
+			cleanup();
+			resolve('cancel');
+		};
+		
+		const handleExtra = (e) => {
+			e.preventDefault();
+			modal.close();
+			cleanup();
+			resolve('extra');
 		};
 		
 		const handleClose = () => {
-			resolve(null);
 			cleanup();
+			resolve('cancel');
 		};
 		
 		const cleanup = () => {
-			modal.close();
-			form.removeEventListener('submit', handleSubmit);
+			if (confirmBtn) {
+				confirmBtn.removeEventListener('click', handleConfirm);
+			}
+			if (cancelBtn) {
+				cancelBtn.removeEventListener('click', handleCancel);
+			}
+			if (declineBtn) {
+				declineBtn.removeEventListener('click', handleExtra);
+			}
 			modal.removeEventListener('close', handleClose);
 		};
 		
-		form.addEventListener('submit', handleSubmit);
+		if (confirmBtn) {
+			confirmBtn.addEventListener('click', handleConfirm);
+		}
+		if (cancelBtn) {
+			cancelBtn.addEventListener('click', handleCancel);
+		}
+		if (declineBtn) {
+			declineBtn.addEventListener('click', handleExtra);
+		}
 		modal.addEventListener('close', handleClose);
 		
-		modal.showModal();
-		inputEl.focus();
-		inputEl.select();
+		if (typeof modal.showModal === 'function') {
+			if (!modal.open) {
+				modal.showModal();
+			}
+		} else {
+			const res = confirm(message);
+			resolve(res ? 'confirm' : 'cancel');
+		}
 	});
-}
+};

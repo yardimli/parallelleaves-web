@@ -13,23 +13,9 @@ const debounce = (func, delay) => {
 document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
 	
-	/**
-	 * Displays a custom modal alert to prevent focus issues with native alerts.
-	 * @param {string} message - The message to display.
-	 * @param {string} [title='Error'] - The title for the alert modal.
-	 */
+	// MODIFIED: Expose window.showAlert as wrapper of new window.showAlertModal
 	window.showAlert = function (message, title = t('common.information')) {
-		const modal = document.getElementById('alert-modal');
-		if (modal) {
-			const modalTitle = modal.querySelector('#alert-modal-title');
-			const modalContent = modal.querySelector('#alert-modal-content');
-			if (modalTitle) modalTitle.textContent = title;
-			if (modalContent) modalContent.textContent = message;
-			modal.showModal();
-		} else {
-			// Fallback for pages without the modal
-			alert(message);
-		}
+		window.showAlertModal(message, title);
 	};
 	
 	const selectFileBtn = document.getElementById('select-file-btn');

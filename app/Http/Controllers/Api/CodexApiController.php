@@ -7,9 +7,8 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
-	use Illuminate\Support\Facades\DB; // MODIFIED: Imported DB Facade [1]
-	use App\Models\UserBook; // MODIFIED: Imported Eloquent Models
-	use App\Models\Chapter;
+	use Illuminate\Support\Facades\DB;
+	use App\Models\UserBook;
 	use App\Models\UserBookCodexChunk;
 	use Throwable;
 
@@ -26,7 +25,7 @@
 				$text = preg_replace('/\s*<\/codex>\s*$/i', '', $text);
 				$text = trim($text);
 			} while ($text !== $previous);
-			
+
 			return $text;
 		}
 
@@ -46,7 +45,6 @@
 
 				$result = null;
 				do {
-					// MODIFIED: Refactored with Eloquent UserBook model query [1]
 					$result = UserBook::select('id', 'title', 'author', 'source_language', 'target_language', 'codex_status', 'codex_chunks_total', 'codex_chunks_processed')
 						->where('user_id', $userId)
 						->orderBy('updated_at', 'DESC')
@@ -78,7 +76,6 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					// MODIFIED: Using Eloquent select/where clauses [1]
 					$book = UserBook::select('id', 'title', 'source_language', 'target_language', 'codex_content', 'codex_status', 'codex_chunks_total', 'codex_chunks_processed')
 						->where('id', $bookId)
 						->where('user_id', $userId)
@@ -114,7 +111,6 @@
 				do {
 					$bookId = $args[0];
 					$content = $this->cleanCodexText((string)$args[1]);
-					// MODIFIED: Replaced raw update query with Eloquent model update [1]
 					UserBook::where('id', $bookId)
 						->where('user_id', $userId)
 						->update(['codex_content' => $content]);
@@ -146,7 +142,6 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					// MODIFIED: Replaced reset logic with Eloquent updates and deletes [1]
 					UserBook::where('id', $bookId)
 						->where('user_id', $userId)
 						->update([
@@ -187,7 +182,7 @@
 					$bookId = $args[0];
 					$options = $args[1] ?? [];
 					$forceRebuild = is_array($options) && !empty($options['rebuild']);
-					
+
 					if ($forceRebuild) {
 						UserBookCodexChunk::where('book_id', $bookId)->delete();
 						UserBook::where('id', $bookId)
@@ -200,7 +195,6 @@
 							]);
 					}
 
-					// MODIFIED: Using Eloquent selectRaw on chunks metadata [1]
 					$chunkStats = UserBookCodexChunk::selectRaw('COUNT(*) as total, SUM(is_processed) as processed')
 						->where('book_id', $bookId)
 						->first();
@@ -225,7 +219,6 @@
 							$result = ['status' => 'generating'];
 						}
 					} else {
-						// MODIFIED: Fetching chapters via standard Eloquent select and chunk formatting
 						$chapters = Chapter::select('source_content')->where('book_id', $bookId)->get();
 						$fullText = '';
 						foreach ($chapters as $c) {
@@ -293,11 +286,15 @@
 					$temperature = is_array($options) && isset($options['temperature'])
 						? max(0, min(2, (float)$options['temperature']))
 						: 0.5;
-					// MODIFIED: Refactored batch selection logic via standard Eloquent queries [1]
 					$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
 					if (!$book) {
 						throw new Exception('Book not found.');
 					}
+
+					// NEW: Read the codex language from options if passed, else fallback to target language
+					$codexLanguage = is_array($options) && !empty($options['codex_language'])
+						? (string)$options['codex_language']
+						: $book->target_language;
 
 					$chunk = UserBookCodexChunk::where('book_id', $bookId)
 						->where('is_processed', 0)
@@ -308,7 +305,8 @@
 						UserBook::where('id', $bookId)->update(['codex_status' => 'complete']);
 						$result = ['status' => 'complete'];
 					} else {
-						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$book->target_language}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
+						// MODIFIED: Inject the dynamic codex language variable into the prompt
+						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$codexLanguage}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
 						$userPrompt = "Existing codex content:\n" . ($book->codex_content ?? 'This is the beginning of the codex.') . "\n\nText chunk to analyze (in {$book->source_language}, limit 8000 words):\n{$chunk->chunk_text}";
 
 						$payload = [
@@ -336,10 +334,12 @@
 
 						UserBookCodexChunk::where('id', $chunk->id)->update(['is_processed' => 1]);
 
+						// MODIFIED: Return the live generated "codex_content" string to the client so it updates in real time
 						$result = [
 							'status' => 'generating',
 							'processed' => $book->codex_chunks_processed + 1,
-							'total' => $book->codex_chunks_total
+							'total' => $book->codex_chunks_total,
+							'codex_content' => $updatedCodexText
 						];
 					}
 					break;

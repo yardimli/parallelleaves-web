@@ -203,6 +203,8 @@
 
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>
+<!-- NEW: Link centralized modal operations module -->
+<script src="/src/js/modals.js"></script>
 <script type="module" src="/src/js/import-document.js"></script>
 </body>
 </html>
