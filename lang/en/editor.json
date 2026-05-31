@@ -121,6 +121,57 @@
   },
   "codex": {
     "openEditor": "Open Codex Editor",
+    "loadingBooks": "Loading books...",
+    "noBooksSynced": "You have not synced any books yet.",
+    "booksTable": {
+      "title": "Title",
+      "languages": "Languages",
+      "status": "Codex Status",
+      "actions": "Actions",
+      "editCodex": "Edit Codex",
+      "rebuild": "Rebuild",
+      "reset": "Reset"
+    },
+    "editor": {
+      "loadingDetails": "Loading details...",
+      "back": "Back",
+      "backToDashboard": "Back to Dashboard",
+      "editingFor": "Editing Codex for: {title}",
+      "model": "Model",
+      "temperature": "Temperature",
+      "language": "Codex Language",
+      "source": "Source",
+      "target": "Target",
+      "both": "Both",
+      "rebuildBtn": "Rebuild Codex",
+      "generating": "Generating Codex...",
+      "plainTextLabel": "Codex Plain Text Content",
+      "saveBtn": "Save Codex"
+    },
+    "statusLabel": {
+      "complete": "Complete",
+      "incomplete": "Incomplete ({processed}/{total})",
+      "incomplete_none": "Incomplete",
+      "error": "Error"
+    },
+    "messages": {
+      "savedSuccess": "Codex updated successfully!",
+      "savedTitle": "Saved",
+      "saveFailed": "Error saving codex: {message}",
+      "saveFailedTitle": "Save Failed",
+      "resetConfirm": "Are you sure you want to reset the codex for this book? All content will be deleted.",
+      "resetTitle": "Reset Codex",
+      "resetFailed": "Error resetting codex: {message}",
+      "resetFailedTitle": "Reset Failed",
+      "partialFound": "A partially generated codex was found. Do you want to resume the existing generation or start fresh?",
+      "partialTitle": "Resume or Rebuild Codex",
+      "startFresh": "Start Fresh (Rebuild)",
+      "resumeBtn": "Resume Generation",
+      "rebuildConfirm": "Rebuild this codex from the source manuscript? Existing codex content will be replaced.",
+      "rebuildTitle": "Rebuild Codex",
+      "generationFailed": "Error rebuilding codex: {message}",
+      "generationFailedTitle": "Generation Failed"
+    },
     "status": {
       "checking": "Checking status...",
       "preparing": "Preparing content...",

@@ -1,15 +1,32 @@
-import {initI18n} from './i18n.js';
+// MODIFIED: Added applyTranslationsTo to i18n module imports
+import { initI18n, t, applyTranslationsTo } from './i18n.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
+	// MODIFIED: Invoked applyTranslationsTo on document body to process static DOM nodes
+	applyTranslationsTo(document.body);
 	
-	const container = document.getElementById('codex-container');
 	const urlBookId = window.routeParams?.bookId || null;
 	const modelData = window.initialModels?.models || [];
 	const defaultModel = localStorage.getItem('parallel-leaves-codex-model') || 'openai/gpt-5.4';
 	const defaultTemperature = localStorage.getItem('parallel-leaves-codex-temperature') || '0.5';
 	let activeBook = null;
 	let isGenerating = false;
+	
+	// DOM elements
+	const loadingTextEl = document.getElementById('codex-loading-text');
+	const editorViewEl = document.getElementById('codex-editor-view');
+	const statusEl = document.getElementById('codex-generation-status');
+	const titleEl = document.getElementById('codex-title');
+	const modelSelectEl = document.getElementById('codex-model-select');
+	const languageSelectEl = document.getElementById('codex-language-select');
+	const temperatureInputEl = document.getElementById('codex-temperature-input');
+	const rebuildBtnEl = document.getElementById('codex-rebuild-btn');
+	const progressContainerEl = document.getElementById('codex-progress-container');
+	const progressBarEl = document.getElementById('codex-progress-bar');
+	const progressPercentEl = document.getElementById('codex-progress-percent');
+	const textareaEl = document.getElementById('codex-textarea');
+	const saveBtnEl = document.getElementById('codex-save-btn');
 	
 	const escapeHtml = (value) => String(value ?? '')
 		.replace(/&/g, '&amp;')
@@ -18,200 +35,114 @@ document.addEventListener('DOMContentLoaded', async () => {
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#039;');
 	
-	function statusLabel(book) {
+	// MODIFIED: Configured status parsing to accurately return translation lookups
+	function statusLabel (book) {
 		const status = book?.codex_status || 'none';
-		if (status === 'complete') return 'Complete';
+		if (status === 'complete') return t('editor.codex.statusLabel.complete');
 		if (status === 'generating' && Number(book?.codex_chunks_total || 0) > 0) {
-			return `Incomplete (${Number(book.codex_chunks_processed || 0)}/${Number(book.codex_chunks_total || 0)})`;
+			return t('editor.codex.statusLabel.incomplete', {
+				processed: Number(book.codex_chunks_processed || 0),
+				total: Number(book.codex_chunks_total || 0)
+			});
 		}
-		if (status === 'error') return 'Error';
-		return 'Incomplete';
+		if (status === 'error') return t('editor.codex.statusLabel.error');
+		return t('editor.codex.statusLabel.incomplete_none');
 	}
 	
-	function modelOptionsHtml(selectedModel = defaultModel) {
+	function modelOptionsHtml (selectedModel = defaultModel) {
 		return modelData.map(group => `
-			<optgroup label="${escapeHtml(group.group)}">
-				${group.models.map(model => `
-					<option value="${escapeHtml(model.id)}" ${model.id === selectedModel ? 'selected' : ''}>${escapeHtml(model.name)}</option>
-				`).join('')}
-			</optgroup>
-		`).join('');
+      <optgroup label="${escapeHtml(group.group)}">
+        ${group.models.map(model => `
+          <option value="${escapeHtml(model.id)}" ${model.id === selectedModel ? 'selected' : ''}>${escapeHtml(model.name)}</option>
+        `).join('')}
+      </optgroup>
+    `).join('');
 	}
 	
-	async function loadList() {
-		container.innerHTML = '<p>Loading books...</p>';
-		try {
-			const books = await window.api.getCodexBooks();
-			if (!books || books.length === 0) {
-				container.innerHTML = '<p>You have not synced any books yet.</p>';
-				return;
-			}
-			
-			container.innerHTML = `
-				<table class="table w-full">
-					<thead>
-					<tr>
-						<th>Title</th>
-						<th>Languages</th>
-						<th>Codex Status</th>
-						<th>Actions</th>
-					</tr>
-					</thead>
-					<tbody>
-					${books.map(book => `
-						<tr>
-							<td>
-								<div class="font-bold">${escapeHtml(book.title)}</div>
-								<div class="text-sm opacity-50">${escapeHtml(book.author || 'Unknown Author')}</div>
-							</td>
-							<td>
-								<span class="badge badge-ghost">${escapeHtml(book.source_language)}</span>
-								<span>→</span>
-								<span class="badge badge-ghost">${escapeHtml(book.target_language)}</span>
-							</td>
-							<td><span class="badge ${book.codex_status === 'complete' ? 'badge-success' : 'badge-warning'}">${escapeHtml(statusLabel(book))}</span></td>
-							<td class="flex gap-2">
-								<button class="btn btn-sm btn-primary js-edit-codex" data-book-id="${book.id}">Edit Codex</button>
-								<button class="btn btn-sm btn-outline btn-warning js-rebuild-codex" data-book-id="${book.id}">Rebuild</button>
-								<button class="btn btn-sm btn-outline btn-error js-reset-codex" data-book-id="${book.id}" ${book.codex_status === 'none' ? 'disabled' : ''}>Reset</button>
-							</td>
-						</tr>
-					`).join('')}
-					</tbody>
-				</table>
-			`;
-			
-			container.querySelectorAll('.js-edit-codex').forEach(button => {
-				button.addEventListener('click', () => editCodex(button.dataset.bookId));
-			});
-			container.querySelectorAll('.js-rebuild-codex').forEach(button => {
-				button.addEventListener('click', () => editCodex(button.dataset.bookId));
-			});
-			container.querySelectorAll('.js-reset-codex').forEach(button => {
-				button.addEventListener('click', () => resetCodex(button.dataset.bookId));
-			});
-		} catch (error) {
-			container.innerHTML = `<p class="text-error">Error: ${escapeHtml(error.message)}</p>`;
+	async function editCodex (bookId) {
+		if (loadingTextEl) {
+			loadingTextEl.classList.remove('hidden');
+			loadingTextEl.textContent = t('editor.codex.editor.loadingDetails');
 		}
-	}
-	
-	async function editCodex(bookId) {
-		container.innerHTML = '<p>Loading details...</p>';
+		if (editorViewEl) {
+			editorViewEl.classList.add('hidden');
+		}
+		
 		try {
 			const book = await window.api.getCodexDetails(bookId);
 			if (!book) throw new Error('Book not found.');
 			activeBook = book;
 			
-			const backActionLabel = urlBookId ? 'Back to Dashboard' : 'Back';
+			if (loadingTextEl) loadingTextEl.classList.add('hidden');
+			if (editorViewEl) {
+				editorViewEl.classList.remove('hidden');
+				// MODIFIED: Processes newly visible container to map contextual translations
+				applyTranslationsTo(editorViewEl);
+			}
 			
-			// MODIFIED: Added Codex Language dropdown option set & integrated hidden progressbar template markup
-			container.innerHTML = `
-				<div class="mb-4 flex items-center justify-between gap-3">
-					<button id="codex-back-btn" class="btn btn-sm btn-outline">← ${backActionLabel}</button>
-					<span id="codex-generation-status" class="text-sm text-base-content/70">${escapeHtml(statusLabel(book))}</span>
-				</div>
-				<h2 class="text-2xl font-semibold mb-4">Editing Codex for: <span class="italic">${escapeHtml(book.title)}</span></h2>
-				<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3 mb-4 items-end">
-					<label class="form-control">
-						<span class="label-text">Model</span>
-						<select id="codex-model-select" class="select select-bordered">
-							${modelOptionsHtml(defaultModel)}
-						</select>
-					</label>
-					<label class="form-control w-52">
-						<span class="label-text">Codex Language</span>
-						<select id="codex-language-select" class="select select-bordered">
-							<option value="${escapeHtml(book.source_language)}">Source (${escapeHtml(book.source_language)})</option>
-							<option value="${escapeHtml(book.target_language)}" selected>Target (${escapeHtml(book.target_language)})</option>
-						</select>
-					</label>
-					<label class="form-control w-40">
-						<span class="label-text">Temperature</span>
-						<input id="codex-temperature-input" type="number" min="0" max="2" step="0.1" class="input input-bordered" value="${escapeHtml(defaultTemperature)}">
-					</label>
-					<button id="codex-rebuild-btn" class="btn btn-warning">Rebuild Codex</button>
-				</div>
-				
-				<!-- NEW: Progressbar template container -->
-				<div id="codex-progress-container" class="hidden mb-4 space-y-1">
-					<div class="flex justify-between text-xs font-semibold text-base-content/70">
-						<span>Generating Codex...</span>
-						<span id="codex-progress-percent">0%</span>
-					</div>
-					<progress id="codex-progress-bar" class="progress progress-primary w-full" value="0" max="100"></progress>
-				</div>
-
-				<div class="form-control">
-					<label class="label"><span class="label-text">Codex Plain Text Content</span></label>
-					<textarea id="codex-textarea" class="textarea textarea-bordered w-full h-96 font-mono">${escapeHtml(book.codex_content || '')}</textarea>
-				</div>
-				<div class="form-control mt-6">
-					<button id="codex-save-btn" class="btn btn-success">Save Codex</button>
-				</div>
-			`;
+			// Set dynamic context headers
+			if (statusEl) statusEl.textContent = statusLabel(book);
+			if (titleEl) titleEl.textContent = t('editor.codex.editor.editingFor', { title: book.title });
 			
-			document.getElementById('codex-back-btn').addEventListener('click', () => {
-				if (urlBookId) {
-					window.location.href = '/dashboard';
-				} else {
-					loadList();
-				}
-			});
-			document.getElementById('codex-save-btn').addEventListener('click', () => saveCodex(book.id));
-			document.getElementById('codex-rebuild-btn').addEventListener('click', () => rebuildCodex(book.id));
+			if (modelSelectEl) {
+				modelSelectEl.innerHTML = modelOptionsHtml(defaultModel);
+			}
+			
+			if (languageSelectEl) {
+				languageSelectEl.innerHTML = `
+          <option value="${escapeHtml(book.source_language)}">${escapeHtml(t('editor.codex.editor.source'))} (${escapeHtml(book.source_language)})</option>
+          <option value="${escapeHtml(book.target_language)}" selected>${escapeHtml(t('editor.codex.editor.target'))} (${escapeHtml(book.target_language)})</option>
+          <option value="both">${escapeHtml(t('editor.codex.editor.both'))} (${escapeHtml(book.source_language)} &amp; ${escapeHtml(book.target_language)})</option>
+        `;
+			}
+			
+			if (temperatureInputEl) {
+				temperatureInputEl.value = defaultTemperature;
+			}
+			
+			if (textareaEl) {
+				textareaEl.value = book.codex_content || '';
+			}
+			
+			// Re-bind click event triggers to prevent duplication
+			const newSaveBtn = saveBtnEl.cloneNode(true);
+			saveBtnEl.parentNode.replaceChild(newSaveBtn, saveBtnEl);
+			newSaveBtn.addEventListener('click', () => saveCodex(book.id));
+			
+			const newRebuildBtn = rebuildBtnEl.cloneNode(true);
+			rebuildBtnEl.parentNode.replaceChild(newRebuildBtn, rebuildBtnEl);
+			newRebuildBtn.addEventListener('click', () => rebuildCodex(book.id));
+			
 		} catch (error) {
-			container.innerHTML = `<p class="text-error">Error: ${escapeHtml(error.message)}</p>`;
+			if (loadingTextEl) {
+				loadingTextEl.classList.remove('hidden');
+				loadingTextEl.innerHTML = `<span class="text-error">Error: ${escapeHtml(error.message)}</span>`;
+			}
 		}
 	}
 	
-	function getGenerationOptions(rebuild = false) {
-		const modelSelect = document.getElementById('codex-model-select');
-		const temperatureInput = document.getElementById('codex-temperature-input');
-		const languageSelect = document.getElementById('codex-language-select');
-		
-		const model = modelSelect?.value || defaultModel;
-		const temperature = Number(temperatureInput?.value || defaultTemperature);
-		const codex_language = languageSelect?.value || activeBook?.target_language;
+	function getGenerationOptions (rebuild = false) {
+		const model = modelSelectEl?.value || defaultModel;
+		const temperature = Number(temperatureInputEl?.value || defaultTemperature);
+		const codex_language = languageSelectEl?.value || activeBook?.target_language;
 		
 		localStorage.setItem('parallel-leaves-codex-model', model);
 		localStorage.setItem('parallel-leaves-codex-temperature', String(temperature));
 		
-		return {model, temperature, rebuild, codex_language};
+		return { model, temperature, rebuild, codex_language };
 	}
 	
-	async function saveCodex(bookId) {
-		const content = document.getElementById('codex-textarea').value;
+	async function saveCodex (bookId) {
+		const content = textareaEl.value;
 		try {
 			await window.api.saveCodex(bookId, content);
-			window.showAlertModal('Codex updated successfully!', 'Saved');
+			window.showAlertModal(t('editor.codex.messages.savedSuccess'), t('editor.codex.messages.savedTitle'));
 		} catch (error) {
-			window.showAlertModal('Error saving codex: ' + error.message, 'Save Failed');
+			window.showAlertModal(t('editor.codex.messages.saveFailed', { message: error.message }), t('editor.codex.messages.saveFailedTitle'));
 		}
 	}
 	
-	async function resetCodex(bookId) {
-		// MODIFIED: Substituted standard window confirm with showConfirmationModal
-		const choice = await window.showConfirmationModal(
-			'Are you sure you want to reset the codex for this book? All content will be deleted.',
-			'Reset Codex'
-		);
-		if (choice !== 'confirm') {
-			return;
-		}
-		
-		try {
-			await window.api.resetCodex(bookId);
-			if (urlBookId || activeBook?.id == bookId) {
-				await editCodex(bookId);
-			} else {
-				await loadList();
-			}
-		} catch (error) {
-			window.showAlertModal('Error resetting codex: ' + error.message, 'Reset Failed');
-		}
-	}
-	
-	async function rebuildCodex(bookId) {
+	async function rebuildCodex (bookId) {
 		if (isGenerating) return;
 		
 		const processed = Number(activeBook?.codex_chunks_processed || 0);
@@ -220,31 +151,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		let rebuild = true;
 		
-		// NEW: Ask to resume or rebuild if codex is partially built
 		if (isPartial) {
 			const choice = await window.showConfirmationModal(
-				'A partially generated codex was found. Do you want to resume the existing generation or start fresh?',
-				'Resume or Rebuild Codex',
+				t('editor.codex.messages.partialFound'),
+				t('editor.codex.messages.partialTitle'),
 				{
-					confirmText: 'Start Fresh (Rebuild)',
-					cancelText: 'Cancel',
+					confirmText: t('editor.codex.messages.startFresh'),
+					cancelText: t('common.cancel'),
 					showExtra: true,
-					extraText: 'Resume Generation',
+					extraText: t('editor.codex.messages.resumeBtn'),
 					extraClass: 'btn btn-primary flex-1'
 				}
 			);
 			
 			if (choice === 'extra') {
-				rebuild = false; // Resume
+				rebuild = false;
 			} else if (choice === 'confirm') {
-				rebuild = true; // Start fresh / Rebuild
+				rebuild = true;
 			} else {
-				return; // Cancel
+				return;
 			}
 		} else {
 			const choice = await window.showConfirmationModal(
-				'Rebuild this codex from the source manuscript? Existing codex content will be replaced.',
-				'Rebuild Codex'
+				t('editor.codex.messages.rebuildConfirm'),
+				t('editor.codex.messages.rebuildTitle')
 			);
 			if (choice !== 'confirm') {
 				return;
@@ -253,26 +183,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 		
 		isGenerating = true;
-		const statusEl = document.getElementById('codex-generation-status');
-		const rebuildBtn = document.getElementById('codex-rebuild-btn');
-		const saveBtn = document.getElementById('codex-save-btn');
-		const textarea = document.getElementById('codex-textarea');
-		const progressContainer = document.getElementById('codex-progress-container');
-		const progressBar = document.getElementById('codex-progress-bar');
-		const progressPercent = document.getElementById('codex-progress-percent');
 		
-		if (rebuildBtn) rebuildBtn.disabled = true;
-		if (saveBtn) saveBtn.disabled = true;
-		if (textarea) textarea.readOnly = true; // Make editor read-only during compilation
-		if (progressContainer) progressContainer.classList.remove('hidden');
+		const currentRebuildBtn = document.getElementById('codex-rebuild-btn');
+		const currentSaveBtn = document.getElementById('codex-save-btn');
+		
+		if (currentRebuildBtn) currentRebuildBtn.disabled = true;
+		if (currentSaveBtn) currentSaveBtn.disabled = true;
+		if (textareaEl) textareaEl.readOnly = true;
+		if (progressContainerEl) progressContainerEl.classList.remove('hidden');
 		
 		try {
 			const options = getGenerationOptions(rebuild);
-			let start = await window.api.startCodex(bookId, options);
+			const start = await window.api.startCodex(bookId, options);
 			if (start.status === 'complete') {
-				if (statusEl) statusEl.textContent = 'Complete';
-				if (progressBar) progressBar.value = 100;
-				if (progressPercent) progressPercent.textContent = '100%';
+				if (statusEl) statusEl.textContent = t('editor.codex.statusLabel.complete');
+				if (progressBarEl) progressBarEl.value = 100;
+				if (progressPercentEl) progressPercentEl.textContent = '100%';
 				await editCodex(bookId);
 				return;
 			}
@@ -280,18 +206,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 			while (true) {
 				const status = await window.api.processCodexBatch(bookId, options);
 				
-				// MODIFIED: Realtime progress bar updating logic
 				const currentPercent = status.total > 0 ? Math.round((status.processed / status.total) * 100) : 0;
-				if (progressBar) progressBar.value = currentPercent;
-				if (progressPercent) progressPercent.textContent = `${currentPercent}%`;
+				if (progressBarEl) progressBarEl.value = currentPercent;
+				if (progressPercentEl) progressPercentEl.textContent = `${currentPercent}%`;
 				
-				// MODIFIED: Live textarea stream updates during building process
-				if (status.codex_content && textarea) {
-					textarea.value = status.codex_content;
+				if (status.codex_content && textareaEl) {
+					textareaEl.value = status.codex_content;
 				}
 				
 				if (status.status === 'complete') {
-					if (statusEl) statusEl.textContent = 'Complete';
+					if (statusEl) statusEl.textContent = t('editor.codex.statusLabel.complete');
 					break;
 				}
 				if (status.status === 'error') {
@@ -306,19 +230,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 			await editCodex(bookId);
 		} catch (error) {
 			if (statusEl) statusEl.textContent = 'Error: ' + error.message;
-			window.showAlertModal('Error rebuilding codex: ' + error.message, 'Generation Failed');
+			window.showAlertModal(t('editor.codex.messages.generationFailed', { message: error.message }), t('editor.codex.messages.generationFailedTitle'));
 		} finally {
 			isGenerating = false;
-			if (rebuildBtn) rebuildBtn.disabled = false;
-			if (saveBtn) saveBtn.disabled = false;
-			if (textarea) textarea.readOnly = false;
-			if (progressContainer) progressContainer.classList.add('hidden');
+			const finalRebuildBtn = document.getElementById('codex-rebuild-btn');
+			const finalSaveBtn = document.getElementById('codex-save-btn');
+			
+			if (finalRebuildBtn) finalRebuildBtn.disabled = false;
+			if (finalSaveBtn) finalSaveBtn.disabled = false;
+			if (textareaEl) textareaEl.readOnly = false;
+			if (progressContainerEl) progressContainerEl.classList.add('hidden');
 		}
 	}
 	
 	if (urlBookId) {
 		editCodex(urlBookId);
 	} else {
-		loadList();
+		window.location.href = '/dashboard';
 	}
 });

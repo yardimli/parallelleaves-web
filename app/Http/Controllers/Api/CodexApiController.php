@@ -9,6 +9,7 @@
 	use Illuminate\Support\Facades\Auth;
 	use Illuminate\Support\Facades\DB;
 	use App\Models\UserBook;
+	use App\Models\Chapter;
 	use App\Models\UserBookCodexChunk;
 	use Throwable;
 
@@ -291,10 +292,16 @@
 						throw new Exception('Book not found.');
 					}
 
-					// NEW: Read the codex language from options if passed, else fallback to target language
 					$codexLanguage = is_array($options) && !empty($options['codex_language'])
 						? (string)$options['codex_language']
 						: $book->target_language;
+
+					// NEW: If "both" is selected, configure the target instructions to demand both languages.
+					if ($codexLanguage === 'both') {
+						$langInstruction = "both {$book->source_language} and {$book->target_language}";
+					} else {
+						$langInstruction = $codexLanguage;
+					}
 
 					$chunk = UserBookCodexChunk::where('book_id', $bookId)
 						->where('is_processed', 0)
@@ -305,8 +312,8 @@
 						UserBook::where('id', $bookId)->update(['codex_status' => 'complete']);
 						$result = ['status' => 'complete'];
 					} else {
-						// MODIFIED: Inject the dynamic codex language variable into the prompt
-						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$codexLanguage}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
+						// MODIFIED: Injected $langInstruction variables into the output formatting constraints
+						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$langInstruction}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
 						$userPrompt = "Existing codex content:\n" . ($book->codex_content ?? 'This is the beginning of the codex.') . "\n\nText chunk to analyze (in {$book->source_language}, limit 8000 words):\n{$chunk->chunk_text}";
 
 						$payload = [
@@ -334,7 +341,6 @@
 
 						UserBookCodexChunk::where('id', $chunk->id)->update(['is_processed' => 1]);
 
-						// MODIFIED: Return the live generated "codex_content" string to the client so it updates in real time
 						$result = [
 							'status' => 'generating',
 							'processed' => $book->codex_chunks_processed + 1,
