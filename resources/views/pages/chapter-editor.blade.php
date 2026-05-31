@@ -147,12 +147,12 @@
 		</button>
 		<!-- MODIFIED: Added Codex Editor Link opening in a new tab -->
 		<a id="js-toolbar-codex-btn" href="#" target="_blank" class="btn btn-ghost btn-sm btn-square"
-		   data-i18n-title="dashboard.codexEditor" title="Codex Editor">
+		   data-i18n-title="editor.codex.openEditor" title="Codex Editor">
 			<i class="bi bi-journal-bookmark-fill text-lg"></i>
 		</a>
 		<!-- MODIFIED: Added Translation Memory Link opening in a new tab -->
 		<a id="js-toolbar-tm-btn" href="#" target="_blank" class="btn btn-ghost btn-sm btn-square"
-		   data-i18n-title="dashboard.translationMemory" title="Translation Memory">
+		   data-i18n-title="editor.translationMemory.openEditor" title="Translation Memory">
 			<i class="bi bi-book-fill text-lg"></i>
 		</a>
 	</div>
@@ -321,7 +321,71 @@
 	</div>
 </div>
 
-<div id="modal-placeholders"></div>
+<div id="modal-placeholders">
+	@php echo file_get_contents(resource_path('legacy/templates/modals/prompt-editor-modal.blade.php')); @endphp
+	@php echo file_get_contents(resource_path('legacy/templates/modals/alert-modal.blade.php')); @endphp
+	@php echo file_get_contents(resource_path('legacy/templates/modals/typography-settings-modal.blade.php')); @endphp
+	@php echo file_get_contents(resource_path('legacy/templates/modals/dictionary-modal.blade.php')); @endphp
+	@php echo file_get_contents(resource_path('legacy/templates/modals/confirmation-modal.blade.php')); @endphp
+	@php echo file_get_contents(resource_path('legacy/templates/modals/input-modal.blade.php')); @endphp
+</div>
+
+<template id="template-prompt-rephrase-editor">
+	@php echo file_get_contents(resource_path('legacy/templates/prompt/rephrase-editor.blade.php')); @endphp
+</template>
+
+<template id="template-prompt-translate-editor">
+	@php echo file_get_contents(resource_path('legacy/templates/prompt/translate-editor.blade.php')); @endphp
+</template>
+
+<template id="template-editor-source-chapter">
+@verbatim
+<div id="source-chapter-scroll-target-{{id}}" class="manuscript-chapter-item px-8 py-6" data-chapter-id="{{id}}">
+	<div class="js-source-column prose prose-sm dark:prose-invert max-w-none bg-base-200 p-4 rounded-lg">
+		<div class="flex justify-between items-center border-b pb-1 mb-2">
+			<div class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow" data-chapter-id="{{id}}" data-direction="source-to-target" data-i18n-title="editor.syncScrollSourceToTarget">
+				<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}} (<span class="js-source-word-count">{{source_word_count}} <span data-i18n="common.words">words</span></span>)</h3>
+				<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-right-circle"></i></span>
+			</div>
+			<div class="js-source-actions flex items-center gap-1 pl-2">
+				<button class="js-edit-source-btn btn btn-ghost btn-xs" data-i18n="common.edit">Edit</button>
+				<button class="js-save-source-btn btn btn-success btn-xs hidden" data-i18n="common.save">Save</button>
+				<button class="js-cancel-source-btn btn btn-ghost btn-xs hidden" data-i18n="common.cancel">Cancel</button>
+				<div class="dropdown dropdown-end">
+					<button tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle"><i class="bi bi-three-dots-vertical"></i></button>
+					<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
+						<li><button class="js-chapter-action" data-action="rename" data-chapter-id="{{id}}" data-i18n="editor.renameChapter">Rename Chapter</button></li>
+						<li><button class="js-chapter-action" data-action="insert-above" data-chapter-id="{{id}}" data-i18n="editor.insertChapterAbove">Insert Chapter Above</button></li>
+						<li><button class="js-chapter-action" data-action="insert-below" data-chapter-id="{{id}}" data-i18n="editor.insertChapterBelow">Insert Chapter Below</button></li>
+						<div class="divider my-1"></div>
+						<li><button class="js-chapter-action text-error" data-action="delete" data-chapter-id="{{id}}" data-i18n="editor.deleteChapter">Delete Chapter</button></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="source-content-readonly" spellcheck="false">{{source_content}}</div>
+	</div>
+</div>
+@endverbatim
+</template>
+
+<template id="template-editor-target-chapter">
+@verbatim
+<div id="target-chapter-scroll-target-{{id}}" class="px-8 py-6" data-chapter-id="{{id}}">
+	<div class="flex justify-between items-center border-b pb-1 mb-2 pt-4">
+		<div
+			class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow"
+			data-chapter-id="{{id}}" data-direction="target-to-source" data-i18n-title="editor.syncScrollTargetToSource">
+			<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}} (<span
+					class="js-target-word-count">{{target_word_count}} <span data-i18n="common.words">words</span></span>)</h3>
+			<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
+		</div>
+	</div>
+	<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="/editor-iframe"
+	        data-chapter-id="{{id}}"></iframe>
+</div>
+@endverbatim
+</template>
 
 <!-- NEW: Pass route parameters to frontend JS -->
 <script>
