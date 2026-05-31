@@ -1,4 +1,4 @@
-import {t} from '../i18n.js';
+import {t} from './i18n.js';
 
 /**
  * Shows a confirmation modal and returns a promise that resolves with true, false, or 'decline'.

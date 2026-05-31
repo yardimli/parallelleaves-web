@@ -8,7 +8,7 @@ import {
 import {initI18n, t, applyTranslationsTo} from '../i18n.js';
 import {processSourceContentForMarkers} from '../../utils/html-processing.js';
 import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
-import {showConfirmationModal, showInputModal} from './modals.js';
+import {showConfirmationModal, showInputModal} from '../modals.js';
 import {
 	syncChapterScroll,
 	scrollToChapter,
