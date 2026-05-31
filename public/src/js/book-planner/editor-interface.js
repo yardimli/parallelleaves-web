@@ -54,7 +54,11 @@ export const createIframeEditorInterface = (contentWindow) => {
 			const listener = (event) => {
 				if (event.source === contentWindow && event.data.type === 'replacementComplete') {
 					window.removeEventListener('message', listener);
-					resolve({finalRange: event.data.payload.finalRange, endCoords: event.data.payload.endCoords});
+					resolve({
+						finalRange: event.data.payload.finalRange,
+						endCoords: event.data.payload.endCoords,
+						suggestionRect: event.data.payload.suggestionRect
+					});
 				}
 			};
 			window.addEventListener('message', listener);

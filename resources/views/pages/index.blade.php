@@ -126,6 +126,18 @@
 						</div>
 					</div>
 					
+					@if(($book['codex_status'] ?? 'none') !== 'complete')
+						@php
+							$codexStatus = $book['codex_status'] ?? 'none';
+							$codexProcessed = (int)($book['codex_chunks_processed'] ?? 0);
+							$codexTotal = (int)($book['codex_chunks_total'] ?? 0);
+							$codexText = $codexStatus === 'generating' && $codexTotal > 0
+								? 'Codex incomplete (' . $codexProcessed . '/' . $codexTotal . ')'
+								: 'Codex incomplete';
+						@endphp
+						<div class="text-xs text-warning font-medium mt-2 js-codex-status">{{ $codexText }}</div>
+					@endif
+					
 					<div class="card-actions start items-center mt-4">
 						<button class="btn btn-primary btn-sm js-open-editor" title="{{ $tr('dashboard.card.openEditor', '') }}">
 							<i class="bi bi-pencil"></i>

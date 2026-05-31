@@ -116,6 +116,10 @@
 		        title="{{ $tr('editor.openChat', '') }}">
 			<i class="bi bi-chat-dots text-lg"></i>
 		</button>
+		<button type="button" id="js-google-search-btn" class="btn btn-ghost btn-sm btn-square"
+		        title="{{ $tr('editor.googleSearch', 'Search selected text on Google') }}" disabled>
+			<i class="bi bi-google text-lg"></i>
+		</button>
 	</div>
 	<div class="divider divider-horizontal mx-0"></div>
 	<div class="flex items-center gap-1">
@@ -316,6 +320,20 @@
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/confirmation-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/input-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 </div>
+
+<dialog id="chat-dialog" class="modal">
+	<div class="modal-box w-11/12 max-w-5xl h-[88vh] p-0 flex flex-col overflow-hidden">
+		<div class="flex items-center justify-between px-4 py-3 border-b border-base-300">
+			<h3 class="font-bold text-lg">{{ $tr('editor.chat.title', 'AI Chat') }}</h3>
+			<form method="dialog">
+				<button class="btn btn-sm btn-circle btn-ghost" title="{{ $tr('common.close', 'Close') }}">
+					<i class="bi bi-x-lg"></i>
+				</button>
+			</form>
+		</div>
+		<iframe id="chat-dialog-frame" class="flex-grow w-full border-0" src="about:blank"></iframe>
+	</div>
+</dialog>
 
 <template id="template-prompt-rephrase-editor">
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/prompt/rephrase-editor.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp

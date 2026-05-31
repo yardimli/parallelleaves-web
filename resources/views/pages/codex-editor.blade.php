@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $selectedLang ?? 'en' }}">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,6 +23,12 @@
 	window.routeParams = {
 		bookId: @json($bookId ?? null)
 	};
+	window.appSelectedLanguage = @json($selectedLang ?? 'en');
+	window.initialLanguageFiles = {
+		en: @json($englishTranslations ?? []),
+		[@json($selectedLang ?? 'en')]: @json($translations ?? [])
+	};
+	window.initialModels = @json($modelsData ?? ['success' => true, 'models' => []]);
 </script>
 <script src="/js/api.js"></script>
 <script src="/src/js/theme.js"></script>

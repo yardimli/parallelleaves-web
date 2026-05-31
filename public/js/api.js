@@ -220,15 +220,15 @@ window.api = {
 	},
 	
 	codex: {
-		startGeneration: async (bookId) => {
+		startGeneration: async (bookId, options = {}) => {
 			try {
-				const res = await rpcInvoke('codex:start', bookId);
+				const res = await rpcInvoke('codex:start', bookId, options);
 				if (res.status === 'complete') {
 					if (codexFinishedCb) codexFinishedCb({}, {status: 'complete'});
 					return;
 				}
 				const processNext = async () => {
-					const status = await rpcInvoke('codex:process-batch', bookId);
+					const status = await rpcInvoke('codex:process-batch', bookId, options);
 					if (codexUpdateCb) codexUpdateCb({}, {
 						statusKey: 'editor.codex.status.generating',
 						progress: status.processed,
@@ -355,5 +355,7 @@ window.api = {
 	getCodexBooks: () => rpcInvoke('codex:getAll'),
 	getCodexDetails: (bookId) => rpcInvoke('codex:getDetails', bookId),
 	saveCodex: (bookId, content) => rpcInvoke('codex:save', bookId, content),
-	resetCodex: (bookId) => rpcInvoke('codex:reset', bookId)
+	resetCodex: (bookId) => rpcInvoke('codex:reset', bookId),
+	startCodex: (bookId, options = {}) => rpcInvoke('codex:start', bookId, options),
+	processCodexBatch: (bookId, options = {}) => rpcInvoke('codex:process-batch', bookId, options)
 };

@@ -253,7 +253,34 @@ async function handleFloatyRetry() {
 	openPromptEditor(contextForRetry, actionToRetry, previousFormData);
 }
 
-function createFloatingToolbar(from, to, model) {
+function positionFloatingToolbar(toolbarEl, replacementData) {
+	const iframeEl = currentContext?.activeEditorView?.frameElement;
+	const suggestionRect = replacementData?.suggestionRect;
+	if (!iframeEl || !suggestionRect) {
+		toolbarEl.style.left = '40%';
+		toolbarEl.style.top = '20%';
+		return;
+	}
+	
+	const iframeRect = iframeEl.getBoundingClientRect();
+	const toolbarRect = toolbarEl.getBoundingClientRect();
+	const margin = 8;
+	const absoluteTop = iframeRect.top + suggestionRect.top;
+	const absoluteBottom = iframeRect.top + suggestionRect.bottom;
+	const absoluteLeft = iframeRect.left + suggestionRect.left;
+	
+	const shouldPlaceBelow = absoluteTop - toolbarRect.height - margin < 0;
+	const top = shouldPlaceBelow ? absoluteBottom + margin : absoluteTop - toolbarRect.height - margin;
+	const left = Math.min(
+		window.innerWidth - toolbarRect.width - margin,
+		Math.max(margin, absoluteLeft)
+	);
+	
+	toolbarEl.style.left = `${left + window.scrollX}px`;
+	toolbarEl.style.top = `${top + window.scrollY}px`;
+}
+
+function createFloatingToolbar(from, to, model, replacementData = null) {
 	if (floatingToolbar) {
 		floatingToolbar.remove();
 	}
@@ -274,9 +301,7 @@ function createFloatingToolbar(from, to, model) {
 	floatingToolbar = toolbarEl;
 	
 	applyTranslationsTo(toolbarEl);
-	
-	toolbarEl.style.left = `40%`;
-	toolbarEl.style.top = `20%`;
+	positionFloatingToolbar(toolbarEl, replacementData);
 	
 	toolbarEl.addEventListener('mousedown', (e) => e.preventDefault());
 	toolbarEl.addEventListener('click', (e) => {
@@ -359,7 +384,7 @@ async function startAiAction(params) {
 			
 			if (replacementData) {
 				aiActionRange.to = replacementData.finalRange.to;
-				createFloatingToolbar(aiActionRange.from, aiActionRange.to, params.model);
+					createFloatingToolbar(aiActionRange.from, aiActionRange.to, params.model, replacementData);
 				
 				if (replacementData.finalRange) {
 					setTimeout(() => {

@@ -42,6 +42,7 @@ const debounce = (func, delay) => {
 let activeChapterId = null;
 const chapterEditorViews = new Map();
 let currentSourceSelection = {text: '', hasSelection: false, range: null};
+let currentTargetSelection = {text: '', hasSelection: false};
 let lastBroadcastedSourceSelectionState = false;
 let totalIframes = 0;
 let iframesReadyCount = 0;
@@ -51,6 +52,38 @@ let searchResultHandler = null; // Callback for search results from iframes.
 let searchReplaceResultHandler = null;
 let lastFocusedSourceEditor = null;
 let targetEditCount = 0;
+
+function getSearchableSelectionText() {
+	return (currentSourceSelection.text || currentTargetSelection.text || '').trim();
+}
+
+function updateGoogleSearchButton() {
+	const googleSearchBtn = document.getElementById('js-google-search-btn');
+	if (googleSearchBtn) {
+		googleSearchBtn.disabled = getSearchableSelectionText().length === 0;
+	}
+}
+
+function showCodexStatus(bookData) {
+	const codexStatusEl = document.getElementById('js-codex-status');
+	if (!codexStatusEl) return;
+	
+	const status = bookData.codex_status || 'none';
+	if (status === 'complete') {
+		codexStatusEl.textContent = '';
+		return;
+	}
+	
+	const processed = Number(bookData.codex_chunks_processed || 0);
+	const total = Number(bookData.codex_chunks_total || 0);
+	if (status === 'generating' && total > 0) {
+		codexStatusEl.textContent = `Codex: incomplete (${processed}/${total})`;
+	} else if (status === 'error') {
+		codexStatusEl.textContent = 'Codex: error';
+	} else {
+		codexStatusEl.textContent = 'Codex: incomplete';
+	}
+}
 
 // --- State Accessors and Mutators ---
 const getActiveEditor = () => activeEditor;
@@ -403,9 +436,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 	if (toolbarCodexBtn) {
 		toolbarCodexBtn.href = `/codex/${bookId}`;
 	}
-	if (toolbarTmBtn) {
-		toolbarTmBtn.href = `/translation-memory/${bookId}`;
-	}
+		if (toolbarTmBtn) {
+			toolbarTmBtn.href = `/translation-memory/${bookId}`;
+		}
+		
+		const chatDialog = document.getElementById('chat-dialog');
+		const chatFrame = document.getElementById('chat-dialog-frame');
+		document.getElementById('js-open-chat-btn')?.addEventListener('click', () => {
+			if (!chatDialog || !chatFrame) return;
+			if (chatFrame.src === 'about:blank' || !chatFrame.src.endsWith(`/chat/${bookId}`)) {
+				chatFrame.src = `/chat/${bookId}`;
+			}
+			chatDialog.showModal();
+		});
+		
+		const googleSearchBtn = document.getElementById('js-google-search-btn');
+		googleSearchBtn?.addEventListener('mousedown', (event) => event.preventDefault());
+		googleSearchBtn?.addEventListener('click', () => {
+			const selectedText = getSearchableSelectionText();
+			if (!selectedText) return;
+			window.open(`https://www.google.com/search?q=${encodeURIComponent(selectedText)}`, '_blank', 'noopener');
+		});
 	
 	try {
 		const bookData = await window.api.getFullManuscript(bookId);
@@ -413,6 +464,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		document.title = t('editor.translating', {title: bookData.title});
 		document.getElementById('js-book-title').textContent = bookData.title;
+		showCodexStatus(bookData);
 		
 		const totalTargetWords = bookData.chapters?.reduce((sum, ch) => sum + ch.target_word_count, 0) || 0;
 		document.getElementById('js-total-word-count').textContent = `${totalTargetWords.toLocaleString()} ${t('common.words')}`;
@@ -487,40 +539,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			initializeView(bookId, bookData, initialChapterId);
 		}
 		
-		document.getElementById('js-open-chat-btn')?.addEventListener('click', () => window.api.openChatWindow(bookId));
-		
 		const tmStatusEl = document.getElementById('js-tm-status');
-		const codexStatusEl = document.getElementById('js-codex-status');
-		
-		// Start background codex generation on load
-		window.api.codex.startGeneration(bookId);
-		
-		window.api.codex.onUpdate((event, {statusKey, progress, total}) => {
-			if (codexStatusEl) {
-				const message = t(statusKey, {progress, total});
-				codexStatusEl.textContent = `Codex: ${message}`;
-			}
-		});
-		
-		window.api.codex.onFinished((event, {status, message}) => {
-			if (codexStatusEl) {
-				let statusMessage = '';
-				if (status === 'complete') {
-					statusMessage = t('editor.codex.status.complete');
-				} else if (status === 'error') {
-					statusMessage = t('editor.codex.status.error', {message});
-				} else if (status === 'cancelled') {
-					statusMessage = t('editor.codex.status.cancelled');
-				}
-				codexStatusEl.textContent = `Codex: ${statusMessage}`;
-				
-				setTimeout(() => {
-					if (status === 'complete') {
-						codexStatusEl.textContent = `Codex: ${t('editor.codex.status.ready')}`;
-					}
-				}, 5000);
-			}
-		});
 		
 		let isTmUpdateRunning = false;
 		const runTmUpdate = async () => {
@@ -609,6 +628,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			
 			currentSourceSelection = {text: selectedText, hasSelection: hasSourceSelection, range: selectionRange};
+			if (hasSourceSelection) {
+				currentTargetSelection = {text: '', hasSelection: false};
+			}
+			updateGoogleSearchButton();
 			
 			if (hasSourceSelection !== lastBroadcastedSourceSelectionState) {
 				lastBroadcastedSourceSelectionState = hasSourceSelection;
@@ -729,6 +752,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 					setActiveEditor(sourceWindow);
 					setActiveContentWindow(sourceWindow);
 					updateToolbarState(payload.state);
+					currentTargetSelection = {
+						text: (payload.selectedText || payload.state?.selectionText || '').trim(),
+						hasSelection: Boolean((payload.selectedText || payload.state?.selectionText || '').trim())
+					};
+					if (currentTargetSelection.hasSelection) {
+						currentSourceSelection = {text: '', hasSelection: false, range: null};
+					}
+					updateGoogleSearchButton();
 					setActiveChapterId(payload.chapterId, (id) => {
 						document.getElementById('js-chapter-nav-dropdown').value = id;
 					});
@@ -743,6 +774,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 					break;
 				case 'stateUpdate':
 					if (getActiveEditor() === sourceWindow) updateToolbarState(payload.state);
+					currentTargetSelection = {
+						text: (payload.selectedText || payload.state?.selectionText || '').trim(),
+						hasSelection: Boolean((payload.selectedText || payload.state?.selectionText || '').trim())
+					};
+					if (currentTargetSelection.hasSelection) {
+						currentSourceSelection = {text: '', hasSelection: false, range: null};
+					}
+					updateGoogleSearchButton();
 					break;
 				case 'contentChanged':
 					debouncedContentSave(payload);

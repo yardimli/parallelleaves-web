@@ -261,6 +261,11 @@ const getToolbarState = (state) => {
 	};
 };
 
+const getSelectedText = (state) => {
+	const {from, to, empty} = state.selection;
+	return empty ? '' : state.doc.textBetween(from, to, ' ').trim();
+};
+
 /**
  * Creates and manages the floating translate button.
  * It appears next to an empty paragraph when there is a source selection.
@@ -326,7 +331,11 @@ function createEditorView(mount, config) {
 			editable: () => isEditable,
 			handleDOMEvents: {
 				focus(view) {
-					postToParent('editorFocused', {chapterId, state: getToolbarState(view.state)});
+					postToParent('editorFocused', {
+						chapterId,
+						state: getToolbarState(view.state),
+						selectedText: getSelectedText(view.state)
+					});
 				},
 				blur(view) {
 					// Use a timeout to allow a click on the floating button to register before it's removed
@@ -402,7 +411,11 @@ function createEditorView(mount, config) {
 			}
 			
 			if (transaction.selectionSet || transaction.docChanged) {
-				postToParent('stateUpdate', {chapterId, state: getToolbarState(this.state)});
+				postToParent('stateUpdate', {
+					chapterId,
+					state: getToolbarState(this.state),
+					selectedText: getSelectedText(this.state)
+				});
 			}
 			
 			if (transaction.docChanged) {
@@ -647,7 +660,20 @@ window.addEventListener('message', (event) => {
 			
 			const finalRange = {from, to: finalTo};
 			const endCoords = editorView.coordsAtPos(finalTo);
-			postToParent('replacementComplete', {finalRange: finalRange, endCoords: endCoords});
+			const suggestionEl = document.querySelector('.ai-suggestion');
+			const suggestionRect = suggestionEl ? suggestionEl.getBoundingClientRect() : null;
+			postToParent('replacementComplete', {
+				finalRange: finalRange,
+				endCoords: endCoords,
+				suggestionRect: suggestionRect ? {
+					top: suggestionRect.top,
+					right: suggestionRect.right,
+					bottom: suggestionRect.bottom,
+					left: suggestionRect.left,
+					width: suggestionRect.width,
+					height: suggestionRect.height
+				} : null
+			});
 			break;
 		}
 		

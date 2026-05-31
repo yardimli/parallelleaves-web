@@ -360,6 +360,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const coverHtml = book.cover_path
 				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', {title: book.title})}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
+			const codexStatusHtml = book.codex_status && book.codex_status !== 'complete'
+				? `<div class="text-xs text-warning font-medium mt-2 js-codex-status">${
+					book.codex_status === 'generating' && Number(book.codex_chunks_total || 0) > 0
+						? `Codex incomplete (${Number(book.codex_chunks_processed || 0)}/${Number(book.codex_chunks_total || 0)})`
+						: 'Codex incomplete'
+				}</div>`
+				: '';
 			
 			// MODIFIED: Removed prose translation button from card action menu
 			bookCard.innerHTML = `
@@ -403,6 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                              </div>
                         </div>
                     </div>
+                    ${codexStatusHtml}
                     
                     <div class="card-actions start items-center mt-4">
                         <button class="btn btn-primary btn-sm js-open-editor" data-i18n-title="dashboard.card.openEditor">

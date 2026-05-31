@@ -100,7 +100,7 @@
 // NEW: Specific method for codex editor page, passing parameters
 		public function codexEditor(?string $bookId = null): View
 		{
-			return view('pages.codex-editor', compact('bookId'));
+			return view('pages.codex-editor', PageData::viewData(compact('bookId')));
 		}
 
 // NEW: Specific method for editor iframe page

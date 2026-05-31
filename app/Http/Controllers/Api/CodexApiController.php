@@ -17,6 +17,19 @@
 
 	class CodexApiController extends Controller
 	{
+		private function cleanCodexText(string $text): string
+		{
+			$text = trim($text);
+			do {
+				$previous = $text;
+				$text = preg_replace('/^\s*<codex>\s*/i', '', $text);
+				$text = preg_replace('/\s*<\/codex>\s*$/i', '', $text);
+				$text = trim($text);
+			} while ($text !== $previous);
+			
+			return $text;
+		}
+
 		public function books(Request $request): JsonResponse
 		{
 			try {
@@ -34,7 +47,7 @@
 				$result = null;
 				do {
 					// MODIFIED: Refactored with Eloquent UserBook model query [1]
-					$result = UserBook::select('id', 'title', 'author', 'source_language', 'target_language', 'codex_status')
+					$result = UserBook::select('id', 'title', 'author', 'source_language', 'target_language', 'codex_status', 'codex_chunks_total', 'codex_chunks_processed')
 						->where('user_id', $userId)
 						->orderBy('updated_at', 'DESC')
 						->get()
@@ -66,11 +79,14 @@
 				do {
 					$bookId = $args[0];
 					// MODIFIED: Using Eloquent select/where clauses [1]
-					$book = UserBook::select('id', 'title', 'codex_content', 'codex_status')
+					$book = UserBook::select('id', 'title', 'source_language', 'target_language', 'codex_content', 'codex_status', 'codex_chunks_total', 'codex_chunks_processed')
 						->where('id', $bookId)
 						->where('user_id', $userId)
 						->first();
 					$result = $book ? $book->toArray() : null;
+					if ($result && isset($result['codex_content'])) {
+						$result['codex_content'] = $this->cleanCodexText((string)$result['codex_content']);
+					}
 					break;
 				} while (false);
 
@@ -97,7 +113,7 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					$content = $args[1];
+					$content = $this->cleanCodexText((string)$args[1]);
 					// MODIFIED: Replaced raw update query with Eloquent model update [1]
 					UserBook::where('id', $bookId)
 						->where('user_id', $userId)
@@ -169,6 +185,20 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
+					$options = $args[1] ?? [];
+					$forceRebuild = is_array($options) && !empty($options['rebuild']);
+					
+					if ($forceRebuild) {
+						UserBookCodexChunk::where('book_id', $bookId)->delete();
+						UserBook::where('id', $bookId)
+							->where('user_id', $userId)
+							->update([
+								'codex_content' => null,
+								'codex_status' => 'none',
+								'codex_chunks_total' => 0,
+								'codex_chunks_processed' => 0
+							]);
+					}
 
 					// MODIFIED: Using Eloquent selectRaw on chunks metadata [1]
 					$chunkStats = UserBookCodexChunk::selectRaw('COUNT(*) as total, SUM(is_processed) as processed')
@@ -256,8 +286,15 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
+					$options = $args[1] ?? [];
+					$model = is_array($options) && !empty($options['model'])
+						? (string)$options['model']
+						: env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
+					$temperature = is_array($options) && isset($options['temperature'])
+						? max(0, min(2, (float)$options['temperature']))
+						: 0.5;
 					// MODIFIED: Refactored batch selection logic via standard Eloquent queries [1]
-					$book = UserBook::where('id', $bookId)->first();
+					$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
 					if (!$book) {
 						throw new Exception('Book not found.');
 					}
@@ -271,16 +308,16 @@
 						UserBook::where('id', $bookId)->update(['codex_status' => 'complete']);
 						$result = ['status' => 'complete'];
 					} else {
-						$systemPrompt = "You are a meticulous world-building assistant for a bookist. Your task is to maintain a codex (an encyclopedia of the world). Identify new characters, locations, or lore from the text chunk and integrate them. Your output must be the complete, updated codex in {$book->target_language}.";
-						$userPrompt = "**Existing Codex Content:**\n<codex>\n" . ($book->codex_content ?? 'This is the beginning of the codex.') . "\n</codex>\n\n**Text Chunk to Analyze (in {$book->source_language} - limit 8000 words):**\n<text>\n{$chunk->chunk_text}\n</text>";
+						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$book->target_language}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
+						$userPrompt = "Existing codex content:\n" . ($book->codex_content ?? 'This is the beginning of the codex.') . "\n\nText chunk to analyze (in {$book->source_language}, limit 8000 words):\n{$chunk->chunk_text}";
 
 						$payload = [
-							'model' => env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'),
+							'model' => $model,
 							'messages' => [
 								['role' => 'system', 'content' => $systemPrompt],
 								['role' => 'user', 'content' => $userPrompt]
 							],
-							'temperature' => 0.5
+							'temperature' => $temperature
 						];
 
 						$aiResponse = callOpenRouter(
@@ -288,7 +325,7 @@
 							['userId' => $userId, 'action' => 'codex_llm_call'],
 							$userApiKey
 						);
-						$updatedCodexText = trim($aiResponse['choices'][0]['message']['content'] ?? '');
+						$updatedCodexText = $this->cleanCodexText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
 
 						if ($updatedCodexText) {
 							UserBook::where('id', $bookId)->update([
