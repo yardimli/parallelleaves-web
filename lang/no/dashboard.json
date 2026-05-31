@@ -68,6 +68,7 @@
     "description": "Vennligst velg ditt foretrukne språk for applikasjonsgrensesnittet."
   },
   "card": {
+    "openEditor": "Åpne redigering",
     "progress": "Fremdrift",
     "sourceWords": "Kilde",
     "targetWords": "Mål",

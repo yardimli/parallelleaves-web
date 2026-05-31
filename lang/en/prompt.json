@@ -56,5 +56,5 @@
   "errorNoSelection": "Could not get selection from the editor. For rephrasing, please select some text.",
   "errorFetchContext": "Could not fetch previous translation blocks for context. {message}",
   "errorNoInterface": "Cannot open AI editor: Editor interface is not available.",
-  "errorApiKeyMissing": "Cannot open AI editor: API key is missing. Please set it in the dashboard settings.",
+  "errorApiKeyMissing": "Cannot open AI editor: API key is missing. Please set it in the dashboard settings."
 }

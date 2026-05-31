@@ -36,10 +36,10 @@
 						foreach (glob($dir . '/*.json') as $file) {
 							$key = basename($file, '.json');
 							$fileContent = file_get_contents($file);
-							$merged[$key] = $fileContent ? json_decode($fileContent, true) : [];
+							$merged[$key] = $fileContent ? json_decode($fileContent, true, 512, JSON_THROW_ON_ERROR) : [];
 						}
 					}
-					$result = json_encode($merged);
+					$result = json_encode($merged, JSON_THROW_ON_ERROR);
 					break;
 
 				} while (false);

@@ -68,6 +68,7 @@
     "description": "Please choose your preferred language for the application interface."
   },
   "card": {
+    "openEditor": "Open Editor",
     "progress": "Progress",
     "sourceWords": "Source",
     "targetWords": "Target",

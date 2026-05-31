@@ -68,6 +68,7 @@
     "description": "Lütfen uygulama dili için bir seçim yapın."
   },
   "card": {
+    "openEditor": "Editörü Aç",
     "progress": "İlerleme",
     "sourceWords": "Kaynak",
     "targetWords": "Hedef",

@@ -415,6 +415,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     
                     <div class="card-actions start items-center mt-4">
+                        <button class="btn btn-primary btn-sm js-open-editor" data-i18n-title="dashboard.card.openEditor">
+                            <i class="bi bi-pencil"></i>
+                            <span data-i18n="dashboard.card.openEditor">Open Editor</span>
+                        </button>
                         <button class="btn btn-ghost btn-sm js-meta-settings" data-i18n-title="common.edit">
                             <i class="bi bi-pencil-square text-lg"></i>
                         </button>
