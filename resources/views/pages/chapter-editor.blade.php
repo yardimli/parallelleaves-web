@@ -334,15 +334,25 @@
 			<h3
 				class="font-bold text-lg text-primary">{{ $tr('editor.translationMemory.updateTitle', 'Update Translation Memory') }}</h3>
 			<p class="py-2 text-sm text-base-content/70">
-				We detected changes in your translated text. Would you like to add these changes to your Translation Memory?
+				{{ $tr('editor.translationMemory.detectedChanges', 'We detected changes in your translated text. Would you like to add these changes to your Translation Memory?') }}
 			</p>
+			<!-- NEW SECTION START: Model Selection Dropdown inside TM Confirmation modal -->
+			<div class="form-control my-2">
+				<label class="label pb-1">
+					<span class="label-text font-semibold text-xs text-base-content/70">{{ $tr('editor.chat.selectModel', 'Select AI Model') }}</span>
+				</label>
+				<select id="tm-model-select" class="select select-bordered select-sm w-full max-w-xs">
+					<option disabled selected>{{ $tr('editor.chat.loadingModels', 'Loading models...') }}</option>
+				</select>
+			</div>
+			<!-- NEW SECTION END -->
 			<div class="my-4 p-4 bg-base-200 rounded-md overflow-y-auto max-h-60 font-mono text-sm whitespace-pre-wrap"
 			     id="tm-confirm-diff">
 				<!-- Highlighted changes will go here -->
 			</div>
 			<div class="modal-action">
-				<button id="tm-confirm-cancel-btn" class="btn">No, Skip</button>
-				<button id="tm-confirm-save-btn" class="btn btn-primary">Yes, Update TM</button>
+				<button id="tm-confirm-cancel-btn" class="btn">{{ $tr('editor.translationMemory.noSkip', 'No, Skip') }}</button>
+				<button id="tm-confirm-save-btn" class="btn btn-primary">{{ $tr('editor.translationMemory.yesUpdate', 'Yes, Update TM') }}</button>
 			</div>
 		</div>
 	</dialog>

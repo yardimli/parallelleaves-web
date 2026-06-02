@@ -41,7 +41,8 @@ function renderTmCards () {
 	
 	if (filteredData.length === 0) {
 		tmNoEntriesMessage.classList.remove('hidden');
-		tmPaginationInfo.textContent = 'Page 1 of 1';
+		// MODIFIED: Localized empty page indicator
+		tmPaginationInfo.textContent = t('editor.translationMemory.pageInfo', { current: 1, total: 1 });
 		tmPrevPageBtn.disabled = true;
 		tmNextPageBtn.disabled = true;
 		return;
@@ -50,7 +51,8 @@ function renderTmCards () {
 	tmNoEntriesMessage.classList.add('hidden');
 	
 	const totalPages = Math.ceil(filteredData.length / perPage) || 1;
-	tmPaginationInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+	// MODIFIED: Localized pagination indicator
+	tmPaginationInfo.textContent = t('editor.translationMemory.pageInfo', { current: currentPage, total: totalPages });
 	tmPrevPageBtn.disabled = currentPage === 1;
 	tmNextPageBtn.disabled = currentPage === totalPages;
 	
@@ -149,12 +151,14 @@ function renderTmCards () {
 				renderTmCards();
 			} catch (err) {
 				console.error('Failed to update TM segment:', err);
-				window.showAlert('Error updating segment: ' + err.message);
+				// MODIFIED: Localized segment update failure message
+				window.showAlert(t('editor.translationMemory.errorUpdate', { message: err.message }));
 			}
 		});
 		
 		deleteBtn.addEventListener('click', async () => {
-			if (confirm('Are you sure you want to delete this segment from Translation Memory?')) {
+			// MODIFIED: Localized segment deletion confirmation prompt
+			if (confirm(t('editor.translationMemory.confirmDelete'))) {
 				try {
 					await window.api.deleteTmRow(entry.id);
 					
@@ -164,7 +168,8 @@ function renderTmCards () {
 					renderTmCards();
 				} catch (err) {
 					console.error('Failed to delete TM segment:', err);
-					window.showAlert('Error deleting segment: ' + err.message);
+					// MODIFIED: Localized segment deletion failure message
+					window.showAlert(t('editor.translationMemory.errorDelete', { message: err.message }));
 				}
 			}
 		});
@@ -237,6 +242,7 @@ export async function openTmModal () {
 		tmModal.showModal();
 	} catch (error) {
 		console.error('Failed to open TM modal:', error);
-		window.showAlert('Error opening Translation Memory: ' + error.message);
+		// MODIFIED: Localized modal initialization failure message
+		window.showAlert(t('editor.translationMemory.errorOpen', { message: error.message }));
 	}
 }

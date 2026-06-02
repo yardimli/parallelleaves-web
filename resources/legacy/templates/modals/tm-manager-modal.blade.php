@@ -6,7 +6,7 @@
 				<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
 			</form>
 			<h3 class="font-bold text-lg mb-2">{{__i18n:editor.translationMemory.openEditor|Translation Memory__}}</h3>
-			<p class="text-sm text-base-content/70">View, search, edit, or delete individual sentences in your Translation Memory database.</p>
+			<p class="text-sm text-base-content/70" data-i18n="editor.translationMemory.description">{{__i18n:editor.translationMemory.description|View, search, edit, or delete individual sentences in your Translation Memory database.__}}</p>
 		</div>
 		
 		<!-- Controls Bar -->
@@ -16,13 +16,13 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/50 pointer-events-none">
                     <i class="bi bi-search"></i>
                 </span>
-				<input type="text" id="tm-search-input" class="input input-sm input-bordered w-full pl-10" placeholder="Search memories...">
+				<input type="text" id="tm-search-input" class="input input-sm input-bordered w-full pl-10" data-i18n-placeholder="editor.translationMemory.searchPlaceholder" placeholder="{{__i18n:editor.translationMemory.searchPlaceholder|Search memories...__}}">
 			</div>
 			
 			<div class="flex items-center gap-4">
 				<!-- Items Per Page Dropdown -->
 				<div class="flex items-center gap-2">
-					<span class="text-xs font-semibold">Show:</span>
+					<span class="text-xs font-semibold" data-i18n="editor.translationMemory.show">{{__i18n:editor.translationMemory.show|Show:__}}</span>
 					<select id="tm-per-page-select" class="select select-bordered select-xs">
 						<option value="10" selected>10</option>
 						<option value="25">25</option>
@@ -48,7 +48,7 @@
 			<div class="p-6 space-y-4" id="tm-cards-container">
 				<!-- Dynamic cards will be populated here under each other by JS -->
 			</div>
-			<p id="tm-no-entries" class="text-center text-base-content/60 py-12 hidden">No translation memory matches found.</p>
+			<p id="tm-no-entries" class="text-center text-base-content/60 py-12 hidden" data-i18n="editor.translationMemory.noEntries">{{__i18n:editor.translationMemory.noEntries|No translation memory matches found.__}}</p>
 		</div>
 		
 		<!-- Footer Section -->

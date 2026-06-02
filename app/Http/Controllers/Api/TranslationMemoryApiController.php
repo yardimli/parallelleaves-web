@@ -49,6 +49,8 @@
 					$sourceLanguage = $payloadData['sourceLanguage'] ?? 'Source';
 					$targetLanguage = $payloadData['targetLanguage'] ?? 'Translation';
 					$changes = $payloadData['changes'] ?? [];
+					// NEW: Extract user-selected language model parameters from the payload
+					$model = $payloadData['model'] ?? env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
 
 					// MODIFIED: Restructure system instructions to focus only on edited segments
 					$systemPrompt = "You are a literary translation analyst. Your task is to identify and analyze the specific sentences that the user/translator has modified or polished in the translation, compared to their previous translation. Focus ONLY on those modified sentences. Do not include unedited surrounding sentences. Generate translation pairs ONLY for the edited/modified sentences to capture the translator's unique stylistic choices. Return your response as a single JSON object with one key: 'pairs'. The value of 'pairs' must be an array of objects, where each object has two keys: 'source' and 'target'.";
@@ -85,7 +87,7 @@
 						$userPrompt = "Analyze the following translation update. Compare the previous translation with the current modified translation. Identify the specific sentences that were edited or modified. Focus only on those changed sentences and do not include unedited sentences above or below them. Generate translation pairs representing only those specific changes.\n\nSource Segment ({$sourceLanguage}):\n{$sourceText}\n\nPrevious Translation ({$targetLanguage}):\n{$originalTargetText}\n\nCurrent Modified Translation ({$targetLanguage}):\n{$changedTargetText}";
 
 						$payload = [
-							'model' => env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini'),
+							'model' => $model, // MODIFIED: Dynamically use the selected model rather than env fallbacks
 							'messages' => [
 								['role' => 'system', 'content' => $systemPrompt],
 								['role' => 'user', 'content' => $userPrompt]
