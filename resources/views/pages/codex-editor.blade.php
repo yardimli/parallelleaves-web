@@ -74,6 +74,48 @@
 				<!-- MODIFIED: Save button text translated using $tr -->
 				<button id="codex-save-btn" class="btn btn-success" data-i18n="editor.codex.editor.saveBtn">{{ $tr('editor.codex.editor.saveBtn', 'Save Codex') }}</button>
 			</div>
+
+			<div class="divider my-8"></div>
+
+			<section id="style-analysis-section" class="space-y-4">
+				<div class="flex items-center justify-between gap-3">
+					<div>
+						<h2 class="text-2xl font-semibold">{{ $tr('editor.codex.style.title', 'Analyze Style') }}</h2>
+						<p class="text-sm text-base-content/70">{{ $tr('editor.codex.style.description', 'Create translation instructions from the selected percentage of the source text.') }}</p>
+					</div>
+					<span id="style-analysis-status" class="text-sm text-base-content/70">{{ $tr('editor.codex.statusLabel.incomplete_none', 'Incomplete') }}</span>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+					<label class="form-control">
+						<span class="label-text">{{ $tr('editor.codex.style.percent', 'Source Text Included in Prompt') }}</span>
+						<input id="style-analysis-percent-slider" type="range" min="5" max="100" step="5" value="5" class="range range-primary">
+						<div class="flex justify-between text-xs px-1 mt-1">
+							<span>5%</span>
+							<span id="style-analysis-percent-value">5%</span>
+							<span>100%</span>
+						</div>
+					</label>
+					<button id="style-analysis-run-btn" class="btn btn-warning">{{ $tr('editor.codex.style.runBtn', 'Analyze Style') }}</button>
+				</div>
+
+				<div id="style-analysis-progress-container" class="hidden space-y-1">
+					<div class="flex justify-between text-xs font-semibold text-base-content/70">
+						<span>{{ $tr('editor.codex.style.generating', 'Analyzing style...') }}</span>
+						<span id="style-analysis-progress-percent">0%</span>
+					</div>
+					<progress id="style-analysis-progress-bar" class="progress progress-primary w-full" value="0" max="100"></progress>
+				</div>
+
+				<div class="form-control">
+					<label class="label"><span class="label-text">{{ $tr('editor.codex.style.contentLabel', 'Style Analysis Plain Text Content') }}</span></label>
+					<textarea id="style-analysis-textarea" class="textarea textarea-bordered w-full h-80 font-mono"></textarea>
+				</div>
+
+				<div class="form-control">
+					<button id="style-analysis-save-btn" class="btn btn-success">{{ $tr('editor.codex.style.saveBtn', 'Save Style Analysis') }}</button>
+				</div>
+			</section>
 		</div>
 	</div>
 </div>

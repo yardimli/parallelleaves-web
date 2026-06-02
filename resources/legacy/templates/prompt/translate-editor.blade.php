@@ -2,8 +2,15 @@
 	<form id="translate-editor-form" class="space-y-3">
 		<!-- Instructions -->
 		<div>
-			<label for="translate-instructions" class="label"><span class="label-text text-lg font-semibold">{{__i18n:prompt.translate.instructions|Instructions__}}</span></label>
+			<label for="translate-instructions" class="label">
+				<span class="label-text text-lg font-semibold">{{__i18n:prompt.translate.instructions|Instructions__}}</span>
+				<button type="button" class="js-copy-style-analysis-btn btn btn-xs btn-outline">{{__i18n:prompt.translate.copyStyleAnalysis|Copy Style Analysis__}}</button>
+			</label>
 			<textarea id="translate-instructions" name="instructions" class="textarea textarea-bordered w-full h-24 font-mono text-sm" placeholder="{{__i18n:prompt.translate.instructionsPlaceholder__}}"></textarea>
+			<label class="label cursor-pointer justify-start gap-2">
+				<input type="checkbox" name="include_instructions" class="checkbox checkbox-sm" checked>
+				<span class="label-text">{{__i18n:prompt.translate.includeInstructions|Include instructions in prompt__}}</span>
+			</label>
 			<!-- Help text moved below -->
 		</div>
 		
@@ -14,6 +21,7 @@
 				<div class="join w-full js-tense-group">
 					<button type="button" class="js-tense-btn btn join-item flex-1 btn-active" data-tense="past">{{__i18n:prompt.common.past|Past__}}</button>
 					<button type="button" class="js-tense-btn btn join-item flex-1" data-tense="present">{{__i18n:prompt.common.present|Present__}}</button>
+					<button type="button" class="js-tense-btn btn join-item flex-1" data-tense="none">{{__i18n:prompt.common.none|None__}}</button>
 				</div>
 				<input type="hidden" name="tense" value="past">
 			</div>
@@ -34,7 +42,10 @@
 	<div class="divider my-2"></div>
 	
 	<div class="js-live-preview-section hidden">
-		<h2 class="text-xl font-bold">{{__i18n:prompt.preview.title|Live Prompt Preview__}}</h2>
+		<div class="flex items-center justify-between gap-3">
+			<h2 class="text-xl font-bold">{{__i18n:prompt.preview.title|Live Prompt Preview__}}</h2>
+			<button type="button" class="js-expand-placeholders-btn btn btn-xs btn-outline">{{__i18n:prompt.preview.expandPlaceholders|Expand Placeholders__}}</button>
+		</div>
 		<p class="text-sm text-base-content/70 mb-4">{{__i18n:prompt.preview.description|This is the final prompt that will be sent to the AI, based on your settings above.__}}</p>
 		
 		<!-- System Prompt Preview -->

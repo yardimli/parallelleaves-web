@@ -13,6 +13,7 @@ const debounce = (func, delay) => {
 
 const defaultState = { // Default state for the translate editor form
 	instructions: '',
+	includeInstructions: true,
 	tense: 'past',
 	contextPairs: 4,
 	translationMemoryIds: []
@@ -52,12 +53,17 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 	const {selectedText, languageForPrompt, targetLanguage, translationPairs} = context;
 	
 	const plainTextToTranslate = selectedText;
+	const tenseInstruction = formData.tense && formData.tense !== 'none'
+		? `Translate in the ${formData.tense} tense.`
+		: '';
+	const instructions = formData.includeInstructions === false ? '' : (formData.instructions || '').trim();
+	const instructionsBlock = instructions ? `Follow these specific instructions: ${instructions}` : '';
 	
 	const system = t('prompt.translate.system.base', {
 		sourceLanguage: languageForPrompt,
 		targetLanguage: targetLanguage,
-		instructions: formData.instructions,
-		tense: formData.tense,
+		instructionsBlock,
+		tenseInstruction,
 		dictionary: userDictionary
 	}).trim();
 	
@@ -79,6 +85,30 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 	};
 };
 
+async function expandSystemPlaceholders(system, context, translationPairs) {
+	const details = context.bookId ? await window.api.getCodexDetails(context.bookId) : null;
+	const tmBlock = translationPairs && translationPairs.length > 0
+		? `Use the following translation examples to guide the translation:\n${translationPairs.map(pair => {
+			const sourceText = htmlToPlainText(pair.source || '');
+			const targetText = htmlToPlainText(pair.target || '');
+			return `<${context.languageForPrompt}>${sourceText}</${context.languageForPrompt}>\n<${context.targetLanguage}>${targetText}</${context.targetLanguage}>`;
+		}).join('\n')}`
+		: '';
+	const styleBlock = details?.style_analysis_content
+		? `Use the following source style analysis and translation guidance before glossary/codex instructions:\n<style_analysis>\n${details.style_analysis_content}\n</style_analysis>`
+		: '';
+	const codexBlock = details?.codex_content
+		? `Use the following glossary for consistent translation:\n<glossary>\n${details.codex_content}\n</glossary>`
+		: '';
+	
+	return system
+		.replace('##TRANSLATION_MEMORY##', tmBlock)
+		.replace('##STYLE_ANALYSIS_BLOCK##', styleBlock)
+		.replace('##CODEX_BLOCK##', codexBlock)
+		.replace(/\n{3,}/g, '\n\n')
+		.trim();
+}
+
 const updatePreview = async (container, context) => {
 	const form = container.querySelector('#translate-editor-form');
 	if (!form) {
@@ -88,6 +118,7 @@ const updatePreview = async (container, context) => {
 	// MODIFIED: Removed logic for getting selected memory IDs
 	const formData = {
 		instructions: form.elements.instructions.value.trim(),
+		includeInstructions: form.elements.include_instructions?.checked !== false,
 		tense: form.elements.tense.value,
 		contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0
 	};
@@ -122,7 +153,9 @@ const updatePreview = async (container, context) => {
 	
 	try {
 		const promptJson = buildPromptJson(formData, previewContext, userDictionaryContent);
-		systemPreview.textContent = promptJson.system;
+		systemPreview.textContent = container.dataset.expandPlaceholders === 'true'
+			? await expandSystemPlaceholders(promptJson.system, previewContext, previewContext.translationPairs)
+			: promptJson.system;
 		userPreview.textContent = promptJson.user;
 		aiPreview.textContent = promptJson.ai || t('prompt.preview.empty');
 		
@@ -167,6 +200,9 @@ const populateForm = (container, state, bookId) => {
 	const tense = state.tense || savedTense || defaultState.tense;
 	
 	form.elements.instructions.value = state.instructions || '';
+	if (form.elements.include_instructions) {
+		form.elements.include_instructions.checked = state.includeInstructions !== false;
+	}
 	form.elements.context_pairs.value = state.contextPairs !== undefined ? state.contextPairs : 4;
 	
 	form.elements.tense.value = tense;
@@ -193,6 +229,8 @@ export const init = async (container, context) => {
 		// MODIFIED: Removed call to populateTranslationMemoriesDropdown
 		
 		const form = container.querySelector('#translate-editor-form');
+		const expandPlaceholdersBtn = container.querySelector('.js-expand-placeholders-btn');
+		const copyStyleAnalysisBtn = container.querySelector('.js-copy-style-analysis-btn');
 		
 		const debouncedUpdatePreview = debounce(() => {
 			updatePreview(container, fullContext);
@@ -225,11 +263,40 @@ export const init = async (container, context) => {
 					form.elements.tense.value = newTense;
 					
 					const storageKey = `tense-preference-${context.bookId}-translate`;
-					localStorage.setItem(storageKey, newTense);
+					if (newTense === 'none') {
+						localStorage.removeItem(storageKey);
+					} else {
+						localStorage.setItem(storageKey, newTense);
+					}
 					
 					debouncedUpdatePreview();
 				});
 			}
+		}
+
+		if (expandPlaceholdersBtn) {
+			expandPlaceholdersBtn.addEventListener('click', () => {
+				const isExpanded = container.dataset.expandPlaceholders === 'true';
+				container.dataset.expandPlaceholders = isExpanded ? 'false' : 'true';
+				expandPlaceholdersBtn.textContent = isExpanded ? t('prompt.preview.expandPlaceholders') : t('prompt.preview.collapsePlaceholders');
+				updatePreview(container, fullContext);
+			});
+		}
+
+		if (copyStyleAnalysisBtn) {
+			copyStyleAnalysisBtn.addEventListener('click', async () => {
+				const details = await window.api.getCodexDetails(context.bookId);
+				const styleAnalysis = details?.style_analysis_content || '';
+				if (!styleAnalysis) {
+					return;
+				}
+				const form = container.querySelector('#translate-editor-form');
+				form.elements.instructions.value = styleAnalysis;
+				if (form.elements.include_instructions) {
+					form.elements.include_instructions.checked = true;
+				}
+				updatePreview(container, fullContext);
+			});
 		}
 		
 		await updatePreview(container, fullContext);

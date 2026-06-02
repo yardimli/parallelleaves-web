@@ -102,5 +102,8 @@
 		Route::post('/api/codex/reset', [CodexApiController::class, 'reset']);
 		Route::post('/api/codex/start', [CodexApiController::class, 'start']);
 		Route::post('/api/codex/process-batch', [CodexApiController::class, 'processBatch']);
+		Route::post('/api/codex/style/save', [CodexApiController::class, 'saveStyleAnalysis']);
+		Route::post('/api/codex/style/start', [CodexApiController::class, 'startStyleAnalysis']);
+		Route::post('/api/codex/style/process-batch', [CodexApiController::class, 'processStyleAnalysisBatch']);
 	});
 	Route::post('/api/uploads', UploadController::class);

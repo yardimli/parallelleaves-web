@@ -21,6 +21,11 @@
 			'codex_status',
 			'codex_chunks_total',
 			'codex_chunks_processed',
+			'style_analysis_content',
+			'style_analysis_status',
+			'style_analysis_percent',
+			'style_analysis_chunks_total',
+			'style_analysis_chunks_processed',
 		];
 
 		public function user()

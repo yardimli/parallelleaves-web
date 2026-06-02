@@ -48,15 +48,20 @@
 
 					$bookId = $data['bookId'] ?? null;
 					$tmContent = '';
+					$styleAnalysisContent = '';
 					$codexContent = '';
 
 					if ($bookId) {
 						$hasTmPlaceholder = false;
+						$hasStyleAnalysisPlaceholder = false;
 						$hasCodexPlaceholder = false;
 						foreach ($messages as $msg) {
 							if ($msg['role'] === 'system') {
 								if (strpos($msg['content'], '##TRANSLATION_MEMORY##') !== false) {
 									$hasTmPlaceholder = true;
+								}
+								if (strpos($msg['content'], '##STYLE_ANALYSIS_BLOCK##') !== false) {
+									$hasStyleAnalysisPlaceholder = true;
 								}
 								if (strpos($msg['content'], '##CODEX_BLOCK##') !== false) {
 									$hasCodexPlaceholder = true;
@@ -163,6 +168,17 @@
 							}
 						}
 
+						if ($hasStyleAnalysisPlaceholder) {
+							$row = UserBook::select('style_analysis_content')
+								->where('id', $bookId)
+								->where('user_id', $userId)
+								->first();
+
+							if ($row && !empty($row->style_analysis_content)) {
+								$styleAnalysisContent = "Use the following source style analysis and translation guidance before glossary/codex instructions:\n<style_analysis>\n" . $row->style_analysis_content . "\n</style_analysis>";
+							}
+						}
+
 						if ($hasCodexPlaceholder) {
 							// MODIFIED: Eloquent replacement for fetching codex metadata [1]
 							$row = UserBook::select('codex_content')
@@ -182,6 +198,13 @@
 										$msg['content'] = str_replace('##TRANSLATION_MEMORY##', $tmContent, $msg['content']);
 									} else {
 										$msg['content'] = preg_replace("/Use the following translation examples to guide the translation:\n##TRANSLATION_MEMORY##\n*/", '', $msg['content']);
+									}
+								}
+								if ($hasStyleAnalysisPlaceholder) {
+									if ($styleAnalysisContent) {
+										$msg['content'] = str_replace('##STYLE_ANALYSIS_BLOCK##', $styleAnalysisContent, $msg['content']);
+									} else {
+										$msg['content'] = str_replace("##STYLE_ANALYSIS_BLOCK##\n", '', $msg['content']);
 									}
 								}
 								if ($hasCodexPlaceholder) {

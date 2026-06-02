@@ -28,6 +28,7 @@ const formDataExtractors = {
 	'translate': (form) => {
 		return {
 			instructions: form.elements.instructions.value.trim(),
+			includeInstructions: form.elements.include_instructions?.checked !== false,
 			tense: form.elements.tense.value,
 			contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0
 		};

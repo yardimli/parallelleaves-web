@@ -59,7 +59,10 @@ const API_ENDPOINTS = {
 	'codex:save': '/api/codex/save',
 	'codex:reset': '/api/codex/reset',
 	'codex:start': '/api/codex/start',
-	'codex:process-batch': '/api/codex/process-batch'
+	'codex:process-batch': '/api/codex/process-batch',
+	'codex:style-save': '/api/codex/style/save',
+	'codex:style-start': '/api/codex/style/start',
+	'codex:style-process-batch': '/api/codex/style/process-batch'
 };
 
 function showAjaxErrorDialog(message, title = 'Error') {
@@ -292,7 +295,7 @@ window.api = {
 	importDocumentAsBook: async (data) => {
 		const result = await rpcInvoke('document:import', data);
 		if (result && result.success && result.bookId) {
-			window.location.href = `/chapter-editor/${result.bookId}`;
+			window.location.href = `/codex/${result.bookId}`;
 		}
 		return result;
 	},
@@ -357,5 +360,8 @@ window.api = {
 	saveCodex: (bookId, content) => rpcInvoke('codex:save', bookId, content),
 	resetCodex: (bookId) => rpcInvoke('codex:reset', bookId),
 	startCodex: (bookId, options = {}) => rpcInvoke('codex:start', bookId, options),
-	processCodexBatch: (bookId, options = {}) => rpcInvoke('codex:process-batch', bookId, options)
+	processCodexBatch: (bookId, options = {}) => rpcInvoke('codex:process-batch', bookId, options),
+	saveStyleAnalysis: (bookId, content) => rpcInvoke('codex:style-save', bookId, content),
+	startStyleAnalysis: (bookId, options = {}) => rpcInvoke('codex:style-start', bookId, options),
+	processStyleAnalysisBatch: (bookId, options = {}) => rpcInvoke('codex:style-process-batch', bookId, options)
 };

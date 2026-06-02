@@ -4,7 +4,8 @@
     "useTranslationMemory" : "Use Translation Memory",
     "tense": "Tense",
     "past": "Past",
-    "present": "Present"
+    "present": "Present",
+    "none": "None"
   },
   "rephrase": {
     "title": "Rephrase",
@@ -27,11 +28,13 @@
     "instructionsPlaceholder": "e.g., Translate to a formal tone. Keep character names in their original form.",
     "contextInfo": "Contextual Information",
     "prevPairs": "Previous Translation Pairs",
+    "copyStyleAnalysis": "Copy Style Analysis",
+    "includeInstructions": "Include instructions in prompt",
     "prevPairsHelp": "Include N previous translation blocks as context for the AI. (0 to disable)",
     "noTranslationMemories" : "No translation memories available.",
     "selectTranslationMemories" : "Select Translation Memories",
     "system": {
-      "base": "You are an expert literary translator. Your task is to translate a text from {sourceLanguage} to {targetLanguage}.\nTranslate in the {tense} tense.\nPreserve the original tone, style, and literary devices as much as possible. Maintain the original paragraph breaks.\n\nFollow these specific instructions: {instructions}\nUse the following custom dictionary:\n{dictionary}\n##TRANSLATION_MEMORY##\n##CODEX_BLOCK##\n\nOnly return the translated text, nothing else."
+      "base": "You are an expert literary translator. Your task is to translate a text from {sourceLanguage} to {targetLanguage}.\n{tenseInstruction}\nPreserve the original tone, style, and literary devices as much as possible. Maintain the original paragraph breaks.\n\n{instructionsBlock}\nUse the following custom dictionary:\n{dictionary}\n##TRANSLATION_MEMORY##\n##STYLE_ANALYSIS_BLOCK##\n##CODEX_BLOCK##\n\nOnly return the translated text, nothing else."
     },
     "user": {
       "textToTranslate": "Translate the following text from {sourceLanguage} to {targetLanguage}:\n\n{text}"
@@ -40,6 +43,8 @@
   "preview": {
     "title": "Live Prompt Preview",
     "description": "This is the final prompt that will be sent to the AI, based on your settings above.",
+    "expandPlaceholders": "Expand Placeholders",
+    "collapsePlaceholders": "Collapse Placeholders",
     "system": "System Prompt",
     "user": "User Prompt",
     "aiPrefix": "AI Response Prefix",

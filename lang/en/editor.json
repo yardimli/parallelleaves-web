@@ -120,7 +120,7 @@
     }
   },
   "codex": {
-    "openEditor": "Open Codex Editor",
+    "openEditor": "Codex & Style Editor",
     "loadingBooks": "Loading books...",
     "noBooksSynced": "You have not synced any books yet.",
     "booksTable": {
@@ -153,6 +153,16 @@
       "incomplete": "Incomplete ({processed}/{total})",
       "incomplete_none": "Incomplete",
       "error": "Error"
+    },
+    "style": {
+      "title": "Analyze Style",
+      "description": "Create translation instructions from the selected percentage of the source text.",
+      "percent": "Source Text Included in Prompt",
+      "runBtn": "Analyze Style",
+      "generating": "Analyzing style...",
+      "contentLabel": "Style Analysis Plain Text Content",
+      "saveBtn": "Save Style Analysis",
+      "confirm": "Analyze source style now? Existing style analysis will be replaced."
     },
     "messages": {
       "savedSuccess": "Codex updated successfully!",

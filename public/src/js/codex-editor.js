@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const progressPercentEl = document.getElementById('codex-progress-percent');
 	const textareaEl = document.getElementById('codex-textarea');
 	const saveBtnEl = document.getElementById('codex-save-btn');
+	const styleStatusEl = document.getElementById('style-analysis-status');
+	const stylePercentSliderEl = document.getElementById('style-analysis-percent-slider');
+	const stylePercentValueEl = document.getElementById('style-analysis-percent-value');
+	const styleRunBtnEl = document.getElementById('style-analysis-run-btn');
+	const styleProgressContainerEl = document.getElementById('style-analysis-progress-container');
+	const styleProgressBarEl = document.getElementById('style-analysis-progress-bar');
+	const styleProgressPercentEl = document.getElementById('style-analysis-progress-percent');
+	const styleTextareaEl = document.getElementById('style-analysis-textarea');
+	const styleSaveBtnEl = document.getElementById('style-analysis-save-btn');
 	
 	const escapeHtml = (value) => String(value ?? '')
 		.replace(/&/g, '&amp;')
@@ -45,6 +54,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 				total: Number(book.codex_chunks_total || 0)
 			});
 		}
+		if (status === 'error') return t('editor.codex.statusLabel.error');
+		return t('editor.codex.statusLabel.incomplete_none');
+	}
+
+	function styleStatusLabel (book) {
+		const status = book?.style_analysis_status || 'none';
+		if (status === 'complete') return t('editor.codex.statusLabel.complete');
+		if (status === 'generating') return t('editor.codex.style.generating');
 		if (status === 'error') return t('editor.codex.statusLabel.error');
 		return t('editor.codex.statusLabel.incomplete_none');
 	}
@@ -90,8 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (languageSelectEl) {
 				languageSelectEl.innerHTML = `
+          <option value="English" selected>English</option>
           <option value="${escapeHtml(book.source_language)}">${escapeHtml(t('editor.codex.editor.source'))} (${escapeHtml(book.source_language)})</option>
-          <option value="${escapeHtml(book.target_language)}" selected>${escapeHtml(t('editor.codex.editor.target'))} (${escapeHtml(book.target_language)})</option>
+          <option value="${escapeHtml(book.target_language)}">${escapeHtml(t('editor.codex.editor.target'))} (${escapeHtml(book.target_language)})</option>
           <option value="both">${escapeHtml(t('editor.codex.editor.both'))} (${escapeHtml(book.source_language)} &amp; ${escapeHtml(book.target_language)})</option>
         `;
 			}
@@ -103,15 +121,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 			if (textareaEl) {
 				textareaEl.value = book.codex_content || '';
 			}
+			if (styleTextareaEl) {
+				styleTextareaEl.value = book.style_analysis_content || '';
+			}
+			if (styleStatusEl) {
+				styleStatusEl.textContent = styleStatusLabel(book);
+			}
+			if (stylePercentSliderEl) {
+				stylePercentSliderEl.value = book.style_analysis_percent || 5;
+				if (stylePercentValueEl) {
+					stylePercentValueEl.textContent = `${stylePercentSliderEl.value}%`;
+				}
+			}
 			
 			// Re-bind click event triggers to prevent duplication
-			const newSaveBtn = saveBtnEl.cloneNode(true);
-			saveBtnEl.parentNode.replaceChild(newSaveBtn, saveBtnEl);
+			const currentSaveBtn = document.getElementById('codex-save-btn');
+			const newSaveBtn = currentSaveBtn.cloneNode(true);
+			currentSaveBtn.parentNode.replaceChild(newSaveBtn, currentSaveBtn);
 			newSaveBtn.addEventListener('click', () => saveCodex(book.id));
 			
-			const newRebuildBtn = rebuildBtnEl.cloneNode(true);
-			rebuildBtnEl.parentNode.replaceChild(newRebuildBtn, rebuildBtnEl);
+			const currentRebuildBtn = document.getElementById('codex-rebuild-btn');
+			const newRebuildBtn = currentRebuildBtn.cloneNode(true);
+			currentRebuildBtn.parentNode.replaceChild(newRebuildBtn, currentRebuildBtn);
 			newRebuildBtn.addEventListener('click', () => rebuildCodex(book.id));
+
+			const currentStyleRunBtn = document.getElementById('style-analysis-run-btn');
+			const newStyleRunBtn = currentStyleRunBtn.cloneNode(true);
+			currentStyleRunBtn.parentNode.replaceChild(newStyleRunBtn, currentStyleRunBtn);
+			newStyleRunBtn.addEventListener('click', () => runStyleAnalysis(book.id));
+
+			const currentStyleSaveBtn = document.getElementById('style-analysis-save-btn');
+			const newStyleSaveBtn = currentStyleSaveBtn.cloneNode(true);
+			currentStyleSaveBtn.parentNode.replaceChild(newStyleSaveBtn, currentStyleSaveBtn);
+			newStyleSaveBtn.addEventListener('click', () => saveStyleAnalysis(book.id));
 			
 		} catch (error) {
 			if (loadingTextEl) {
@@ -119,6 +161,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 				loadingTextEl.innerHTML = `<span class="text-error">Error: ${escapeHtml(error.message)}</span>`;
 			}
 		}
+	}
+
+	function getStyleOptions (rebuild = true) {
+		const baseOptions = getGenerationOptions(false);
+		const percent = Number(document.getElementById('style-analysis-percent-slider')?.value || 5);
+		return {...baseOptions, percent, rebuild};
 	}
 	
 	function getGenerationOptions (rebuild = false) {
@@ -139,6 +187,73 @@ document.addEventListener('DOMContentLoaded', async () => {
 			window.showAlertModal(t('editor.codex.messages.savedSuccess'), t('editor.codex.messages.savedTitle'));
 		} catch (error) {
 			window.showAlertModal(t('editor.codex.messages.saveFailed', { message: error.message }), t('editor.codex.messages.saveFailedTitle'));
+		}
+	}
+
+	async function saveStyleAnalysis (bookId) {
+		const content = styleTextareaEl.value;
+		try {
+			await window.api.saveStyleAnalysis(bookId, content);
+			window.showAlertModal(t('editor.codex.messages.savedSuccess'), t('editor.codex.messages.savedTitle'));
+		} catch (error) {
+			window.showAlertModal(t('editor.codex.messages.saveFailed', { message: error.message }), t('editor.codex.messages.saveFailedTitle'));
+		}
+	}
+
+	async function runStyleAnalysis (bookId) {
+		if (isGenerating) return;
+		const choice = await window.showConfirmationModal(
+			t('editor.codex.style.confirm'),
+			t('editor.codex.style.title')
+		);
+		if (choice !== 'confirm') return;
+
+		isGenerating = true;
+		const currentRunBtn = document.getElementById('style-analysis-run-btn');
+		const currentSaveBtn = document.getElementById('style-analysis-save-btn');
+		if (currentRunBtn) currentRunBtn.disabled = true;
+		if (currentSaveBtn) currentSaveBtn.disabled = true;
+		if (styleTextareaEl) styleTextareaEl.readOnly = true;
+		if (styleProgressContainerEl) styleProgressContainerEl.classList.remove('hidden');
+
+		try {
+			const options = getStyleOptions(true);
+			const start = await window.api.startStyleAnalysis(bookId, options);
+			if (start.status === 'complete') {
+				if (styleStatusEl) styleStatusEl.textContent = t('editor.codex.statusLabel.complete');
+				if (styleProgressBarEl) styleProgressBarEl.value = 100;
+				if (styleProgressPercentEl) styleProgressPercentEl.textContent = '100%';
+				await editCodex(bookId);
+				return;
+			}
+
+			if (styleStatusEl) styleStatusEl.textContent = t('editor.codex.style.generating');
+			if (styleProgressBarEl) styleProgressBarEl.value = 25;
+			if (styleProgressPercentEl) styleProgressPercentEl.textContent = '25%';
+
+			const status = await window.api.processStyleAnalysisBatch(bookId, options);
+			if (status.status === 'error') {
+				throw new Error(status.error_message || 'Style analysis failed.');
+			}
+			if (status.style_analysis_content && styleTextareaEl) {
+				styleTextareaEl.value = status.style_analysis_content;
+			}
+			if (styleProgressBarEl) styleProgressBarEl.value = 100;
+			if (styleProgressPercentEl) styleProgressPercentEl.textContent = '100%';
+			if (styleStatusEl) styleStatusEl.textContent = t('editor.codex.statusLabel.complete');
+
+			await editCodex(bookId);
+		} catch (error) {
+			if (styleStatusEl) styleStatusEl.textContent = 'Error: ' + error.message;
+			window.showAlertModal(t('editor.codex.messages.generationFailed', { message: error.message }), t('editor.codex.messages.generationFailedTitle'));
+		} finally {
+			isGenerating = false;
+			const finalRunBtn = document.getElementById('style-analysis-run-btn');
+			const finalSaveBtn = document.getElementById('style-analysis-save-btn');
+			if (finalRunBtn) finalRunBtn.disabled = false;
+			if (finalSaveBtn) finalSaveBtn.disabled = false;
+			if (styleTextareaEl) styleTextareaEl.readOnly = false;
+			if (styleProgressContainerEl) styleProgressContainerEl.classList.add('hidden');
 		}
 	}
 	
@@ -248,4 +363,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 	} else {
 		window.location.href = '/dashboard';
 	}
+
+	stylePercentSliderEl?.addEventListener('input', () => {
+		if (stylePercentValueEl) {
+			stylePercentValueEl.textContent = `${stylePercentSliderEl.value}%`;
+		}
+	});
 });

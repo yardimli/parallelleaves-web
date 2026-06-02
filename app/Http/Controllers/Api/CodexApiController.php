@@ -30,6 +30,52 @@
 			return $text;
 		}
 
+		private function sourceWordsForBook(int|string $bookId): array
+		{
+			$chapters = Chapter::select('source_content')->where('book_id', $bookId)->orderBy('chapter_order')->get();
+			$fullText = '';
+			foreach ($chapters as $chapter) {
+				$fullText .= htmlToPlainText($chapter->source_content ?? '') . "\n";
+			}
+
+			return preg_split('/\s+/', trim($fullText), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+		}
+
+		private function outputLanguageInstruction(UserBook $book, mixed $language): string
+		{
+			$language = is_string($language) && $language !== '' ? $language : 'English';
+			return $language === 'both'
+				? "both {$book->source_language} and {$book->target_language}"
+				: $language;
+		}
+
+		private function compactStyleAnalysisText(string $text): string
+		{
+			$text = trim(strip_tags($text));
+			$lines = preg_split('/\R/', $text) ?: [];
+			$kept = [];
+			foreach ($lines as $line) {
+				$trimmed = trim($line);
+				if ($trimmed === '') {
+					if (!empty($kept) && end($kept) !== '') {
+						$kept[] = '';
+					}
+					continue;
+				}
+				if (preg_match('/^(updated style analysis|overall\b|block\s+\d+\b)/i', $trimmed)) {
+					continue;
+				}
+				$kept[] = $trimmed;
+			}
+			$text = trim(preg_replace("/\n{3,}/", "\n\n", implode("\n", $kept)));
+			$words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+			if (count($words) >= 500) {
+				$text = implode(' ', array_slice($words, 0, 499));
+			}
+
+			return $text;
+		}
+
 		public function books(Request $request): JsonResponse
 		{
 			try {
@@ -77,7 +123,21 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					$book = UserBook::select('id', 'title', 'source_language', 'target_language', 'codex_content', 'codex_status', 'codex_chunks_total', 'codex_chunks_processed')
+					$book = UserBook::select(
+						'id',
+						'title',
+						'source_language',
+						'target_language',
+						'codex_content',
+						'codex_status',
+						'codex_chunks_total',
+						'codex_chunks_processed',
+						'style_analysis_content',
+						'style_analysis_status',
+						'style_analysis_percent',
+						'style_analysis_chunks_total',
+						'style_analysis_chunks_processed'
+					)
 						->where('id', $bookId)
 						->where('user_id', $userId)
 						->first();
@@ -292,16 +352,7 @@
 						throw new Exception('Book not found.');
 					}
 
-					$codexLanguage = is_array($options) && !empty($options['codex_language'])
-						? (string)$options['codex_language']
-						: $book->target_language;
-
-					// NEW: If "both" is selected, configure the target instructions to demand both languages.
-					if ($codexLanguage === 'both') {
-						$langInstruction = "both {$book->source_language} and {$book->target_language}";
-					} else {
-						$langInstruction = $codexLanguage;
-					}
+					$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
 
 					$chunk = UserBookCodexChunk::where('book_id', $bookId)
 						->where('is_processed', 0)
@@ -352,6 +403,147 @@
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		public function saveStyleAnalysis(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$userId = Auth::id();
+
+				$bookId = $args[0];
+				$content = trim((string)($args[1] ?? ''));
+				UserBook::where('id', $bookId)
+					->where('user_id', $userId)
+					->update(['style_analysis_content' => $content]);
+
+				return response()->json(['success' => true, 'data' => ['success' => true]]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		public function startStyleAnalysis(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$userId = Auth::id();
+
+				$bookId = $args[0];
+				$options = $args[1] ?? [];
+				$percent = is_array($options) && isset($options['percent'])
+					? max(5, min(100, (int)$options['percent']))
+					: 5;
+				$rebuild = is_array($options) && !empty($options['rebuild']);
+
+				$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
+				if (!$book) {
+					throw new Exception('Book not found.');
+				}
+
+				$words = $this->sourceWordsForBook($bookId);
+				if (count($words) === 0) {
+					$book->update([
+						'style_analysis_status' => 'complete',
+						'style_analysis_percent' => $percent,
+						'style_analysis_chunks_total' => 0,
+						'style_analysis_chunks_processed' => 0,
+					]);
+					return response()->json(['success' => true, 'data' => ['status' => 'complete']]);
+				}
+
+				$book->update([
+					'style_analysis_content' => $rebuild ? null : $book->style_analysis_content,
+					'style_analysis_status' => 'generating',
+					'style_analysis_percent' => $percent,
+					'style_analysis_chunks_total' => 1,
+					'style_analysis_chunks_processed' => 0,
+				]);
+
+				return response()->json(['success' => true, 'data' => ['status' => 'generating']]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		public function processStyleAnalysisBatch(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$user = Auth::user();
+				$userId = $user?->id;
+				$userApiKey = $user?->openrouter_api_key ?? '';
+
+				$bookId = $args[0];
+				$options = $args[1] ?? [];
+				$model = is_array($options) && !empty($options['model'])
+					? (string)$options['model']
+					: env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
+				$temperature = is_array($options) && isset($options['temperature'])
+					? max(0, min(2, (float)$options['temperature']))
+					: 0.5;
+
+				$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
+				if (!$book) {
+					throw new Exception('Book not found.');
+				}
+
+				$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
+				$percent = is_array($options) && isset($options['percent'])
+					? max(5, min(100, (int)$options['percent']))
+					: max(5, min(100, (int)($book->style_analysis_percent ?: 5)));
+
+				$words = $this->sourceWordsForBook($bookId);
+				$selectedWordCount = max(1, (int)ceil(count($words) * ($percent / 100)));
+				$sampleText = implode(' ', array_slice($words, 0, $selectedWordCount));
+				if (trim($sampleText) === '') {
+					$book->update(['style_analysis_status' => 'complete']);
+					return response()->json(['success' => true, 'data' => [
+						'status' => 'complete',
+						'processed' => 0,
+						'total' => 0,
+						'style_analysis_content' => $book->style_analysis_content,
+					]]);
+				}
+
+				$systemPrompt = "You are a literary translation analyst. Create one strict, practical style guide for translating this source text from {$book->source_language} to {$book->target_language}. Write in {$langInstruction}. Output fewer than 500 words total. Do not include introductions, block labels, summaries, or an Overall section. Use brief imperative bullets only. Focus on voice/register, sentence rhythm, dialogue handling, recurring terms/images, and concrete translation risks.";
+				$userPrompt = "Analyze the following source sample. It contains the first {$percent}% of the source text and should be the only source material used for creating the style instructions:\n\n{$sampleText}";
+
+				$payload = [
+					'model' => $model,
+					'messages' => [
+						['role' => 'system', 'content' => $systemPrompt],
+						['role' => 'user', 'content' => $userPrompt],
+					],
+					'temperature' => $temperature,
+				];
+
+				$aiResponse = callOpenRouter($payload, ['userId' => $userId, 'action' => 'style_analysis_llm_call'], $userApiKey);
+				$updatedAnalysis = $this->compactStyleAnalysisText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
+				if ($updatedAnalysis === '') {
+					throw new Exception('The model returned an empty style analysis.');
+				}
+
+				$book->update([
+					'style_analysis_content' => $updatedAnalysis,
+					'style_analysis_status' => 'complete',
+					'style_analysis_percent' => $percent,
+					'style_analysis_chunks_total' => 1,
+					'style_analysis_chunks_processed' => 1,
+				]);
+
+				return response()->json(['success' => true, 'data' => [
+					'status' => 'complete',
+					'processed' => 1,
+					'total' => 1,
+					'style_analysis_content' => $updatedAnalysis,
+				]]);
 			} catch (Throwable $exception) {
 				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
 			}
