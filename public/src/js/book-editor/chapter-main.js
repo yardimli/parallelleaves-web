@@ -58,6 +58,8 @@ let targetEditCount = 0;
 // NEW SECTION START: State tracking for modified translation blocks
 const changedChapters = new Map();
 let isTmUpdatePromptActive = false;
+let bookSourceLanguage = 'Source';
+let bookTargetLanguage = 'Translation';
 
 // Sanitizes and escapes HTML strings for render presentation
 function escapeHtml (str) {
@@ -112,6 +114,20 @@ function diffWords (oldStr, newStr) {
 			return escapeHtml(part.value);
 		}
 	}).join(' ');
+}
+
+// NEW: Extract marker plain text from HTML content for comparison
+function extractMarkersFromHtml (html) {
+	const markers = {};
+	if (!html) return markers;
+	const regex = /\[\[#(\d+)\]\]([\s\S]*?)\{\{#\1\}\}/g;
+	let match;
+	regex.lastIndex = 0;
+	while ((match = regex.exec(html)) !== null) {
+		const num = parseInt(match[1], 10);
+		markers[num] = htmlToPlainText(match[2]);
+	}
+	return markers;
 }
 // NEW SECTION END
 
@@ -198,7 +214,7 @@ const debouncedContentSave = debounce(async ({chapterId, field, value}) => {
 		await window.api.updateChapterField({chapterId, field, value});
 	} catch (error) {
 		console.error(`[SAVE] Error saving ${field} for chapter ${chapterId}:`, error);
-		window.showAlert(`Could not save ${field} changes.`);
+		window.showAlert(t('editor.errorSaveField', {field: field}));
 	}
 }, 1000);
 
@@ -294,7 +310,7 @@ async function saveSourceChanges(chapterId) {
 		await renderSourceChapterContent(chapterId, newContent);
 	} catch (error) {
 		console.error(`[SAVE] Error saving source content for chapter ${chapterId}:`, error);
-		window.showAlert('Could not save source content changes.');
+		window.showAlert(t('editor.errorSaveSource'));
 	}
 }
 
@@ -483,7 +499,8 @@ function updateTmStatusIndicator() {
 	if (!tmStatusEl) return;
 	
 	if (changedChapters.size > 0) {
-		tmStatusEl.innerHTML = `Unsaved TM changes. <button id="js-trigger-tm-prompt-btn" class="link link-primary font-semibold">Update TM</button>`;
+		// MODIFIED: Replaced raw hardcoded HTML segments with localized strings
+		tmStatusEl.innerHTML = `${t('editor.translationMemory.unsavedChanges', 'Unsaved TM changes.')} <button id="js-trigger-tm-prompt-btn" class="link link-primary font-semibold">${t('editor.translationMemory.updateButton', 'Update TM')}</button>`;
 		document.getElementById('js-trigger-tm-prompt-btn')?.addEventListener('click', (e) => {
 			e.preventDefault();
 			checkAndPromptTmUpdate();
@@ -502,12 +519,42 @@ async function checkAndPromptTmUpdate() {
 	
 	let fullDiffHtml = '';
 	changedChapters.forEach((info, chId) => {
-		const chapterItem = document.getElementById(`target-chapter-scroll-target-${chId}`);
-		const chTitle = chapterItem ? chapterItem.querySelector('h3').textContent.split('(')[0].trim() : `Chapter ${chId}`;
-		console.log(info.original, info.current);
-		const diff = diffWords(info.original, info.current);
-		if (diff.trim()) {
-			fullDiffHtml += `<div class="mb-4"><strong>${escapeHtml(chTitle)}:</strong><div class="mt-1 pl-2 border-l-2 border-base-content/20">${diff}</div></div>`;
+		const viewInfo = chapterEditorViews.get(chId);
+		if (viewInfo) {
+			const originalHtml = viewInfo.initialContent || '';
+			const currentHtml = info.value || '';
+			const originalMarkers = extractMarkersFromHtml(originalHtml);
+			const currentMarkers = extractMarkersFromHtml(currentHtml);
+			
+			const chapterItem = document.getElementById(`target-chapter-scroll-target-${chId}`);
+			const chTitle = chapterItem ? chapterItem.querySelector('h3').textContent.split('(')[0].trim() : `Chapter ${chId}`;
+			
+			let chapterDiffHtml = '';
+			
+			// Compare block contents marker-by-marker to isolate only the changed ones
+			for (const [id, text] of Object.entries(currentMarkers)) {
+				const origText = originalMarkers[id];
+				if (origText !== text) {
+					const diff = diffWords(origText || '', text || '');
+					if (diff.trim()) {
+						chapterDiffHtml += `
+							<div class="mt-2 pl-4 border-l-2 border-primary/30">
+								<span class="text-xs font-semibold badge badge-sm badge-outline mb-1">Block #${id}</span>
+								<div class="text-sm leading-relaxed">${diff}</div>
+							</div>
+						`;
+					}
+				}
+			}
+			
+			if (chapterDiffHtml) {
+				fullDiffHtml += `
+					<div class="mb-4">
+						<strong class="text-base-content/80">${escapeHtml(chTitle)}</strong>
+						${chapterDiffHtml}
+					</div>
+				`;
+			}
 		}
 	});
 	
@@ -538,7 +585,46 @@ async function checkAndPromptTmUpdate() {
 			tmStatusEl.textContent = t('editor.translationMemory.status.starting');
 			
 			try {
-				await window.api.translationMemoryGenerateInBackground(bookId);
+				// NEW: Gather the full changed block details directly from the DOM to submit to the API
+				const changesList = [];
+				changedChapters.forEach((info, chId) => {
+					const viewInfo = chapterEditorViews.get(chId);
+					if (viewInfo) {
+						const originalHtml = viewInfo.initialContent || '';
+						const currentHtml = info.value || '';
+						
+						const sourceChapterItem = document.getElementById(`source-chapter-scroll-target-${chId}`);
+						const sourceHtml = sourceChapterItem ? sourceChapterItem.querySelector('.source-content-readonly').innerHTML : '';
+						
+						const sourceMarkers = extractMarkersFromHtml(sourceHtml);
+						const originalMarkers = extractMarkersFromHtml(originalHtml);
+						const currentMarkers = extractMarkersFromHtml(currentHtml);
+						
+						for (const [id, text] of Object.entries(currentMarkers)) {
+							const origText = originalMarkers[id];
+							if (origText !== text) {
+								changesList.push({
+									markerId: parseInt(id, 10),
+									sourceText: sourceMarkers[id] || '',
+									originalTargetText: origText || '',
+									changedTargetText: text || ''
+								});
+							}
+						}
+					}
+				});
+				
+				const payloadData = {
+					sourceLanguage: bookSourceLanguage,
+					targetLanguage: bookTargetLanguage,
+					changes: changesList
+				};
+				
+				console.log('[TM UPDATE] Sending payload directly to the API:', payloadData);
+				
+				// MODIFIED: Pass payloadData (containing source/edited texts) instead of just marker IDs
+				await window.api.translationMemoryGenerateInBackground(bookId, payloadData);
+				
 				changedChapters.forEach((info, chId) => {
 					const viewInfo = chapterEditorViews.get(chId);
 					if (viewInfo) {
@@ -569,8 +655,43 @@ async function checkAndPromptTmUpdate() {
 		saveBtn.addEventListener('click', handleSave);
 		cancelBtn.addEventListener('click', handleCancel);
 	} else {
-		if (confirm("Would you like to update the Translation Memory with your changes?")) {
-			await window.api.translationMemoryGenerateInBackground(bookId);
+		// MODIFIED: Exchanged hardcoded string prompt text for localized resource files
+		if (confirm(t('editor.translationMemory.confirmPrompt', 'Would you like to update the Translation Memory with your changes?'))) {
+			const changesList = [];
+			changedChapters.forEach((info, chId) => {
+				const viewInfo = chapterEditorViews.get(chId);
+				if (viewInfo) {
+					const originalHtml = viewInfo.initialContent || '';
+					const currentHtml = info.value || '';
+					
+					const sourceChapterItem = document.getElementById(`source-chapter-scroll-target-${chId}`);
+					const sourceHtml = sourceChapterItem ? sourceChapterItem.querySelector('.source-content-readonly').innerHTML : '';
+					
+					const sourceMarkers = extractMarkersFromHtml(sourceHtml);
+					const originalMarkers = extractMarkersFromHtml(originalHtml);
+					const currentMarkers = extractMarkersFromHtml(currentHtml);
+					
+					for (const [id, text] of Object.entries(currentMarkers)) {
+						const origText = originalMarkers[id];
+						if (origText !== text) {
+							changesList.push({
+								markerId: parseInt(id, 10),
+								sourceText: sourceMarkers[id] || '',
+								originalTargetText: origText || '',
+								changedTargetText: text || ''
+							});
+						}
+					}
+				}
+			});
+			
+			const payloadData = {
+				sourceLanguage: bookSourceLanguage,
+				targetLanguage: bookTargetLanguage,
+				changes: changesList
+			};
+			
+			await window.api.translationMemoryGenerateInBackground(bookId, payloadData);
 			changedChapters.clear();
 		} else {
 			changedChapters.clear();
@@ -643,6 +764,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 	try {
 		const bookData = await window.api.getFullManuscript(bookId);
 		if (!bookData || !bookData.title) throw new Error('Failed to load project data.');
+		
+		bookSourceLanguage = bookData.source_language || 'Source';
+		bookTargetLanguage = bookData.target_language || 'Translation';
 		
 		document.title = t('editor.translating', {title: bookData.title});
 		document.getElementById('js-book-title').textContent = bookData.title;

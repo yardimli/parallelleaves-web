@@ -154,30 +154,19 @@ window.api = {
 		window.open(`/chat/${bookId}`, '_blank');
 	},
 	
-	translationMemoryGenerateInBackground: async (bookId) => {
+	translationMemoryGenerateInBackground: async (bookId, payloadData) => {
 		try {
-			const res = await rpcInvoke('translation-memory:start', bookId);
-			if (!res || !res.job_id) {
-				if (tmUpdateCb) tmUpdateCb({}, {finished: true, processedCount: 0});
-				return;
+			// MODIFIED: Submit payload containing source and updated targets directly to 'process-batch' endpoint
+			const status = await rpcInvoke('translation-memory:process-batch', bookId, payloadData);
+			
+			if (tmUpdateCb) {
+				tmUpdateCb({}, { finished: true, processedCount: status.processedCount });
 			}
-			const processNext = async () => {
-				const status = await rpcInvoke('translation-memory:process-batch', res.job_id);
-				if (tmUpdateCb) tmUpdateCb({}, {processed: status.processed_blocks, total: status.total_blocks});
-				
-				if (status.status === 'complete') {
-					if (tmUpdateCb) tmUpdateCb({}, {finished: true, processedCount: status.processed_blocks});
-				} else if (status.status === 'error') {
-					if (tmUpdateCb) tmUpdateCb({}, {error: true, message: status.error_message});
-				} else {
-					setTimeout(processNext, 1000);
-				}
-			};
-			processNext();
 		} catch (err) {
-			if (tmUpdateCb) tmUpdateCb({}, {error: true, message: err.message});
+			if (tmUpdateCb) tmUpdateCb({}, { error: true, message: err.message });
 		}
 	},
+	
 	onTranslationMemoryProgressUpdate: (cb) => {
 		tmUpdateCb = cb;
 	},
