@@ -6,7 +6,8 @@ import {
 	generateTypographyStyleProperties
 } from './typography-settings.js';
 import {initI18n, t, applyTranslationsTo} from '../i18n.js';
-import {processSourceContentForMarkers} from '../../utils/html-processing.js';
+// MODIFIED: Added htmlToPlainText import to sanitize HTML blocks during diff checks
+import {processSourceContentForMarkers, htmlToPlainText} from '../../utils/html-processing.js';
 import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
 import {showConfirmationModal, showInputModal} from '../modals.js';
 import {
@@ -52,6 +53,66 @@ let searchResultHandler = null; // Callback for search results from iframes.
 let searchReplaceResultHandler = null;
 let lastFocusedSourceEditor = null;
 let targetEditCount = 0;
+
+// NEW SECTION START: State tracking for modified translation blocks
+const changedChapters = new Map();
+let isTmUpdatePromptActive = false;
+
+// Sanitizes and escapes HTML strings for render presentation
+function escapeHtml (str) {
+	return String(str ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+// LCS-based word comparison engine to highlight modified, added, and deleted sentences
+function diffWords (oldStr, newStr) {
+	const oldArray = (oldStr || '').split(/\s+/).filter(Boolean);
+	const newArray = (newStr || '').split(/\s+/).filter(Boolean);
+	
+	const dp = Array(oldArray.length + 1).fill(0).map(() => Array(newArray.length + 1).fill(0));
+	for (let i = 1; i <= oldArray.length; i++) {
+		for (let j = 1; j <= newArray.length; j++) {
+			if (oldArray[i - 1] === newArray[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1] + 1;
+			} else {
+				dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+			}
+		}
+	}
+	
+	let i = oldArray.length;
+	let j = newArray.length;
+	const diff = [];
+	
+	while (i > 0 || j > 0) {
+		if (i > 0 && j > 0 && oldArray[i - 1] === newArray[j - 1]) {
+			diff.unshift({ type: 'equal', value: oldArray[i - 1] });
+			i--;
+			j--;
+		} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+			diff.unshift({ type: 'insert', value: newArray[j - 1] });
+			j--;
+		} else {
+			diff.unshift({ type: 'delete', value: oldArray[i - 1] });
+			i--;
+		}
+	}
+	
+	return diff.map(part => {
+		if (part.type === 'insert') {
+			return `<ins class="bg-success/20 text-success no-underline px-1 rounded">${escapeHtml(part.value)}</ins>`;
+		} else if (part.type === 'delete') {
+			return `<del class="bg-error/20 text-error line-through px-1 rounded">${escapeHtml(part.value)}</del>`;
+		} else {
+			return escapeHtml(part.value);
+		}
+	}).join(' ');
+}
+// NEW SECTION END
 
 function getSearchableSelectionText() {
 	return (currentSourceSelection.text || currentTargetSelection.text || '').trim();
@@ -110,6 +171,26 @@ const debouncedContentSave = debounce(async ({chapterId, field, value}) => {
 				wordCountEl.textContent = `${wordCount.toLocaleString()} ${t('common.words')}`;
 			}
 		}
+		
+		// NEW SECTION START: Intercept edited targets and register changes dynamically to the TM queue
+		const viewInfo = chapterEditorViews.get(chapterId.toString());
+		if (viewInfo) {
+			console.log(`[TM CHECK] Comparing original and new content for chapter ${chapterId}`);
+			const originalPlainText = htmlToPlainText(viewInfo.initialContent || '');
+			const newPlainText = htmlToPlainText(value || '');
+			if (originalPlainText !== newPlainText) {
+				changedChapters.set(chapterId.toString(), {
+					original: originalPlainText,
+					current: newPlainText,
+					value: value
+				});
+			} else {
+				changedChapters.delete(chapterId.toString());
+			}
+			console.log(changedChapters.size);
+			updateTmStatusIndicator();
+		}
+		// NEW SECTION END
 	}
 	
 	try {
@@ -216,13 +297,6 @@ async function saveSourceChanges(chapterId) {
 	}
 }
 
-/**
- * MODIFIED: This function now operates on raw HTML strings before rendering
- * and returns the cleaned content. It no longer interacts with the DOM or API.
- * @param {string} rawSourceHtml - The raw source HTML content from the database.
- * @param {string} rawTargetHtml - The raw target HTML content from the database.
- * @returns {{cleanedSourceContent: string, wasModified: boolean}} - The cleaned source content and a flag indicating if changes were made.
- */
 function synchronizeMarkers(rawSourceHtml, rawTargetHtml) {
 	const markerRegex = /(\[\[#(\d+)\]\])|(\{\{#(\d+)\}\})/g;
 	let sourceHtml = rawSourceHtml || '';
@@ -402,6 +476,110 @@ function initializeView(bookId, bookData, initialChapterId) {
 	}, 500);
 }
 
+// NEW SECTION START: Non-disruptive update helper triggers
+function updateTmStatusIndicator() {
+	const tmStatusEl = document.getElementById('js-tm-status');
+	if (!tmStatusEl) return;
+	
+	if (changedChapters.size > 0) {
+		tmStatusEl.innerHTML = `Unsaved TM changes. <button id="js-trigger-tm-prompt-btn" class="link link-primary font-semibold">Update TM</button>`;
+		document.getElementById('js-trigger-tm-prompt-btn')?.addEventListener('click', (e) => {
+			e.preventDefault();
+			checkAndPromptTmUpdate();
+		});
+	} else {
+		tmStatusEl.textContent = '';
+	}
+}
+
+async function checkAndPromptTmUpdate() {
+	console.log(`[TM UPDATE] Triggered TM update check. Pending changes in ${changedChapters.size} chapter(s), TM prompt active: ${isTmUpdatePromptActive}`);
+	if (isTmUpdatePromptActive || changedChapters.size === 0) return;
+	
+	isTmUpdatePromptActive = true;
+	const bookId = document.body.dataset.bookId;
+	
+	let fullDiffHtml = '';
+	changedChapters.forEach((info, chId) => {
+		const chapterItem = document.getElementById(`target-chapter-scroll-target-${chId}`);
+		const chTitle = chapterItem ? chapterItem.querySelector('h3').textContent.split('(')[0].trim() : `Chapter ${chId}`;
+		console.log(info.original, info.current);
+		const diff = diffWords(info.original, info.current);
+		if (diff.trim()) {
+			fullDiffHtml += `<div class="mb-4"><strong>${escapeHtml(chTitle)}:</strong><div class="mt-1 pl-2 border-l-2 border-base-content/20">${diff}</div></div>`;
+		}
+	});
+	
+	if (!fullDiffHtml.trim()) {
+		changedChapters.clear();
+		isTmUpdatePromptActive = false;
+		updateTmStatusIndicator();
+		return;
+	}
+	
+	const modal = document.getElementById('tm-confirm-modal');
+	if (modal) {
+		const diffContainer = modal.querySelector('#tm-confirm-diff');
+		if (diffContainer) {
+			diffContainer.innerHTML = fullDiffHtml;
+		}
+		
+		modal.showModal();
+		
+		const saveBtn = modal.querySelector('#tm-confirm-save-btn');
+		const cancelBtn = modal.querySelector('#tm-confirm-cancel-btn');
+		
+		const handleSave = async () => {
+			modal.close();
+			cleanup();
+			
+			const tmStatusEl = document.getElementById('js-tm-status');
+			tmStatusEl.textContent = t('editor.translationMemory.status.starting');
+			
+			try {
+				await window.api.translationMemoryGenerateInBackground(bookId);
+				changedChapters.forEach((info, chId) => {
+					const viewInfo = chapterEditorViews.get(chId);
+					if (viewInfo) {
+						viewInfo.initialContent = info.value;
+					}
+				});
+				changedChapters.clear();
+			} catch (error) {
+				tmStatusEl.textContent = t('editor.translationMemory.status.error', { message: error.message });
+			}
+			isTmUpdatePromptActive = false;
+			updateTmStatusIndicator();
+		};
+		
+		const handleCancel = () => {
+			modal.close();
+			cleanup();
+			changedChapters.clear();
+			isTmUpdatePromptActive = false;
+			updateTmStatusIndicator();
+		};
+		
+		const cleanup = () => {
+			saveBtn.removeEventListener('click', handleSave);
+			cancelBtn.removeEventListener('click', handleCancel);
+		};
+		
+		saveBtn.addEventListener('click', handleSave);
+		cancelBtn.addEventListener('click', handleCancel);
+	} else {
+		if (confirm("Would you like to update the Translation Memory with your changes?")) {
+			await window.api.translationMemoryGenerateInBackground(bookId);
+			changedChapters.clear();
+		} else {
+			changedChapters.clear();
+		}
+		isTmUpdatePromptActive = false;
+		updateTmStatusIndicator();
+	}
+}
+// NEW SECTION END
+
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
 	await initI18n();
@@ -436,27 +614,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 	if (toolbarCodexBtn) {
 		toolbarCodexBtn.href = `/codex/${bookId}`;
 	}
-		if (toolbarTmBtn) {
-			toolbarTmBtn.href = `/translation-memory/${bookId}`;
+	if (toolbarTmBtn) {
+		toolbarTmBtn.href = `/translation-memory/${bookId}`;
+	}
+	
+	const chatDialog = document.getElementById('chat-dialog');
+	const chatFrame = document.getElementById('chat-dialog-frame');
+	document.getElementById('js-open-chat-btn')?.addEventListener('click', () => {
+		if (!chatDialog || !chatFrame) return;
+		if (chatFrame.src === 'about:blank' || !chatFrame.src.endsWith(`/chat/${bookId}`)) {
+			chatFrame.src = `/chat/${bookId}`;
 		}
-		
-		const chatDialog = document.getElementById('chat-dialog');
-		const chatFrame = document.getElementById('chat-dialog-frame');
-		document.getElementById('js-open-chat-btn')?.addEventListener('click', () => {
-			if (!chatDialog || !chatFrame) return;
-			if (chatFrame.src === 'about:blank' || !chatFrame.src.endsWith(`/chat/${bookId}`)) {
-				chatFrame.src = `/chat/${bookId}`;
-			}
-			chatDialog.showModal();
-		});
-		
-		const googleSearchBtn = document.getElementById('js-google-search-btn');
-		googleSearchBtn?.addEventListener('mousedown', (event) => event.preventDefault());
-		googleSearchBtn?.addEventListener('click', () => {
-			const selectedText = getSearchableSelectionText();
-			if (!selectedText) return;
-			window.open(`https://www.google.com/search?q=${encodeURIComponent(selectedText)}`, '_blank', 'noopener');
-		});
+		chatDialog.showModal();
+	});
+	
+	const googleSearchBtn = document.getElementById('js-google-search-btn');
+	googleSearchBtn?.addEventListener('mousedown', (event) => event.preventDefault());
+	googleSearchBtn?.addEventListener('click', () => {
+		const selectedText = getSearchableSelectionText();
+		if (!selectedText) return;
+		window.open(`https://www.google.com/search?q=${encodeURIComponent(selectedText)}`, '_blank', 'noopener');
+	});
 	
 	try {
 		const bookData = await window.api.getFullManuscript(bookId);
@@ -541,34 +719,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		const tmStatusEl = document.getElementById('js-tm-status');
 		
-		let isTmUpdateRunning = false;
-		const runTmUpdate = async () => {
-			if (isTmUpdateRunning) {
-				console.log('TM update is already in progress. Skipping.');
-				return;
-			}
-			isTmUpdateRunning = true;
-			try {
-				await window.api.translationMemoryGenerateInBackground(bookId);
-			} catch (error) {
-				tmStatusEl.textContent = t('editor.translationMemory.status.error', {message: error.message});
-				isTmUpdateRunning = false; // Reset on error
-			}
-		};
-		
+		// MODIFIED: Retain standard state updates but prevent automated batch calls on page load / interval loops
 		window.api.onTranslationMemoryProgressUpdate((update) => {
 			if (update.error) {
 				tmStatusEl.textContent = t('editor.translationMemory.status.error', {message: update.message});
-				isTmUpdateRunning = false; // Reset flag
 			} else if (update.finished) {
 				if (update.processedCount > 0) {
 					tmStatusEl.textContent = t('editor.translationMemory.status.complete', {count: update.processedCount});
 				} else {
 					tmStatusEl.textContent = t('editor.translationMemory.status.complete_none');
 				}
-				isTmUpdateRunning = false; // Reset flag
 				setTimeout(() => {
-					tmStatusEl.textContent = ''; // Clear status after 5 seconds
+					updateTmStatusIndicator(); // Restores changes indicator if other files remain modified
 				}, 5000);
 			} else if (update.processed !== undefined && update.total !== undefined) {
 				tmStatusEl.textContent = t('editor.translationMemory.status.generating', {
@@ -581,11 +743,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		
-		// Initial TM update run on load
-		runTmUpdate();
+		// NEW SECTION START: Page navigation intercepts to prompt before navigating away
+		document.querySelector('a[href="/dashboard"]')?.addEventListener('click', async (e) => {
+			if (changedChapters.size > 0) {
+				e.preventDefault();
+				await checkAndPromptTmUpdate();
+				window.location.href = '/dashboard';
+			}
+		});
 		
-		// Set interval for subsequent updates every 5 minutes
-		setInterval(runTmUpdate, 60000 * 5);
+		window.addEventListener('beforeunload', (e) => {
+			if (changedChapters.size > 0) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		});
+		// NEW SECTION END
 		
 		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
 		targetContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));

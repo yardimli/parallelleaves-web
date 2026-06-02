@@ -28,10 +28,10 @@
 	<div class="dropdown js-dropdown-container">
 		<button type="button" tabindex="0" role="button"
 		        class="js-toolbar-btn js-heading-btn btn btn-ghost btn-sm w-28 justify-start" disabled
-		       >{{ $tr('editor.paragraph', 'Paragraph') }}</button>
+		>{{ $tr('editor.paragraph', 'Paragraph') }}</button>
 		<div tabindex="0" class="js-dropdown dropdown-content z-[1] menu p-1 shadow bg-base-100 rounded-box w-40">
 			<button class="js-heading-option p-2 rounded w-full text-left text-sm hover:bg-base-200" data-level="0"
-			       >{{ $tr('editor.paragraph', 'Paragraph') }}</button>
+			>{{ $tr('editor.paragraph', 'Paragraph') }}</button>
 			<button class="js-heading-option p-2 rounded w-full text-left text-xl font-bold hover:bg-base-200"
 			        data-level="1">{{ $tr('editor.heading1', 'Heading 1') }}</button>
 			<button class="js-heading-option p-2 rounded w-full text-left text-lg font-bold hover:bg-base-200"
@@ -74,7 +74,8 @@
 				<button
 					class="js-highlight-option p-1 rounded w-full text-left flex items-center gap-2 text-xs hover:bg-base-200"
 					data-bg="highlight-green"><span class="w-4 h-4 rounded-full"
-				                                  style="background-color: #a7f3d0;"></span> <span>{{ $tr('editor.green', 'Green') }}</span>
+				                                  style="background-color: #a7f3d0;"></span>
+					<span>{{ $tr('editor.green', 'Green') }}</span>
 				</button>
 				<button
 					class="js-highlight-option p-1 rounded w-full text-left flex items-center gap-2 text-xs hover:bg-base-200"
@@ -123,7 +124,8 @@
 	</div>
 	<div class="divider divider-horizontal mx-0"></div>
 	<div class="flex items-center gap-1">
-		<button type="button" id="js-search-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.search', '') }}">
+		<button type="button" id="js-search-btn" class="btn btn-ghost btn-sm btn-square"
+		        title="{{ $tr('editor.search', '') }}">
 			<i class="bi bi-search text-lg"></i>
 		</button>
 		<button type="button" id="js-search-replace-btn" class="btn btn-ghost btn-sm btn-square"
@@ -192,18 +194,21 @@
 		</label>
 	</div>
 	<div class="flex items-center gap-1">
-		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.previous', '') }}"
+		<button id="js-search-prev-btn" class="btn btn-ghost btn-sm btn-square"
+		        title="{{ $tr('editor.searchBar.previous', '') }}"
 		        disabled>
 			<i class="bi bi-chevron-up"></i>
 		</button>
-		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.next', '') }}"
+		<button id="js-search-next-btn" class="btn btn-ghost btn-sm btn-square"
+		        title="{{ $tr('editor.searchBar.next', '') }}"
 		        disabled>
 			<i class="bi bi-chevron-down"></i>
 		</button>
 	</div>
 	<span id="js-search-results-count" class="text-sm text-base-content/70 w-24 text-center"></span>
 	<div class="flex-grow"></div>
-	<button id="js-search-close-btn" class="btn btn-ghost btn-sm btn-square" title="{{ $tr('editor.searchBar.close', '') }}">
+	<button id="js-search-close-btn" class="btn btn-ghost btn-sm btn-square"
+	        title="{{ $tr('editor.searchBar.close', '') }}">
 		<i class="bi bi-x-lg"></i>
 	</button>
 </div>
@@ -260,7 +265,8 @@
 			<button id="js-replace-btn" class="btn btn-sm btn-outline" disabled>
 				{{ $tr('editor.searchReplace.replace', 'Replace') }}
 			</button>
-			<button id="js-replace-all-btn" class="btn btn-sm btn-outline" disabled>{{ $tr('editor.searchReplace.replaceAll', 'Replace All') }}
+			<button id="js-replace-all-btn" class="btn btn-sm btn-outline"
+			        disabled>{{ $tr('editor.searchReplace.replaceAll', 'Replace All') }}
 			</button>
 		</div>
 	</div>
@@ -277,7 +283,7 @@
 		<div class="flex-grow"></div>
 		<div class="flex items-center gap-2">
 			<label for="js-spellcheck-lang-dropdown" class="text-sm font-medium"
-			      >{{ $tr('editor.spellcheck', 'Spellcheck:') }}</label>
+			>{{ $tr('editor.spellcheck', 'Spellcheck:') }}</label>
 			<select id="js-spellcheck-lang-dropdown" class="select select-bordered select-sm">
 				<option>{{ $tr('common.loading', 'Loading...') }}</option>
 			</select>
@@ -319,6 +325,26 @@
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/dictionary-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/confirmation-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/input-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
+		
+		<!-- NEW BLOCK START: Modal dialog to prompt TM changes highlight before processing updates -->
+	<dialog id="tm-confirm-modal" class="modal">
+		<div class="modal-box w-11/12 max-w-lg flex flex-col">
+			<h3
+				class="font-bold text-lg text-primary">{{ $tr('editor.translationMemory.updateTitle', 'Update Translation Memory') }}</h3>
+			<p class="py-2 text-sm text-base-content/70">
+				We detected changes in your translated text. Would you like to add these changes to your Translation Memory?
+			</p>
+			<div class="my-4 p-4 bg-base-200 rounded-md overflow-y-auto max-h-60 font-mono text-sm whitespace-pre-wrap"
+			     id="tm-confirm-diff">
+				<!-- Highlighted changes will go here -->
+			</div>
+			<div class="modal-action">
+				<button id="tm-confirm-cancel-btn" class="btn">No, Skip</button>
+				<button id="tm-confirm-save-btn" class="btn btn-primary">Yes, Update TM</button>
+			</div>
+		</div>
+	</dialog>
+	<!-- NEW BLOCK END -->
 </div>
 
 <dialog id="chat-dialog" class="modal">
@@ -344,52 +370,69 @@
 </template>
 
 <template id="template-editor-source-chapter">
-@verbatim
-<div id="source-chapter-scroll-target-{{id}}" class="manuscript-chapter-item px-8 py-6" data-chapter-id="{{id}}">
-	<div class="js-source-column prose prose-sm dark:prose-invert max-w-none bg-base-200 p-4 rounded-lg">
-		<div class="flex justify-between items-center border-b pb-1 mb-2">
-			<div class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow" data-chapter-id="{{id}}" data-direction="source-to-target" title="{{sync_source_title}}">
-				<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}} (<span class="js-source-word-count">{{source_word_count}} <span>{{words_label}}</span></span>)</h3>
-				<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-right-circle"></i></span>
-			</div>
-			<div class="js-source-actions flex items-center gap-1 pl-2">
-				<button class="js-edit-source-btn btn btn-ghost btn-xs">{{edit_label}}</button>
-				<button class="js-save-source-btn btn btn-success btn-xs hidden">{{save_label}}</button>
-				<button class="js-cancel-source-btn btn btn-ghost btn-xs hidden">{{cancel_label}}</button>
-				<div class="dropdown dropdown-end">
-					<button tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle"><i class="bi bi-three-dots-vertical"></i></button>
-					<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
-						<li><button class="js-chapter-action" data-action="rename" data-chapter-id="{{id}}">{{rename_label}}</button></li>
-						<li><button class="js-chapter-action" data-action="insert-above" data-chapter-id="{{id}}">{{insert_above_label}}</button></li>
-						<li><button class="js-chapter-action" data-action="insert-below" data-chapter-id="{{id}}">{{insert_below_label}}</button></li>
-						<div class="divider my-1"></div>
-						<li><button class="js-chapter-action text-error" data-action="delete" data-chapter-id="{{id}}">{{delete_label}}</button></li>
-					</ul>
+	@verbatim
+		<div id="source-chapter-scroll-target-{{id}}" class="manuscript-chapter-item px-8 py-6" data-chapter-id="{{id}}">
+			<div class="js-source-column prose prose-sm dark:prose-invert max-w-none bg-base-200 p-4 rounded-lg">
+				<div class="flex justify-between items-center border-b pb-1 mb-2">
+					<div
+						class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow"
+						data-chapter-id="{{id}}" data-direction="source-to-target" title="{{sync_source_title}}">
+						<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}}
+							(<span class="js-source-word-count">{{source_word_count}} <span>{{words_label}}</span></span>)</h3>
+						<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-right-circle"></i></span>
+					</div>
+					<div class="js-source-actions flex items-center gap-1 pl-2">
+						<button class="js-edit-source-btn btn btn-ghost btn-xs">{{edit_label}}</button>
+						<button class="js-save-source-btn btn btn-success btn-xs hidden">{{save_label}}</button>
+						<button class="js-cancel-source-btn btn btn-ghost btn-xs hidden">{{cancel_label}}</button>
+						<div class="dropdown dropdown-end">
+							<button tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle"><i
+									class="bi bi-three-dots-vertical"></i></button>
+							<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-52">
+								<li>
+									<button class="js-chapter-action" data-action="rename"
+									        data-chapter-id="{{id}}">{{rename_label}}</button>
+								</li>
+								<li>
+									<button class="js-chapter-action" data-action="insert-above"
+									        data-chapter-id="{{id}}">{{insert_above_label}}</button>
+								</li>
+								<li>
+									<button class="js-chapter-action" data-action="insert-below"
+									        data-chapter-id="{{id}}">{{insert_below_label}}</button>
+								</li>
+								<div class="divider my-1"></div>
+								<li>
+									<button class="js-chapter-action text-error" data-action="delete"
+									        data-chapter-id="{{id}}">{{delete_label}}</button>
+								</li>
+							</ul>
+						</div>
+					</div>
 				</div>
+				<div class="source-content-readonly" spellcheck="false">{{source_content}}</div>
 			</div>
 		</div>
-		<div class="source-content-readonly" spellcheck="false">{{source_content}}</div>
-	</div>
-</div>
-@endverbatim
+	@endverbatim
 </template>
 
 <template id="template-editor-target-chapter">
-@verbatim
-<div id="target-chapter-scroll-target-{{id}}" class="px-8 py-6" data-chapter-id="{{id}}">
-	<div class="flex justify-between items-center border-b pb-1 mb-2 pt-4">
-		<div
-			class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow"
-			data-chapter-id="{{id}}" data-direction="target-to-source" title="{{sync_target_title}}">
-			<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}} (<span
-					class="js-target-word-count">{{target_word_count}} <span>{{words_label}}</span></span>)</h3>
-			<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
+	@verbatim
+		<div id="target-chapter-scroll-target-{{id}}" class="px-8 py-6" data-chapter-id="{{id}}">
+			<div class="flex justify-between items-center border-b pb-1 mb-2 pt-4">
+				<div
+					class="js-sync-scroll-btn flex items-center gap-2 cursor-pointer hover:bg-base-content/10 p-1 -m-1 rounded-md transition-colors flex-grow"
+					data-chapter-id="{{id}}" data-direction="target-to-source" title="{{sync_target_title}}">
+					<h3 class="!mt-0 text-sm font-semibold uppercase tracking-wider text-base-content/70 flex-grow">{{title}}
+						(<span
+							class="js-target-word-count">{{target_word_count}} <span>{{words_label}}</span></span>)</h3>
+					<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
+				</div>
+			</div>
+			<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="/editor-iframe"
+			        data-chapter-id="{{id}}"></iframe>
 		</div>
-	</div>
-	<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="/editor-iframe"
-	        data-chapter-id="{{id}}"></iframe>
-</div>
-@endverbatim
+	@endverbatim
 </template>
 
 <!-- NEW: Pass route parameters to frontend JS -->

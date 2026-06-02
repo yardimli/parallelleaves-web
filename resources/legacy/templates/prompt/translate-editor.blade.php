@@ -7,28 +7,32 @@
 				<button type="button" class="js-copy-style-analysis-btn btn btn-xs btn-outline">{{__i18n:prompt.translate.copyStyleAnalysis|Copy Style Analysis__}}</button>
 			</label>
 			<textarea id="translate-instructions" name="instructions" class="textarea textarea-bordered w-full h-24 font-mono text-sm" placeholder="{{__i18n:prompt.translate.instructionsPlaceholder__}}"></textarea>
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" name="include_instructions" class="checkbox checkbox-sm" checked>
-				<span class="label-text">{{__i18n:prompt.translate.includeInstructions|Include instructions in prompt__}}</span>
-			</label>
 			
-			<!-- NEW: Checkbox to control inclusion of Translation Memory in prompt -->
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" name="include_translation_memory" class="checkbox checkbox-sm" checked>
-				<span class="label-text">{{__i18n:prompt.translate.includeTranslationMemory|Include Translation Memory__}}</span>
-			</label>
-			
-			<!-- NEW: Checkbox to control inclusion of Style Analysis in prompt -->
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" name="include_style_analysis" class="checkbox checkbox-sm" checked>
-				<span class="label-text">{{__i18n:prompt.translate.includeStyleAnalysis|Include Style Analysis__}}</span>
-			</label>
-			
-			<!-- NEW: Checkbox to control inclusion of Codex in prompt -->
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" name="include_codex" class="checkbox checkbox-sm" checked>
-				<span class="label-text">{{__i18n:prompt.translate.includeCodex|Include Codex__}}</span>
-			</label>
+			<!-- MODIFIED: Wrapped all checkboxes in a flex container to align them side by side instead of one per line -->
+			<div class="flex flex-wrap gap-x-6 gap-y-2 mt-2">
+				<label class="label cursor-pointer justify-start gap-2 p-0">
+					<input type="checkbox" name="include_instructions" class="checkbox checkbox-sm" checked>
+					<span class="label-text">{{__i18n:prompt.translate.includeInstructions|Include instructions in prompt__}}</span>
+				</label>
+				
+				<!-- Checkbox to control inclusion of Translation Memory in prompt -->
+				<label class="label cursor-pointer justify-start gap-2 p-0">
+					<input type="checkbox" name="include_translation_memory" class="checkbox checkbox-sm" checked>
+					<span class="label-text">{{__i18n:prompt.translate.includeTranslationMemory|Include Translation Memory__}}</span>
+				</label>
+				
+				<!-- Checkbox to control inclusion of Style Analysis in prompt -->
+				<label class="label cursor-pointer justify-start gap-2 p-0">
+					<input type="checkbox" name="include_style_analysis" class="checkbox checkbox-sm" checked>
+					<span class="label-text">{{__i18n:prompt.translate.includeStyleAnalysis|Include Style Analysis__}}</span>
+				</label>
+				
+				<!-- Checkbox to control inclusion of Codex in prompt -->
+				<label class="label cursor-pointer justify-start gap-2 p-0">
+					<input type="checkbox" name="include_codex" class="checkbox checkbox-sm" checked>
+					<span class="label-text">{{__i18n:prompt.translate.includeCodex|Include Codex__}}</span>
+				</label>
+			</div>
 			<!-- Help text moved below -->
 		</div>
 		
