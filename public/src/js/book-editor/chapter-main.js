@@ -55,14 +55,10 @@ let searchReplaceResultHandler = null;
 let lastFocusedSourceEditor = null;
 let targetEditCount = 0;
 
-// NEW SECTION START: State tracking for modified translation blocks
-const changedChapters = new Map();
-let isTmUpdatePromptActive = false;
+// NEW SECTION START: Translation memory processing now runs from backend-detected pending blocks.
+let isTmUpdateActive = false;
 let bookSourceLanguage = 'Source';
 let bookTargetLanguage = 'Translation';
-// NEW: Model dropdown tracking inside the confirmation dialog
-let tmModelSelect = null;
-const TM_MODEL_KEY = 'parallel-leaves-tm-model';
 // NEW SECTION END
 
 // Sanitizes and escapes HTML strings for render presentation
@@ -192,26 +188,6 @@ const debouncedContentSave = debounce(async ({chapterId, field, value}) => {
 				wordCountEl.textContent = `${wordCount.toLocaleString()} ${t('common.words')}`;
 			}
 		}
-		
-		// NEW SECTION START: Intercept edited targets and register changes dynamically to the TM queue
-		const viewInfo = chapterEditorViews.get(chapterId.toString());
-		if (viewInfo) {
-			console.log(`[TM CHECK] Comparing original and new content for chapter ${chapterId}`);
-			const originalPlainText = htmlToPlainText(viewInfo.initialContent || '');
-			const newPlainText = htmlToPlainText(value || '');
-			if (originalPlainText !== newPlainText) {
-				changedChapters.set(chapterId.toString(), {
-					original: originalPlainText,
-					current: newPlainText,
-					value: value
-				});
-			} else {
-				changedChapters.delete(chapterId.toString());
-			}
-			console.log(changedChapters.size);
-			updateTmStatusIndicator();
-		}
-		// NEW SECTION END
 	}
 	
 	try {
@@ -501,222 +477,17 @@ function initializeView(bookId, bookData, initialChapterId) {
 function updateTmStatusIndicator() {
 	const tmStatusEl = document.getElementById('js-tm-status');
 	if (!tmStatusEl) return;
-	
-	if (changedChapters.size > 0) {
-		// MODIFIED: Replaced raw hardcoded HTML segments with localized strings
-		tmStatusEl.innerHTML = `${t('editor.translationMemory.unsavedChanges', 'Unsaved TM changes.')} <button id="js-trigger-tm-prompt-btn" class="link link-primary font-semibold">${t('editor.translationMemory.updateButton', 'Update TM')}</button>`;
-		document.getElementById('js-trigger-tm-prompt-btn')?.addEventListener('click', (e) => {
-			e.preventDefault();
-			checkAndPromptTmUpdate();
-		});
-	} else {
-		tmStatusEl.textContent = '';
-	}
+	tmStatusEl.textContent = '';
 }
 
-// MODIFIED: Refactored checkAndPromptTmUpdate to return a Promise so that callers can await its full resolution
-function checkAndPromptTmUpdate() {
-	return new Promise(async (resolve) => {
-		console.log(`[TM UPDATE] Triggered TM update check. Pending changes in ${changedChapters.size} chapter(s), TM prompt active: ${isTmUpdatePromptActive}`);
-		if (isTmUpdatePromptActive || changedChapters.size === 0) {
-			resolve();
-			return;
-		}
-		
-		isTmUpdatePromptActive = true;
-		const bookId = document.body.dataset.bookId;
-		
-		let fullDiffHtml = '';
-		changedChapters.forEach((info, chId) => {
-			const viewInfo = chapterEditorViews.get(chId);
-			if (viewInfo) {
-				const originalHtml = viewInfo.initialContent || '';
-				const currentHtml = info.value || '';
-				const originalMarkers = extractMarkersFromHtml(originalHtml);
-				const currentMarkers = extractMarkersFromHtml(currentHtml);
-				
-				const chapterItem = document.getElementById(`target-chapter-scroll-target-${chId}`);
-				const chTitle = chapterItem ? chapterItem.querySelector('h3').textContent.split('(')[0].trim() : `Chapter ${chId}`;
-				
-				let chapterDiffHtml = '';
-				
-				// Compare block contents marker-by-marker to isolate only the changed ones
-				for (const [id, text] of Object.entries(currentMarkers)) {
-					const origText = originalMarkers[id];
-					if (origText !== text) {
-						const diff = diffWords(origText || '', text || '');
-						if (diff.trim()) {
-							chapterDiffHtml += `
-								<div class="mt-2 pl-4 border-l-2 border-primary/30">
-									<span class="text-xs font-semibold badge badge-sm badge-outline mb-1">Block #${id}</span>
-									<div class="text-sm leading-relaxed">${diff}</div>
-								</div>
-							`;
-						}
-					}
-				}
-				
-				if (chapterDiffHtml) {
-					fullDiffHtml += `
-						<div class="mb-4">
-							<strong class="text-base-content/80">${escapeHtml(chTitle)}</strong>
-							${chapterDiffHtml}
-						</div>
-					`;
-				}
-			}
-		});
-		
-		if (!fullDiffHtml.trim()) {
-			changedChapters.clear();
-			isTmUpdatePromptActive = false;
-			updateTmStatusIndicator();
-			resolve();
-			return;
-		}
-		
-		const modal = document.getElementById('tm-confirm-modal');
-		if (modal) {
-			const diffContainer = modal.querySelector('#tm-confirm-diff');
-			if (diffContainer) {
-				diffContainer.innerHTML = fullDiffHtml;
-			}
-			
-			modal.showModal();
-			
-			const saveBtn = modal.querySelector('#tm-confirm-save-btn');
-			const cancelBtn = modal.querySelector('#tm-confirm-cancel-btn');
-			
-			const handleSave = async () => {
-				modal.close();
-				cleanup();
-				
-				const tmStatusEl = document.getElementById('js-tm-status');
-				tmStatusEl.textContent = t('editor.translationMemory.status.starting');
-				
-				try {
-					// NEW: Gather the full changed block details directly from the DOM to submit to the API
-					const changesList = [];
-					changedChapters.forEach((info, chId) => {
-						const viewInfo = chapterEditorViews.get(chId);
-						if (viewInfo) {
-							const originalHtml = viewInfo.initialContent || '';
-							const currentHtml = info.value || '';
-							
-							const sourceChapterItem = document.getElementById(`source-chapter-scroll-target-${chId}`);
-							const sourceHtml = sourceChapterItem ? sourceChapterItem.querySelector('.source-content-readonly').innerHTML : '';
-							
-							const sourceMarkers = extractMarkersFromHtml(sourceHtml);
-							const originalMarkers = extractMarkersFromHtml(originalHtml);
-							const currentMarkers = extractMarkersFromHtml(currentHtml);
-							
-							for (const [id, text] of Object.entries(currentMarkers)) {
-								const origText = originalMarkers[id];
-								if (origText !== text) {
-									changesList.push({
-										markerId: parseInt(id, 10),
-										sourceText: sourceMarkers[id] || '',
-										originalTargetText: origText || '',
-										changedTargetText: text || ''
-									});
-								}
-							}
-						}
-					});
-					
-					// MODIFIED: Read the model value directly from the local tmModelSelect element in the confirm view
-					const payloadData = {
-						sourceLanguage: bookSourceLanguage,
-						targetLanguage: bookTargetLanguage,
-						changes: changesList,
-						model: tmModelSelect ? tmModelSelect.value : (localStorage.getItem(TM_MODEL_KEY) || 'openai/gpt-4o-mini')
-					};
-					
-					console.log('[TM UPDATE] Sending payload directly to the API:', payloadData);
-					
-					// MODIFIED: Pass payloadData (containing source/edited texts) instead of just marker IDs
-					await window.api.translationMemoryGenerateInBackground(bookId, payloadData);
-					
-					changedChapters.forEach((info, chId) => {
-						const viewInfo = chapterEditorViews.get(chId);
-						if (viewInfo) {
-							viewInfo.initialContent = info.value;
-						}
-					});
-					changedChapters.clear();
-				} catch (error) {
-					tmStatusEl.textContent = t('editor.translationMemory.status.error', { message: error.message });
-				}
-				isTmUpdatePromptActive = false;
-				updateTmStatusIndicator();
-				resolve(); // MODIFIED: Resolves the promise when the TM update is fully complete
-			};
-			
-			const handleCancel = () => {
-				modal.close();
-				cleanup();
-				changedChapters.clear();
-				isTmUpdatePromptActive = false;
-				updateTmStatusIndicator();
-				resolve(); // MODIFIED: Resolves the promise when cancelled
-			};
-			
-			const cleanup = () => {
-				saveBtn.removeEventListener('click', handleSave);
-				cancelBtn.removeEventListener('click', handleCancel);
-			};
-			
-			saveBtn.addEventListener('click', handleSave);
-			cancelBtn.addEventListener('click', handleCancel);
-		} else {
-			// MODIFIED: Exchanged hardcoded string prompt text for localized resource files
-			if (confirm(t('editor.translationMemory.confirmPrompt', 'Would you like to update the Translation Memory with your changes?'))) {
-				const changesList = [];
-				changedChapters.forEach((info, chId) => {
-					const viewInfo = chapterEditorViews.get(chId);
-					if (viewInfo) {
-						const originalHtml = viewInfo.initialContent || '';
-						const currentHtml = info.value || '';
-						
-						const sourceChapterItem = document.getElementById(`source-chapter-scroll-target-${chId}`);
-						const sourceHtml = sourceChapterItem ? sourceChapterItem.querySelector('.source-content-readonly').innerHTML : '';
-						
-						const sourceMarkers = extractMarkersFromHtml(sourceHtml);
-						const originalMarkers = extractMarkersFromHtml(originalHtml);
-						const currentMarkers = extractMarkersFromHtml(currentHtml);
-						
-						for (const [id, text] of Object.entries(currentMarkers)) {
-							const origText = originalMarkers[id];
-							if (origText !== text) {
-								changesList.push({
-									markerId: parseInt(id, 10),
-									sourceText: sourceMarkers[id] || '',
-									originalTargetText: origText || '',
-									changedTargetText: text || ''
-								});
-							}
-						}
-					}
-				});
-				
-				// MODIFIED: Read model directly from TM model local storage setting
-				const payloadData = {
-					sourceLanguage: bookSourceLanguage,
-					targetLanguage: bookTargetLanguage,
-					changes: changesList,
-					model: localStorage.getItem(TM_MODEL_KEY) || 'openai/gpt-4o-mini'
-				};
-				
-				await window.api.translationMemoryGenerateInBackground(bookId, payloadData);
-				changedChapters.clear();
-			} else {
-				changedChapters.clear();
-			}
-			isTmUpdatePromptActive = false;
-			updateTmStatusIndicator();
-			resolve(); // MODIFIED: Resolves the promise
-		}
-	});
+async function processPendingTranslationMemory(bookId) {
+	if (isTmUpdateActive || !bookId) return;
+	isTmUpdateActive = true;
+	try {
+		await window.api.translationMemoryGenerateInBackground(bookId);
+	} finally {
+		isTmUpdateActive = false;
+	}
 }
 // NEW SECTION END
 
@@ -833,7 +604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		setupIntersectionObserver(setActiveChapterId);
-		setupSpellcheckDropdown();
+		setupSpellcheckDropdown(chapterEditorViews);
 		
 		const searchAPI = setupSearch(chapterEditorViews, (handler) => {
 			searchResultHandler = handler;
@@ -890,23 +661,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		
-		// NEW SECTION START: Page navigation intercepts to prompt before navigating away
-		// MODIFIED: Added async/await wrapper to properly block redirection until checkAndPromptTmUpdate (now returning a Promise) fully resolves.
-		document.querySelector('a[href="/dashboard"]')?.addEventListener('click', async (e) => {
-			if (changedChapters.size > 0) {
-				e.preventDefault();
-				await checkAndPromptTmUpdate();
-				window.location.href = '/dashboard';
-			}
-		});
-		
-		window.addEventListener('beforeunload', (e) => {
-			if (changedChapters.size > 0) {
-				e.preventDefault();
-				e.returnValue = '';
-			}
-		});
-		// NEW SECTION END
+		setInterval(() => processPendingTranslationMemory(bookId), 60000);
 		
 		sourceContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
 		targetContainer.addEventListener('scroll', () => debouncedSaveScroll(bookId, sourceContainer, targetContainer));
@@ -1188,37 +943,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 					break;
 			}
 		});
-		
-		// NEW SECTION START: Populate model dropdown inside confirmation dialog
-		tmModelSelect = document.getElementById('tm-model-select');
-		
-		async function populateTmModelDropdown() {
-			if (!tmModelSelect) return;
-			try {
-				const result = window.initialModels || await window.api.getModels();
-				const modelGroups = result.models || [];
-				const selectedModel = localStorage.getItem(TM_MODEL_KEY) || 'openai/gpt-4o-mini';
-				
-				tmModelSelect.innerHTML = modelGroups.map(group => `
-					<optgroup label="${escapeHtml(group.group)}">
-						${group.models.map(model => `
-							<option value="${escapeHtml(model.id)}" ${model.id === selectedModel ? 'selected' : ''}>${escapeHtml(model.name)}</option>
-						`).join('')}
-					</optgroup>
-				`).join('');
-			} catch (error) {
-				console.error('Failed to populate TM model dropdown:', error);
-				tmModelSelect.innerHTML = '<option value="openai/gpt-4o-mini">GPT-4o Mini</option>';
-			}
-		}
-		
-		if (tmModelSelect) {
-			populateTmModelDropdown();
-			tmModelSelect.addEventListener('change', () => {
-				localStorage.setItem(TM_MODEL_KEY, tmModelSelect.value);
-			});
-		}
-		// NEW SECTION END
 		
 	} catch (error) {
 		console.error('Failed to load manuscript data:', error);

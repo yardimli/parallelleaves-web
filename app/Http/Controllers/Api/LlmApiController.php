@@ -8,6 +8,7 @@
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
 	use Illuminate\Support\Facades\DB; // MODIFIED: Imported DB Facade [1]
+	use Illuminate\Support\Facades\Log;
 	use App\Models\UserBook; // MODIFIED: Imported Eloquent Models
 	use Throwable;
 
@@ -236,9 +237,28 @@
 						'messages' => $messages,
 						'temperature' => $data['temperature'] ?? 0.7
 					];
+					$action = (string)($data['action'] ?? 'unknown');
+					Log::info('LLM prompt', [
+						'user_id' => $userId,
+						'book_id' => $bookId,
+						'action' => $action,
+						'model' => $payload['model'],
+						'temperature' => $payload['temperature'],
+						'messages' => $messages,
+						'payload' => $payload,
+					]);
 					// MODIFIED: Sanitized array configuration passed without $db context
 					$logCtx = ['userId' => $userId, 'action' => 'llm_process_text'];
-					$result = ['success' => true, 'data' => callOpenRouter($payload, $logCtx, $userApiKey)];
+					$llmResponse = callOpenRouter($payload, $logCtx, $userApiKey);
+					Log::info('LLM result', [
+						'user_id' => $userId,
+						'book_id' => $bookId,
+						'action' => $action,
+						'model' => $payload['model'],
+						'raw_response' => $llmResponse,
+						'message_content' => $llmResponse['choices'][0]['message']['content'] ?? null,
+					]);
+					$result = ['success' => true, 'data' => $llmResponse];
 					break;
 				} while (false);
 

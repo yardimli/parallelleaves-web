@@ -93,6 +93,22 @@ let floatingTranslateBtn = null;
 let localSearchMatches = []; // State for local search match positions {from, to}
 let localSearchReplaceMatches = []; // State for local search & replace match positions
 
+function applySpellcheckLanguage(lang) {
+	const enabled = Boolean(lang);
+	document.documentElement.lang = lang || '';
+	document.body.lang = lang || '';
+	document.body.spellcheck = enabled;
+	const editorDom = editorView?.dom;
+	if (editorDom) {
+		editorDom.setAttribute('spellcheck', enabled ? 'true' : 'false');
+		if (enabled) {
+			editorDom.setAttribute('lang', lang);
+		} else {
+			editorDom.removeAttribute('lang');
+		}
+	}
+}
+
 // ProseMirror plugin to manage search result decorations.
 const searchPlugin = new Plugin({
 	state: {
@@ -602,6 +618,7 @@ window.addEventListener('message', (event) => {
 			document.documentElement.setAttribute('data-theme', payload.theme);
 			if (payload.theme === 'dark') document.documentElement.classList.add('dark');
 			createEditorView(document.getElementById('editor-container'), payload);
+			applySpellcheckLanguage(payload.spellcheckLanguage || '');
 			
 			const resizeObserver = new ResizeObserver(() => {
 				sendResize();
@@ -610,6 +627,9 @@ window.addEventListener('message', (event) => {
 			break;
 		case 'updateTypography':
 			applyTypography(payload);
+			break;
+		case 'setSpellcheckLanguage':
+			applySpellcheckLanguage(payload.lang || '');
 			break;
 		case 'command':
 			executeCommand(payload);

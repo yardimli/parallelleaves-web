@@ -11,6 +11,7 @@ const API_ENDPOINTS = {
 	'auth:logout': '/api/auth/logout',
 	'auth:get-session': '/api/auth/session',
 	'user:set-api-key': '/api/user/api-key',
+	'user:save-model-settings': '/api/user/model-settings',
 	'i18n:get-lang-file': '/api/i18n/lang-file',
 	'app:reset': '/api/app/reset',
 	'session:getAvailableSpellCheckerLanguages': '/api/session/spellchecker/languages',
@@ -146,6 +147,44 @@ function rpcSend(channel, ...args) {
 	}).then(res => parseAjaxResponse(res, channel)).catch(console.error);
 }
 
+let modelSettingsSyncTimer = null;
+
+function collectLocalModelSettings() {
+	const settings = {};
+	for (let i = 0; i < localStorage.length; i++) {
+		const key = localStorage.key(i);
+		if (!key || !/model/i.test(key)) continue;
+		const value = localStorage.getItem(key);
+		if (value) settings[key] = value;
+	}
+	return settings;
+}
+
+function scheduleModelSettingsSync() {
+	if (['/', '/login', '/register'].includes(window.location.pathname)) {
+		return;
+	}
+	clearTimeout(modelSettingsSyncTimer);
+	modelSettingsSyncTimer = setTimeout(() => {
+		const settings = collectLocalModelSettings();
+		if (Object.keys(settings).length > 0) {
+			rpcSend('user:save-model-settings', settings);
+		}
+	}, 400);
+}
+
+try {
+	const nativeLocalStorageSetItem = localStorage.setItem.bind(localStorage);
+	localStorage.setItem = (key, value) => {
+		nativeLocalStorageSetItem(key, value);
+		if (/model/i.test(String(key))) {
+			scheduleModelSettingsSync();
+		}
+	};
+} catch (error) {
+	console.warn('Could not wrap localStorage model setting sync:', error);
+}
+
 window.api = {
 	openImportWindow: () => {
 		window.location.href = '/import-document';
@@ -154,13 +193,20 @@ window.api = {
 		window.open(`/chat/${bookId}`, '_blank');
 	},
 	
-	translationMemoryGenerateInBackground: async (bookId, payloadData) => {
+	translationMemoryGenerateInBackground: async (bookId) => {
 		try {
-			// MODIFIED: Submit payload containing source and updated targets directly to 'process-batch' endpoint
-			const status = await rpcInvoke('translation-memory:process-batch', bookId, payloadData);
+			const start = await rpcInvoke('translation-memory:start', bookId);
+			if (start.status === 'complete') {
+				return;
+			}
+			const status = await rpcInvoke('translation-memory:process-batch', bookId);
 			
 			if (tmUpdateCb) {
-				tmUpdateCb({}, { finished: true, processedCount: status.processedCount });
+				tmUpdateCb({}, {
+					finished: status.status === 'complete',
+					processedCount: status.processedCount,
+					remainingCount: status.remainingCount
+				});
 			}
 		} catch (err) {
 			if (tmUpdateCb) tmUpdateCb({}, { error: true, message: err.message });
@@ -177,6 +223,7 @@ window.api = {
 	logout: () => rpcInvoke('auth:logout'),
 	getSession: () => rpcInvoke('auth:get-session'),
 	setApiKey: (key) => rpcInvoke('user:set-api-key', key),
+	saveModelSettings: (settings) => rpcInvoke('user:save-model-settings', settings),
 	openExternalRegister: () => {
 		window.location.href = '/register';
 	},
@@ -313,9 +360,9 @@ window.api = {
 	generateCoverPrompt: (data) => rpcInvoke('ai:generate-cover-prompt', data),
 	generateCover: (data) => rpcInvoke('ai:generate-cover', data),
 	
-	getAvailableSpellCheckerLanguages: () => Promise.resolve(['en-US']),
-	getCurrentSpellCheckerLanguage: () => Promise.resolve('en-US'),
-	setSpellCheckerLanguage: (lang) => Promise.resolve({success: true}),
+	getAvailableSpellCheckerLanguages: () => rpcInvoke('session:getAvailableSpellCheckerLanguages'),
+	getCurrentSpellCheckerLanguage: () => rpcInvoke('session:getCurrentSpellCheckerLanguage'),
+	setSpellCheckerLanguage: (lang) => rpcInvoke('session:setSpellCheckerLanguage', lang),
 	getSupportedLanguages: () => rpcInvoke('languages:get-supported'),
 	
 	getBookDictionary: (bookId) => rpcInvoke('dictionary:get', bookId),
@@ -358,3 +405,9 @@ window.api = {
 	startStyleAnalysis: (bookId, options = {}) => rpcInvoke('codex:style-start', bookId, options),
 	processStyleAnalysisBatch: (bookId, options = {}) => rpcInvoke('codex:style-process-batch', bookId, options)
 };
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', scheduleModelSettingsSync, {once: true});
+} else {
+	scheduleModelSettingsSync();
+}

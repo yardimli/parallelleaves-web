@@ -29,7 +29,51 @@
 
 				$result = null;
 				do {
-					$result = ['en-US'];
+					$result = [
+						'af',
+						'bg',
+						'ca',
+						'cs',
+						'cy',
+						'da',
+						'de',
+						'el',
+						'en-GB',
+						'en-US',
+						'es-419',
+						'es-AR',
+						'es-ES',
+						'es-MX',
+						'es-US',
+						'et',
+						'fa',
+						'fr',
+						'he',
+						'hi',
+						'hr',
+						'hu',
+						'id',
+						'it',
+						'lt',
+						'lv',
+						'nb',
+						'nn',
+						'nl',
+						'pl',
+						'pt-BR',
+						'pt-PT',
+						'ro',
+						'ru',
+						'sk',
+						'sl',
+						'sq',
+						'sr',
+						'sv',
+						'ta',
+						'tr',
+						'uk',
+						'vi',
+					];
 					break;
 				} while (false);
 
@@ -55,7 +99,7 @@
 
 				$result = null;
 				do {
-					$result = 'en-US';
+					$result = session('spellcheck_language', 'en-US');
 					break;
 				} while (false);
 
@@ -81,6 +125,8 @@
 
 				$result = null;
 				do {
+					$lang = (string)($args[0] ?? '');
+					session(['spellcheck_language' => $lang]);
 					$result = ['success' => true];
 					break;
 

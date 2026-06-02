@@ -7,26 +7,56 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
+	use Illuminate\Support\Facades\Log;
 	use App\Models\UserBookBlock;
 	use App\Models\UserBookTranslationMemory;
+	use App\Models\UserBook;
 	use Throwable;
 
 	require_once __DIR__ . '/ApiSupport.php';
 
 	class TranslationMemoryApiController extends Controller
 	{
-		/**
-		 * Bypassed Legacy Start Method
-		 */
-		public function start(Request $request): JsonResponse
+		private function decodeLlmJsonContent(string $content): array
 		{
-			return response()->json(['success' => true, 'data' => ['job_id' => null]]);
+			$content = trim($content);
+			if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/is', $content, $matches)) {
+				$content = trim($matches[1]);
+			}
+
+			$decoded = json_decode($content, true);
+			if (!is_array($decoded) && str_contains($content, '\\"')) {
+				$decoded = json_decode(stripslashes($content), true);
+			}
+			if (is_string($decoded)) {
+				$decoded = json_decode($decoded, true);
+			}
+
+			return is_array($decoded) ? $decoded : [];
 		}
 
-		/**
-		 * MODIFIED: Process the segment changes synchronously without background job polling.
-		 * Uses posted data directly and avoids querying book content from the database.
-		 */
+		public function start(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$userId = Auth::id();
+				$bookId = $args[0] ?? null;
+				$ownsBook = UserBook::where('id', $bookId)->where('user_id', $userId)->exists();
+				if (!$ownsBook) {
+					throw new Exception('Book not found.');
+				}
+
+				$pending = UserBookBlock::where('book_id', $bookId)->where('is_analyzed', 0)->count();
+				return response()->json(['success' => true, 'data' => [
+					'status' => $pending > 0 ? 'pending' : 'complete',
+					'total_blocks' => $pending,
+				]]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
 		public function processBatch(Request $request): JsonResponse
 		{
 			try {
@@ -44,50 +74,40 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					$payloadData = $args[1] ?? [];
+					$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
+					if (!$book) {
+						throw new Exception('Book not found.');
+					}
 
-					$sourceLanguage = $payloadData['sourceLanguage'] ?? 'Source';
-					$targetLanguage = $payloadData['targetLanguage'] ?? 'Translation';
-					$changes = $payloadData['changes'] ?? [];
-					// NEW: Extract user-selected language model parameters from the payload
-					$model = $payloadData['model'] ?? env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
+					$modelSettings = is_array($user?->ai_model_settings) ? $user->ai_model_settings : [];
+					$model = $modelSettings['parallel-leaves-ai-model']
+						?? $modelSettings['translation_model']
+						?? env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
 
-					// MODIFIED: Restructure system instructions to focus only on edited segments
 					$systemPrompt = "You are a literary translation analyst. Your task is to identify and analyze the specific sentences that the user/translator has modified or polished in the translation, compared to their previous translation. Focus ONLY on those modified sentences. Do not include unedited surrounding sentences. Generate translation pairs ONLY for the edited/modified sentences to capture the translator's unique stylistic choices. Return your response as a single JSON object with one key: 'pairs'. The value of 'pairs' must be an array of objects, where each object has two keys: 'source' and 'target'.";
+					$pendingBlocks = UserBookBlock::where('book_id', $bookId)
+						->where('is_analyzed', 0)
+						->orderBy('id')
+						->limit(5)
+						->get();
 
-					foreach ($changes as $item) {
-						$markerId = $item['markerId'];
-						$sourceText = $item['sourceText'] ?? '';
-						$originalTargetText = $item['originalTargetText'] ?? '';
-						$changedTargetText = $item['changedTargetText'] ?? '';
+					$processedCount = 0;
+					foreach ($pendingBlocks as $block) {
+						UserBookTranslationMemory::where('block_id', $block->id)->delete();
+						$sourceText = (string)$block->source_text;
+						$originalTargetText = (string)($block->machine_target_text ?: $block->target_text);
+						$changedTargetText = (string)$block->target_text;
 
-						// Find or create UserBookBlock matching this book and marker ID
-						$block = UserBookBlock::where('book_id', $bookId)
-							->where('marker_id', $markerId)
-							->first();
-
-						if ($block) {
-							UserBookTranslationMemory::where('block_id', $block->id)->delete();
-							$block->update([
-								'source_text' => $sourceText,
-								'target_text' => $changedTargetText,
-								'is_analyzed' => 1
-							]);
-						} else {
-							$block = UserBookBlock::create([
-								'book_id' => $bookId,
-								'marker_id' => $markerId,
-								'source_text' => $sourceText,
-								'target_text' => $changedTargetText,
-								'is_analyzed' => 1
-							]);
+						if (trim($sourceText) === '' || trim($changedTargetText) === '' || trim($originalTargetText) === trim($changedTargetText)) {
+							$block->update(['is_analyzed' => 1]);
+							$processedCount++;
+							continue;
 						}
 
-						// MODIFIED: Re-written prompt compares previous translation with current translation and extracts sentence changes
-						$userPrompt = "Analyze the following translation update. Compare the previous translation with the current modified translation. Identify the specific sentences that were edited or modified. Focus only on those changed sentences and do not include unedited sentences above or below them. Generate translation pairs representing only those specific changes.\n\nSource Segment ({$sourceLanguage}):\n{$sourceText}\n\nPrevious Translation ({$targetLanguage}):\n{$originalTargetText}\n\nCurrent Modified Translation ({$targetLanguage}):\n{$changedTargetText}";
+						$userPrompt = "Analyze the following translation update. Compare the original machine translation with the current user-edited translation. Identify the specific sentences that were edited or modified. Focus only on those changed sentences and do not include unedited sentences above or below them. Generate translation pairs representing only those specific changes.\n\nSource Segment ({$book->source_language}):\n{$sourceText}\n\nOriginal Machine Translation ({$book->target_language}):\n{$originalTargetText}\n\nCurrent User Translation ({$book->target_language}):\n{$changedTargetText}";
 
 						$payload = [
-							'model' => $model, // MODIFIED: Dynamically use the selected model rather than env fallbacks
+							'model' => $model,
 							'messages' => [
 								['role' => 'system', 'content' => $systemPrompt],
 								['role' => 'user', 'content' => $userPrompt]
@@ -96,28 +116,60 @@
 							'response_format' => ['type' => 'json_object']
 						];
 
+						Log::info('Translation memory LLM prompt', [
+							'user_id' => $userId,
+							'book_id' => $bookId,
+							'block_id' => $block->id,
+							'marker_id' => $block->marker_id,
+							'model' => $model,
+							'system_prompt' => $systemPrompt,
+							'user_prompt' => $userPrompt,
+							'payload' => $payload,
+						]);
+
 						$aiResponse = callOpenRouter(
 							$payload,
 							['userId' => $userId, 'action' => 'tm_llm_call'],
 							$userApiKey
 						);
-						$content = json_decode($aiResponse['choices'][0]['message']['content'] ?? '{}', true);
+						$messageContent = (string)($aiResponse['choices'][0]['message']['content'] ?? '{}');
+						$content = $this->decodeLlmJsonContent($messageContent);
+
+						Log::info('Translation memory LLM result', [
+							'user_id' => $userId,
+							'book_id' => $bookId,
+							'block_id' => $block->id,
+							'marker_id' => $block->marker_id,
+							'model' => $model,
+							'raw_response' => $aiResponse,
+							'message_content' => $messageContent,
+							'decoded_content' => $content,
+						]);
 
 						if (isset($content['pairs'])) {
 							foreach ($content['pairs'] as $pair) {
+								$sourceSentence = trim((string)($pair['source'] ?? ''));
+								$targetSentence = trim((string)($pair['target'] ?? ''));
+								if ($sourceSentence === '' || $targetSentence === '') {
+									continue;
+								}
 								UserBookTranslationMemory::create([
 									'book_id' => $bookId,
 									'block_id' => $block->id,
-									'source_sentence' => $pair['source'],
-									'target_sentence' => $pair['target']
+									'source_sentence' => $sourceSentence,
+									'target_sentence' => $targetSentence
 								]);
 							}
 						}
+						$block->update(['is_analyzed' => 1]);
+						$processedCount++;
 					}
 
+					$remaining = UserBookBlock::where('book_id', $bookId)->where('is_analyzed', 0)->count();
 					$result = [
-						'status' => 'complete',
-						'processedCount' => count($changes)
+						'status' => $remaining > 0 ? 'pending' : 'complete',
+						'processedCount' => $processedCount,
+						'remainingCount' => $remaining,
 					];
 					break;
 				} while (false);

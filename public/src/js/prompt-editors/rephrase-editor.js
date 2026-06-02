@@ -32,10 +32,13 @@ const buildSurroundingTextBlock = (wordsBefore, wordsAfter) => {
 
 export const buildPromptJson = (formData, context, userDictionary = '') => {
 	const {selectedText, wordCount, languageForPrompt, wordsBefore, wordsAfter} = context;
+	const tenseInstruction = formData.tense && formData.tense !== 'none'
+		? `Use the ${formData.tense} tense.`
+		: '';
 	
 	const system = t('prompt.rephrase.system.base', {
 		instructions: formData.instructions,
-		tense: formData.tense,
+		tenseInstruction,
 		dictionary: userDictionary,
 		language: languageForPrompt || 'English'
 	});
@@ -156,7 +159,11 @@ export const init = async (container, context) => {
 					
 					// Save preference to localStorage
 					const storageKey = `tense-preference-${context.bookId}-rephrase`;
-					localStorage.setItem(storageKey, newTense);
+					if (newTense === 'none') {
+						localStorage.removeItem(storageKey);
+					} else {
+						localStorage.setItem(storageKey, newTense);
+					}
 					
 					// Trigger preview update
 					debouncedUpdatePreview();

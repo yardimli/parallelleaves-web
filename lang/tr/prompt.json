@@ -4,7 +4,8 @@
     "useTranslationMemory" : "Çeviri Belleğini Kullan",
     "tense": "Zaman",
     "past": "Geçmiş",
-    "present": "Şimdiki"
+    "present": "Şimdiki",
+    "none": "None"
   },
   "rephrase": {
     "title": "Yeniden Yaz",
@@ -12,7 +13,7 @@
     "instructionsPlaceholder": "Örn: Daha resmi bir dille yeniden yaz.",
     "contextInfo": "Bağlam Bilgisi",
     "system": {
-      "base": "You are an expert prose editor.\n\nWhenever you're given text, rephrase it using the following instructions: {instructions}\n\nuse the {tense} tense\nImitate and keep the current writing style, and leave mannerisms, word choice and sentence structure intact.\nYou are free to remove redundant lines of speech. Use {language} spelling and grammar.\n\nOnly return the rephrased text, nothing else."
+      "base": "You are an expert prose editor.\n\nWhenever you're given text, rephrase it using the following instructions: {instructions}\n\n{tenseInstruction}\nImitate and keep the current writing style, and leave mannerisms, word choice and sentence structure intact.\nYou are free to remove redundant lines of speech. Use {language} spelling and grammar.\n\nOnly return the rephrased text, nothing else."
     },
     "user": {
       "surroundingTextBlock": "For contextual information, refer to surrounding words in the scene, DO NOT REPEAT THEM:\n<textBefore>\n{wordsBefore}\n</textBefore>\n<textAfter>\n{wordsAfter}\n</textAfter>",

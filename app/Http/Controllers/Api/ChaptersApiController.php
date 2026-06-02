@@ -9,11 +9,57 @@
 	use Illuminate\Support\Facades\Auth;
 	use Throwable;
 	use App\Models\Chapter; // MODIFIED: Imported Eloquent Chapter model
+	use App\Models\UserBook;
+	use App\Models\UserBookBlock;
 
 	require_once __DIR__ . '/ApiSupport.php';
 
 	class ChaptersApiController extends Controller
 	{
+		private function syncTranslationMemoryBlocks(Chapter $chapter): void
+		{
+			$pairs = extractAllMarkerPairs($chapter->source_content ?? '', $chapter->target_content ?? '');
+			foreach ($pairs as $pair) {
+				$markerId = (int)$pair['marker'];
+				$sourceText = trim((string)$pair['source']);
+				$targetText = trim((string)$pair['target']);
+				if ($markerId <= 0 || $sourceText === '' || $targetText === '') {
+					continue;
+				}
+
+				$block = UserBookBlock::where('book_id', $chapter->book_id)
+					->where('marker_id', $markerId)
+					->first();
+
+				if (!$block) {
+					UserBookBlock::create([
+						'book_id' => $chapter->book_id,
+						'marker_id' => $markerId,
+						'source_text' => $sourceText,
+						'target_text' => $targetText,
+						'machine_target_text' => $targetText,
+						'is_analyzed' => 1,
+					]);
+					continue;
+				}
+
+				$updates = [];
+				if ((string)$block->source_text !== $sourceText) {
+					$updates['source_text'] = $sourceText;
+				}
+				if ((string)$block->target_text !== $targetText) {
+					$updates['target_text'] = $targetText;
+				}
+				if (!$block->machine_target_text) {
+					$updates['machine_target_text'] = $block->target_text ?: $targetText;
+				}
+				if (!empty($updates)) {
+					$updates['is_analyzed'] = 0;
+					$block->update($updates);
+				}
+			}
+		}
+
 		public function updateField(Request $request): JsonResponse
 		{
 			try {
@@ -35,10 +81,25 @@
 					if (!in_array($data['field'], $allowedFields)) {
 						throw new Exception('Invalid field specified.');
 					}
+					$chapter = Chapter::where('id', $data['chapterId'])->first();
+					if (!$chapter) {
+						throw new Exception('Chapter not found.');
+					}
+					$ownsBook = UserBook::where('id', $chapter->book_id)
+						->where('user_id', $userId)
+						->exists();
+					if (!$ownsBook) {
+						throw new Exception('Chapter not found.');
+					}
+
 					// MODIFIED: Refactored database query to Eloquent update [1]
-					Chapter::where('id', $data['chapterId'])->update([
+					$chapter->update([
 						$data['field'] => $data['value']
 					]);
+					if (in_array($data['field'], ['source_content', 'target_content'], true)) {
+						$chapter->refresh();
+						$this->syncTranslationMemoryBlocks($chapter);
+					}
 					$result = ['success' => true];
 					break;
 				} while (false);

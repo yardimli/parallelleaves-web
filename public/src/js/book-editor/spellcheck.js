@@ -3,7 +3,7 @@ import {t} from '../i18n.js';
 /**
  * Populates and configures the spellcheck language dropdown.
  */
-export async function setupSpellcheckDropdown() {
+export async function setupSpellcheckDropdown(chapterEditorViews = new Map()) {
 	const dropdown = document.getElementById('js-spellcheck-lang-dropdown');
 	if (!dropdown) {
 		console.error('[setupSpellcheckDropdown] Dropdown element not found.');
@@ -26,12 +26,25 @@ export async function setupSpellcheckDropdown() {
 			dropdown.appendChild(option);
 		});
 		
+		const applySpellcheckLanguage = (lang) => {
+			chapterEditorViews.forEach(viewInfo => {
+				if (viewInfo.isReady && viewInfo.contentWindow) {
+					viewInfo.contentWindow.postMessage({
+						type: 'setSpellcheckLanguage',
+						payload: {lang}
+					}, window.location.origin);
+				}
+			});
+		};
+		
 		dropdown.value = currentLang || '';
+		applySpellcheckLanguage(dropdown.value);
 		
 		dropdown.addEventListener('change', async () => {
 			const selectedLang = dropdown.value;
 			try {
 				await window.api.setSpellCheckerLanguage(selectedLang);
+				applySpellcheckLanguage(selectedLang);
 			} catch (error) {
 				console.error('[Spellcheck] Error setting language:', error);
 				window.showAlert('Could not set spellcheck language.');

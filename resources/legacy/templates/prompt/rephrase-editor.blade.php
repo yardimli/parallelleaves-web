@@ -12,6 +12,7 @@
 			<div class="btn-group w-full js-tense-group">
 				<button type="button" class="js-tense-btn btn flex-1 btn-active" data-tense="past">{{__i18n:prompt.common.past|Past__}}</button>
 				<button type="button" class="js-tense-btn btn flex-1" data-tense="present">{{__i18n:prompt.common.present|Present__}}</button>
+				<button type="button" class="js-tense-btn btn flex-1" data-tense="none">{{__i18n:prompt.common.none|None__}}</button>
 			</div>
 			<input type="hidden" name="tense" value="past">
 		</div>

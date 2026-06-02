@@ -362,6 +362,7 @@ async function startAiAction(params) {
 			model: params.model,
 			temperature: params.temperature,
 			translation_memory_ids: params.translation_memory_ids,
+			action: params.action,
 			bookId: params.bookId
 		});
 		hideAiSpinner();

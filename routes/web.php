@@ -54,6 +54,7 @@
 
 	Route::middleware('auth')->group(function () {
 		Route::post('/api/user/api-key', [UserApiController::class, 'setApiKey']);
+		Route::post('/api/user/model-settings', [UserApiController::class, 'saveModelSettings']);
 		Route::post('/api/app/reset', [AppApiController::class, 'reset']);
 		Route::post('/api/session/spellchecker/languages', [SessionApiController::class, 'availableSpellCheckerLanguages']);
 		Route::post('/api/session/spellchecker/current', [SessionApiController::class, 'currentSpellCheckerLanguage']);

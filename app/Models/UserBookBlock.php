@@ -8,5 +8,5 @@
 	{
 		public $timestamps = false;
 
-		protected $fillable = ['book_id', 'marker_id', 'source_text', 'target_text', 'is_analyzed'];
+		protected $fillable = ['book_id', 'marker_id', 'source_text', 'target_text', 'machine_target_text', 'is_analyzed'];
 	}
