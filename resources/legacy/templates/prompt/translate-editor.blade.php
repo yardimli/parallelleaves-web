@@ -11,6 +11,24 @@
 				<input type="checkbox" name="include_instructions" class="checkbox checkbox-sm" checked>
 				<span class="label-text">{{__i18n:prompt.translate.includeInstructions|Include instructions in prompt__}}</span>
 			</label>
+			
+			<!-- NEW: Checkbox to control inclusion of Translation Memory in prompt -->
+			<label class="label cursor-pointer justify-start gap-2">
+				<input type="checkbox" name="include_translation_memory" class="checkbox checkbox-sm" checked>
+				<span class="label-text">{{__i18n:prompt.translate.includeTranslationMemory|Include Translation Memory__}}</span>
+			</label>
+			
+			<!-- NEW: Checkbox to control inclusion of Style Analysis in prompt -->
+			<label class="label cursor-pointer justify-start gap-2">
+				<input type="checkbox" name="include_style_analysis" class="checkbox checkbox-sm" checked>
+				<span class="label-text">{{__i18n:prompt.translate.includeStyleAnalysis|Include Style Analysis__}}</span>
+			</label>
+			
+			<!-- NEW: Checkbox to control inclusion of Codex in prompt -->
+			<label class="label cursor-pointer justify-start gap-2">
+				<input type="checkbox" name="include_codex" class="checkbox checkbox-sm" checked>
+				<span class="label-text">{{__i18n:prompt.translate.includeCodex|Include Codex__}}</span>
+			</label>
 			<!-- Help text moved below -->
 		</div>
 		

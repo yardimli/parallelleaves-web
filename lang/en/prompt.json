@@ -30,6 +30,9 @@
     "prevPairs": "Previous Translation Pairs",
     "copyStyleAnalysis": "Copy Style Analysis",
     "includeInstructions": "Include instructions in prompt",
+    "includeTranslationMemory": "Include Translation Memory",
+    "includeStyleAnalysis": "Include Style Analysis",
+    "includeCodex": "Include Codex",
     "prevPairsHelp": "Include N previous translation blocks as context for the AI. (0 to disable)",
     "noTranslationMemories" : "No translation memories available.",
     "selectTranslationMemories" : "Select Translation Memories",
@@ -61,5 +64,5 @@
   "errorNoSelection": "Could not get selection from the editor. For rephrasing, please select some text.",
   "errorFetchContext": "Could not fetch previous translation blocks for context. {message}",
   "errorNoInterface": "Cannot open AI editor: Editor interface is not available.",
-  "errorApiKeyMissing": "Cannot open AI editor: API key is missing. Please set it in the dashboard settings."
+  "errorApiKeyMissing": "Cannot open AI editor: API key is missing. Please set it in your account settings."
 }

@@ -14,9 +14,27 @@ const editors = {
 	'translate': {init: initTranslateEditor}
 };
 
+// NEW: Interceptor wrapper for buildTranslateJson to handle excluded placeholders
+const originalBuildTranslateJson = buildTranslateJson;
+const wrappedBuildTranslateJson = (formData, context, dictionary) => {
+	const promptObj = originalBuildTranslateJson(formData, context, dictionary);
+	if (promptObj && promptObj.system) {
+		if (formData.includeTranslationMemory === false) {
+			promptObj.system = promptObj.system.replace(/##TRANSLATION_MEMORY##\n?/g, '');
+		}
+		if (formData.includeStyleAnalysis === false) {
+			promptObj.system = promptObj.system.replace(/##STYLE_ANALYSIS_BLOCK##\n?/g, '');
+		}
+		if (formData.includeCodex === false) {
+			promptObj.system = promptObj.system.replace(/##CODEX_BLOCK##\n?/g, '');
+		}
+	}
+	return promptObj;
+};
+
 const promptBuilders = {
 	'rephrase': buildRephraseJson,
-	'translate': buildTranslateJson
+	'translate': wrappedBuildTranslateJson
 };
 
 const formDataExtractors = {
@@ -30,7 +48,11 @@ const formDataExtractors = {
 			instructions: form.elements.instructions.value.trim(),
 			includeInstructions: form.elements.include_instructions?.checked !== false,
 			tense: form.elements.tense.value,
-			contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0
+			contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0,
+			// NEW: Read checked states of template placeholders
+			includeTranslationMemory: form.elements.include_translation_memory ? form.elements.include_translation_memory.checked : true,
+			includeStyleAnalysis: form.elements.include_style_analysis ? form.elements.include_style_analysis.checked : true,
+			includeCodex: form.elements.include_codex ? form.elements.include_codex.checked : true
 		};
 	}
 };
@@ -385,7 +407,7 @@ async function startAiAction(params) {
 			
 			if (replacementData) {
 				aiActionRange.to = replacementData.finalRange.to;
-					createFloatingToolbar(aiActionRange.from, aiActionRange.to, params.model, replacementData);
+				createFloatingToolbar(aiActionRange.from, aiActionRange.to, params.model, replacementData);
 				
 				if (replacementData.finalRange) {
 					setTimeout(() => {
@@ -750,6 +772,54 @@ export async function openPromptEditor(context, promptId, initialState = null) {
 		await hydratePromptContextFromBook(promptId);
 		await populateModelDropdown();
 		await loadPrompt(promptId);
+		
+		// NEW: Hydrate checked status from localStorage, listen for changes, and implement live preview MutationObserver
+		if (promptId === 'translate') {
+			const form = modalEl.querySelector('#translate-editor-form');
+			if (form) {
+				const keys = ['include_translation_memory', 'include_style_analysis', 'include_codex'];
+				keys.forEach(key => {
+					const cb = form.elements[key];
+					if (cb) {
+						const saved = localStorage.getItem(`parallel-leaves-prompt-translate-${key}`);
+						if (saved !== null) {
+							cb.checked = saved === 'true';
+						} else {
+							cb.checked = true;
+						}
+						cb.addEventListener('change', () => {
+							localStorage.setItem(`parallel-leaves-prompt-translate-${key}`, cb.checked);
+							// Dispatch events to refresh the live preview dynamically
+							form.dispatchEvent(new Event('input', { bubbles: true }));
+							form.dispatchEvent(new Event('change', { bubbles: true }));
+						});
+					}
+				});
+			}
+			
+			const previewSystemCode = modalEl.querySelector('.js-preview-system');
+			if (previewSystemCode) {
+				const observer = new MutationObserver(() => {
+					observer.disconnect();
+					let text = previewSystemCode.textContent;
+					if (form) {
+						if (form.elements.include_translation_memory && !form.elements.include_translation_memory.checked) {
+							text = text.replace(/##TRANSLATION_MEMORY##\n?/g, '');
+						}
+						if (form.elements.include_style_analysis && !form.elements.include_style_analysis.checked) {
+							text = text.replace(/##STYLE_ANALYSIS_BLOCK##\n?/g, '');
+						}
+						if (form.elements.include_codex && !form.elements.include_codex.checked) {
+							text = text.replace(/##CODEX_BLOCK##\n?/g, '');
+						}
+					}
+					previewSystemCode.textContent = text;
+					observer.observe(previewSystemCode, { childList: true, characterData: true, subtree: true });
+				});
+				observer.observe(previewSystemCode, { childList: true, characterData: true, subtree: true });
+			}
+		}
+		
 		setPromptEditorLoading(false);
 	} catch (error) {
 		console.error('Error loading prompt editor:', error);

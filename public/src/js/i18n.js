@@ -44,10 +44,7 @@ function getNested(obj, path) {
  * @returns {string} The translated string.
  */
 export function t(key, substitutions = {}) {
-	console.warn(`Translation lookup for key: "${key}"`); // Debug log for translation lookups
 	let result = getNested(translations, key);
-	console.log(translations); // Debug log for current translations object
-	console.warn(`Translation result: ${result}`); // Debug log for translation results
 	let isFallback = false;
 	
 	// If translation is not found in the current language, try the English fallback.
