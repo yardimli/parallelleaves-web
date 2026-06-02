@@ -7,7 +7,7 @@
 	use Illuminate\Http\JsonResponse;
 	use Illuminate\Http\Request;
 	use Illuminate\Support\Facades\Auth;
-	use App\Models\UserBook; // MODIFIED: Imported Eloquent Models
+	use App\Models\UserBook;
 	use App\Models\UserBookTranslationMemory;
 	use App\Models\UserBookBlock;
 	use Throwable;
@@ -69,8 +69,8 @@
 				$result = null;
 				do {
 					$bookId = $args[0];
-					// MODIFIED: Eloquent retrieval replacing raw query prepare calls [1]
-					$result = UserBookTranslationMemory::select('source_sentence', 'target_sentence')
+					// MODIFIED: Included primary record 'id' in results to allow front-end editing and deletion
+					$result = UserBookTranslationMemory::select('id', 'source_sentence', 'target_sentence')
 						->where('book_id', $bookId)
 						->orderBy('id', 'ASC')
 						->get()
@@ -79,6 +79,43 @@
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		// NEW METHOD: Delete an individual segment row in the translation memory
+		public function deleteRow(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$id = $args[0];
+
+				UserBookTranslationMemory::where('id', $id)->delete();
+
+				return response()->json(['success' => true, 'data' => ['success' => true]]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		// NEW METHOD: Update/Edit an individual segment row in the translation memory
+		public function updateRow(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$id = $args[0];
+				$source = $args[1] ?? '';
+				$target = $args[2] ?? '';
+
+				UserBookTranslationMemory::where('id', $id)->update([
+					'source_sentence' => $source,
+					'target_sentence' => $target
+				]);
+
+				return response()->json(['success' => true, 'data' => ['success' => true]]);
 			} catch (Throwable $exception) {
 				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
 			}

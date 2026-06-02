@@ -91,11 +91,15 @@
 		Route::post('/api/dictionary/get', [DictionaryApiController::class, 'get']);
 		Route::post('/api/dictionary/save', [DictionaryApiController::class, 'save']);
 		Route::post('/api/dictionary/for-ai', [DictionaryApiController::class, 'forAi']);
+
 		Route::post('/api/translation-memory/books', [TmApiController::class, 'books']);
 		Route::post('/api/translation-memory/details', [TmApiController::class, 'details']);
 		Route::post('/api/translation-memory/delete', [TmApiController::class, 'delete']);
 		Route::post('/api/translation-memory/start', [TranslationMemoryApiController::class, 'start']);
 		Route::post('/api/translation-memory/process-batch', [TranslationMemoryApiController::class, 'processBatch']);
+		Route::post('/api/translation-memory/delete-row', [TmApiController::class, 'deleteRow']);
+		Route::post('/api/translation-memory/update-row', [TmApiController::class, 'updateRow']);
+
 		Route::post('/api/codex/books', [CodexApiController::class, 'books']);
 		Route::post('/api/codex/details', [CodexApiController::class, 'details']);
 		Route::post('/api/codex/save', [CodexApiController::class, 'save']);

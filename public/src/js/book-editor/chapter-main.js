@@ -9,6 +9,7 @@ import {initI18n, t, applyTranslationsTo} from '../i18n.js';
 // MODIFIED: Added htmlToPlainText import to sanitize HTML blocks during diff checks
 import {processSourceContentForMarkers, htmlToPlainText} from '../../utils/html-processing.js';
 import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
+import {initTmModal, openTmModal} from '../translation-memory/tm-modal.js';
 import {showConfirmationModal, showInputModal} from '../modals.js';
 import {
 	syncChapterScroll,
@@ -615,7 +616,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 		toolbarCodexBtn.href = `/codex/${bookId}`;
 	}
 	if (toolbarTmBtn) {
-		toolbarTmBtn.href = `/translation-memory/${bookId}`;
+		toolbarTmBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			openTmModal();
+		});
 	}
 	
 	const chatDialog = document.getElementById('chat-dialog');
@@ -705,6 +709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 		
 		initDictionaryModal(bookId);
+		initTmModal(bookId);
 		
 		document.body.addEventListener('dictionary:find-replace', (event) => {
 			const {find, replace} = event.detail;

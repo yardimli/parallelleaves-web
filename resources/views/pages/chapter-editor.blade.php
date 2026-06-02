@@ -145,9 +145,10 @@
 			<i class="bi bi-journal-bookmark-fill text-lg"></i>
 		</a>
 		<!-- MODIFIED: Added Translation Memory Link opening in a new tab -->
-		<a id="js-toolbar-tm-btn" href="#" target="_blank" class="btn btn-ghost btn-sm btn-square"
-		   title="{{ $tr('editor.translationMemory.openEditor', 'Translation Memory') }}">
+		<button type="button" id="js-toolbar-tm-btn" class="btn btn-ghost btn-sm btn-square"
+		        title="{{ $tr('editor.translationMemory.openEditor', 'Translation Memory') }}">
 			<i class="bi bi-book-fill text-lg"></i>
+		</button>
 		</a>
 	</div>
 	<div class="flex-grow"></div>
@@ -325,6 +326,7 @@
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/dictionary-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/confirmation-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/input-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
+	@php echo \App\Support\PageData::translateHtml(file_get_contents(resource_path('legacy/templates/modals/tm-manager-modal.blade.php')), $translations ?? [], $englishTranslations ?? []); @endphp
 		
 		<!-- NEW BLOCK START: Modal dialog to prompt TM changes highlight before processing updates -->
 	<dialog id="tm-confirm-modal" class="modal">
