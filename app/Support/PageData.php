@@ -61,32 +61,128 @@
 				$liveModelsData = $response ? json_decode($response, true) : [];
 			}
 
-			$staticGroupedModels = function_exists('App\Http\Controllers\Api\getStaticGroupedModels')
-				? \App\Http\Controllers\Api\getStaticGroupedModels()
-				: [];
+			return ['success' => true, 'models' => self::filterOpenRouterModels($liveModelsData['data'] ?? [])];
+		}
 
-			$availableModelIds = array_flip(array_column($liveModelsData['data'] ?? [], 'id'));
-			if (empty($availableModelIds)) {
-				return ['success' => true, 'models' => $staticGroupedModels];
+		private static function filterOpenRouterModels(array $models): array
+		{
+			$rules = self::modelRules();
+			$includeRules = array_map('strtolower', $rules['includeRules'] ?? []);
+			$excludeRules = array_map('strtolower', $rules['excludeRules'] ?? []);
+			$maxPrice = (float)($rules['maxPricePerMillion'] ?? 20.0);
+			$descriptionOverrides = is_array($rules['descriptionOverrides'] ?? null) ? $rules['descriptionOverrides'] : [];
+			$grouped = [];
+
+			foreach ($models as $model) {
+				if (!is_array($model) || empty($model['id'])) {
+					continue;
+				}
+
+				$id = (string)$model['id'];
+				$name = (string)($model['name'] ?? $id);
+				$haystack = strtolower($id . ' ' . $name);
+
+				if (!self::matchesAnyRule($haystack, $includeRules)) {
+					continue;
+				}
+
+				if (self::matchesAnyRule($haystack, $excludeRules)) {
+					continue;
+				}
+
+				$price = self::maxModelPricePerMillion($model);
+				if ($price !== null && $price > $maxPrice) {
+					continue;
+				}
+
+				$provider = self::modelProvider($id);
+				$grouped[$provider][] = [
+					'id' => $id,
+					'name' => $name,
+					'description' => $descriptionOverrides[$id] ?? ($model['description'] ?? ''),
+					'prompt_price_per_million' => self::modelPricePerMillion($model, 'prompt'),
+					'completion_price_per_million' => self::modelPricePerMillion($model, 'completion'),
+				];
 			}
 
-			$verifiedGroupedModels = [];
-			foreach ($staticGroupedModels as $group) {
-				$verifiedModelsInGroup = [];
-				foreach ($group['models'] as $model) {
-					if (isset($availableModelIds[$model['id']])) {
-						$verifiedModelsInGroup[] = $model;
-					}
-				}
-				if (!empty($verifiedModelsInGroup)) {
-					$verifiedGroupedModels[] = [
-						'group' => $group['group'],
-						'models' => $verifiedModelsInGroup,
-					];
+			$result = [];
+			foreach ($grouped as $provider => $providerModels) {
+				usort($providerModels, fn(array $a, array $b) => strcasecmp($a['name'], $b['name']));
+				$result[] = [
+					'group' => $provider,
+					'models' => $providerModels,
+				];
+			}
+
+			usort($result, fn(array $a, array $b) => strcasecmp($a['group'], $b['group']));
+
+			return $result;
+		}
+
+		private static function modelRules(): array
+		{
+			$path = config_path('openrouter-model-rules.json');
+			if (!is_file($path)) {
+				return [];
+			}
+
+			$contents = file_get_contents($path);
+			if (!$contents) {
+				return [];
+			}
+
+			try {
+				$rules = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+			} catch (\JsonException) {
+				return [];
+			}
+
+			return is_array($rules) ? $rules : [];
+		}
+
+		private static function matchesAnyRule(string $haystack, array $rules): bool
+		{
+			foreach ($rules as $rule) {
+				if ($rule !== '' && str_contains($haystack, $rule)) {
+					return true;
 				}
 			}
 
-			return ['success' => true, 'models' => $verifiedGroupedModels];
+			return false;
+		}
+
+		private static function modelProvider(string $modelId): string
+		{
+			$provider = strtok($modelId, '/') ?: 'Other';
+
+			return match ($provider) {
+				'openai' => 'OpenAI',
+				'anthropic' => 'Anthropic',
+				'google' => 'Google',
+				'perplexity' => 'Perplexity',
+				'meta-llama' => 'Meta Llama',
+				default => ucwords(str_replace(['-', '_'], ' ', $provider)),
+			};
+		}
+
+		private static function modelPricePerMillion(array $model, string $key): ?float
+		{
+			$value = $model['pricing'][$key] ?? null;
+			if ($value === null || !is_numeric($value)) {
+				return null;
+			}
+
+			return (float)$value * 1000000;
+		}
+
+		private static function maxModelPricePerMillion(array $model): ?float
+		{
+			$prices = array_filter([
+				self::modelPricePerMillion($model, 'prompt'),
+				self::modelPricePerMillion($model, 'completion'),
+			], fn(?float $price) => $price !== null);
+
+			return empty($prices) ? null : max($prices);
 		}
 
 		public static function viewData(array $extra = []): array

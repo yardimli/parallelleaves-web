@@ -1,0 +1,49 @@
+{
+  "includeRules": [
+    "openai",
+    "anthropic",
+    "google",
+    "perplexity",
+    "meta-llama"
+  ],
+  "excludeRules": [
+    "nano",
+    "vision",
+    "experimental",
+    "beta",
+    "search",
+    "online",
+    "nitro",
+    "instruct",
+    "4b",
+    "8b",
+    "7b",
+    "1b",
+    "3b",
+    "20b",
+    "2024-",
+    "image",
+    "3.5 turbo",
+    "3.5 haiku",
+    "3 haiku",
+    "audio",
+    "codex",
+    "claude 3",
+    "latest",
+    "chat",
+    "sonar reasoning pro",
+    "custom tools",
+    "05-06",
+    "lyria",
+    "flash lite preview"
+  ],
+  "maxPricePerMillion": 20.0,
+  "descriptionOverrides": {
+    "google/gemini-2.5-flash-lite-preview-09-2025": "Fast and highly cost-effective.",
+    "openai/gpt-4o-mini": "Great balance of speed, cost, and quality.",
+    "anthropic/claude-haiku-4.5": "Fast, excellent for literary tasks.",
+    "openai/gpt-4o": "Excellent flow and natural phrasing.",
+    "anthropic/claude-5.7-sonnet": "State-of-the-art for literary, nuanced translations.",
+    "perplexity/sonar-pro": "Excellent for accurate, context-aware translations."
+  }
+}
