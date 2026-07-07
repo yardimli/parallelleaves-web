@@ -149,12 +149,21 @@ async function populateModels() {
 	try {
 		const result = window.initialModels || await window.api.getModels();
 		if (result.success) {
+			const modelLabel = (model) => {
+				const inputPrice = Number(model.prompt_price_per_million);
+				const outputPrice = Number(model.completion_price_per_million);
+				if (!Number.isFinite(inputPrice) || !Number.isFinite(outputPrice)) {
+					return model.name;
+				}
+
+				return `${model.name} ($${inputPrice.toFixed(2)} in / $${outputPrice.toFixed(2)} out per 1M)`;
+			};
 			modelSelect.innerHTML = '';
 			result.models.forEach(group => {
 				const optgroup = document.createElement('optgroup');
 				optgroup.label = group.group;
 				group.models.forEach(model => {
-					const option = new Option(`${model.name}`, model.id);
+					const option = new Option(modelLabel(model), model.id);
 					optgroup.appendChild(option);
 				});
 				modelSelect.appendChild(optgroup);

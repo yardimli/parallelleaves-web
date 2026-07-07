@@ -55,6 +55,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 			wordCountEl.textContent = countWords(textareaEl?.value || '').toLocaleString();
 		}
 	}
+
+	function modelLabel (model) {
+		const inputPrice = Number(model.prompt_price_per_million);
+		const outputPrice = Number(model.completion_price_per_million);
+		if (!Number.isFinite(inputPrice) || !Number.isFinite(outputPrice)) {
+			return model.name;
+		}
+
+		return `${model.name} ($${inputPrice.toFixed(2)} in / $${outputPrice.toFixed(2)} out per 1M)`;
+	}
 	
 	// MODIFIED: Configured status parsing to accurately return translation lookups
 	function statusLabel (book) {
@@ -85,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		return modelData.map(group => `
       <optgroup label="${escapeHtml(group.group)}">
         ${group.models.map(model => `
-          <option value="${escapeHtml(model.id)}" ${model.id === selectedModel ? 'selected' : ''}>${escapeHtml(model.name)}</option>
+          <option value="${escapeHtml(model.id)}" ${model.id === selectedModel ? 'selected' : ''}>${escapeHtml(modelLabel(model))}</option>
         `).join('')}
       </optgroup>
     `).join('');

@@ -17,7 +17,14 @@
 		@forelse(($modelsData['models'] ?? []) as $group)
 			<optgroup label="{{ $group['group'] }}">
 				@foreach($group['models'] as $model)
-					<option value="{{ $model['id'] }}">{{ $model['name'] }}</option>
+					@php
+						$inputPrice = $model['prompt_price_per_million'] ?? null;
+						$outputPrice = $model['completion_price_per_million'] ?? null;
+						$priceLabel = is_numeric($inputPrice) && is_numeric($outputPrice)
+							? ' ($' . number_format((float)$inputPrice, 2) . ' in / $' . number_format((float)$outputPrice, 2) . ' out per 1M)'
+							: '';
+					@endphp
+					<option value="{{ $model['id'] }}">{{ $model['name'] }}{{ $priceLabel }}</option>
 				@endforeach
 			</optgroup>
 		@empty
