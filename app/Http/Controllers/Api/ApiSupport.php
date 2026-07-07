@@ -124,6 +124,63 @@
 		}
 	}
 
+	function readTextFileAsUtf8(string $filePath): string
+	{
+		$contents = file_get_contents($filePath);
+		if ($contents === false || $contents === '') {
+			return '';
+		}
+
+		if (str_starts_with($contents, "\xEF\xBB\xBF")) {
+			return substr($contents, 3);
+		}
+
+		if (str_starts_with($contents, "\xFF\xFE")) {
+			return (string)mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16LE');
+		}
+
+		if (str_starts_with($contents, "\xFE\xFF")) {
+			return (string)mb_convert_encoding(substr($contents, 2), 'UTF-8', 'UTF-16BE');
+		}
+
+		$sample = substr($contents, 0, 4096);
+		$evenNulls = 0;
+		$oddNulls = 0;
+		$sampleLength = strlen($sample);
+		for ($i = 0; $i < $sampleLength; $i++) {
+			if ($sample[$i] === "\x00") {
+				$i % 2 === 0 ? $evenNulls++ : $oddNulls++;
+			}
+		}
+		if ($oddNulls > 0 && $oddNulls > $evenNulls * 4) {
+			return (string)mb_convert_encoding($contents, 'UTF-8', 'UTF-16LE');
+		}
+
+		if ($evenNulls > 0 && $evenNulls > $oddNulls * 4) {
+			return (string)mb_convert_encoding($contents, 'UTF-8', 'UTF-16BE');
+		}
+
+		if (mb_check_encoding($contents, 'UTF-8')) {
+			return $contents;
+		}
+
+		if (preg_match('/[\xD0\xDD\xDE\xF0\xFD\xFE]/', $contents)) {
+			return (string)mb_convert_encoding($contents, 'UTF-8', 'Windows-1254');
+		}
+
+		if (preg_match('/[\x80-\x9F]/', $contents)) {
+			return (string)mb_convert_encoding($contents, 'UTF-8', 'Windows-1252');
+		}
+
+		$encoding = mb_detect_encoding(
+			$contents,
+			['UTF-8', 'Windows-1252', 'Windows-1254', 'ISO-8859-1', 'ISO-8859-9'],
+			true
+		) ?: 'Windows-1252';
+
+		return (string)mb_convert_encoding($contents, 'UTF-8', $encoding);
+	}
+
 // MODIFIED: Refactored logInteraction to write logs using the Eloquent model, dropping $db parameter [1]
 	function logInteraction(int $userId, string $action, ?array $requestPayload, string $responseBody, int $responseCode): void
 	{

@@ -227,8 +227,8 @@
 						}
 					}
 
-					if ($promptLength > 100000) {
-						throw new Exception('The total length of the prompt is more than 100000 characters.');
+					if ($promptLength > 160000) {
+						throw new Exception('The total length of the prompt is more than 160000 characters.');
 					}
 
 					$payload = [

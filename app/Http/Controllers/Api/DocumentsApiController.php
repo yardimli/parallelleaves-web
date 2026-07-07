@@ -34,7 +34,7 @@
 				do {
 					$filePath = $args[0];
 					$ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-					$result = $ext === 'docx' ? readDocx($filePath) : file_get_contents($filePath);
+					$result = $ext === 'docx' ? readDocx($filePath) : readTextFileAsUtf8($filePath);
 					break;
 				} while (false);
 
