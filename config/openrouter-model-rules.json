@@ -4,7 +4,13 @@
     "anthropic",
     "google",
     "perplexity",
-    "meta-llama"
+    "meta-llama",
+    "deepseek",
+    "minimax",
+    "qwen",
+    "mistralai",
+    "microsoft",
+    "x-ai"
   ],
   "excludeRules": [
     "nano",
