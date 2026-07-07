@@ -1,6 +1,7 @@
 <?php
 
 	use App\Http\Controllers\PageController;
+	use App\Http\Controllers\AdminController;
 	use App\Http\Controllers\AuthController;
 	use App\Http\Controllers\Api\AiApiController;
 	use App\Http\Controllers\Api\AppApiController;
@@ -40,6 +41,9 @@
 		Route::get('/import-document', [PageController::class, 'importDocument']);
 		Route::get('/api-logs', [PageController::class, 'apiLogs']);
 		Route::get('/translation-memory/{bookId?}', [PageController::class, 'translationMemory']);
+		Route::get('/admin', [AdminController::class, 'index']);
+		Route::post('/admin/users/{user}/login-as', [AdminController::class, 'loginAs']);
+		Route::post('/admin/impersonation/stop', [AdminController::class, 'stopImpersonating']);
 	});
 
 	Route::post('/api/auth/login', [AuthController::class, 'login']);

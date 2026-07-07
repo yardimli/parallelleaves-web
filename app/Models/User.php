@@ -20,6 +20,7 @@
 			'google_id',
 			'google_avatar',
 			'password_hash',
+			'is_admin',
 			'openrouter_api_key',
 			'ai_model_settings',
 			'session_token',
@@ -35,6 +36,7 @@
 		protected $casts = [
 			'token_expires_at' => 'datetime',
 			'ai_model_settings' => 'array',
+			'is_admin' => 'boolean',
 		];
 
 		public function getAuthPassword(): string

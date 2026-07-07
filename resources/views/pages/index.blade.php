@@ -9,6 +9,20 @@
 </head>
 <body>
 <div class="container mx-auto p-8">
+	@if(session('admin_impersonator_id'))
+		<div class="alert alert-warning mb-6">
+			<i class="bi bi-person-check text-xl"></i>
+			<div>
+				<div class="font-semibold">Impersonating {{ Auth::user()?->username }}</div>
+				<div class="text-sm">Actions on this page use this user's account.</div>
+			</div>
+			<form method="POST" action="/admin/impersonation/stop" class="ml-auto">
+				@csrf
+				<button type="submit" class="btn btn-sm">Return to admin</button>
+			</form>
+		</div>
+	@endif
+
 	<div class="flex justify-between items-center mb-8">
 		<h1 class="text-2xl font-bold">{{ $tr('dashboard.title', 'My Translation Projects') }}</h1>
 		
