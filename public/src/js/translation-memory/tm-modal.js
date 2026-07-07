@@ -143,6 +143,35 @@ async function startPurge () {
 	}
 }
 
+function openPurgeDialog () {
+	if (!tmPurgeDialog) {
+		window.showAlert('Purge dialog is not available on this page.');
+		return;
+	}
+	populatePurgeModelSelect();
+	if (tmPurgeProgressContainer) tmPurgeProgressContainer.classList.add('hidden');
+	if (tmPurgeProgressBar) tmPurgeProgressBar.value = 0;
+	if (tmPurgeProgressCount) tmPurgeProgressCount.textContent = `0 / ${tmData.length}`;
+	if (tmPurgeResultText) tmPurgeResultText.textContent = '';
+	
+	try {
+		if (tmModal?.open) {
+			tmModal.close();
+		}
+		tmPurgeDialog.showModal();
+	} catch (error) {
+		console.error('Failed to open TM purge dialog:', error);
+		window.showAlert(`Failed to open purge dialog: ${error.message}`);
+	}
+}
+
+function reopenTmModalAfterPurge () {
+	if (isPurgeRunning || !tmModal || tmModal.open) {
+		return;
+	}
+	tmModal.showModal();
+}
+
 // Filters translation memory matching against both target and source segments
 function filterData () {
 	if (!searchQuery) {
@@ -347,6 +376,9 @@ export function initTmModal (bookId) {
 	}
 	
 	applyTranslationsTo(tmModal);
+	if (tmPurgeDialog) {
+		applyTranslationsTo(tmPurgeDialog);
+	}
 	
 	tmSearchInput.addEventListener('input', () => {
 		searchQuery = tmSearchInput.value;
@@ -378,14 +410,8 @@ export function initTmModal (bookId) {
 	});
 
 	populatePurgeModelSelect();
-	tmOpenPurgeBtn?.addEventListener('click', () => {
-		populatePurgeModelSelect();
-		if (tmPurgeProgressContainer) tmPurgeProgressContainer.classList.add('hidden');
-		if (tmPurgeProgressBar) tmPurgeProgressBar.value = 0;
-		if (tmPurgeProgressCount) tmPurgeProgressCount.textContent = `0 / ${tmData.length}`;
-		if (tmPurgeResultText) tmPurgeResultText.textContent = '';
-		tmPurgeDialog?.showModal();
-	});
+	tmOpenPurgeBtn?.addEventListener('click', openPurgeDialog);
+	tmPurgeDialog?.addEventListener('close', reopenTmModalAfterPurge);
 	tmPurgeStartBtn?.addEventListener('click', startPurge);
 }
 
