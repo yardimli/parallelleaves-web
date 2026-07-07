@@ -143,6 +143,36 @@
 			}
 		}
 
+		public function promptContext(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$user = Auth::user();
+				$userId = $user?->id;
+
+				if ($user) {
+					$_SESSION['user'] = $user->only(['id', 'username', 'openrouter_api_key']);
+				}
+
+				$bookId = $args[0] ?? null;
+				$result = UserBook::select(
+					'id',
+					'source_language',
+					'target_language',
+					'rephrase_settings',
+					'translate_settings'
+				)
+					->where('id', $bookId)
+					->where('user_id', $userId)
+					->first();
+
+				return response()->json(['success' => true, 'data' => $result?->toArray()]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
 		public function fullManuscript(Request $request): JsonResponse
 		{
 			try {

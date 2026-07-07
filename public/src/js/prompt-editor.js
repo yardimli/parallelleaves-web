@@ -140,7 +140,7 @@ function setPromptEditorLoading(isLoading) {
 
 async function hydratePromptContextFromBook(promptId) {
 	const bookDataPromise = currentContext?.bookDataPromise || (
-		currentContext?.bookId ? window.api.getOneBook(currentContext.bookId) : null
+		currentContext?.bookId ? window.api.getBookPromptContext(currentContext.bookId) : null
 	);
 	if (!bookDataPromise) {
 		return;
@@ -352,6 +352,7 @@ async function startAiAction(params) {
 	if (currentEditorInterface.type === 'iframe') {
 		updateChapterToolbarState(null);
 	}
+	await currentEditorInterface.cleanupSuggestion();
 	await currentEditorInterface.setEditable(false);
 	showAiSpinner();
 	

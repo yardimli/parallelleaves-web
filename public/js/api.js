@@ -22,6 +22,7 @@ const API_ENDPOINTS = {
 	'books:getAllWithCovers': '/api/books/with-covers',
 	'books:getAllWithTranslationMemory': '/api/books/with-translation-memory',
 	'books:getOne': '/api/books/get',
+	'books:getPromptContext': '/api/books/prompt-context',
 	'books:getFullManuscript': '/api/books/full-manuscript',
 	'books:getAllBookContent': '/api/books/all-content',
 	'books:getForExport': '/api/books/for-export',
@@ -243,6 +244,7 @@ window.api = {
 	getBooksWithCovers: () => rpcInvoke('books:getAllWithCovers'),
 	getAllBooksWithTM: () => rpcInvoke('books:getAllWithTranslationMemory'),
 	getOneBook: (bookId) => rpcInvoke('books:getOne', bookId),
+	getBookPromptContext: (bookId) => rpcInvoke('books:getPromptContext', bookId),
 	getFullManuscript: (bookId) => rpcInvoke('books:getFullManuscript', bookId),
 	getAllBookContent: (bookId) => rpcInvoke('books:getAllBookContent', bookId),
 	

@@ -68,6 +68,7 @@
 		Route::post('/api/books/with-covers', [BooksApiController::class, 'withCovers']);
 		Route::post('/api/books/with-translation-memory', [BooksApiController::class, 'withTranslationMemory']);
 		Route::post('/api/books/get', [BooksApiController::class, 'get']);
+		Route::post('/api/books/prompt-context', [BooksApiController::class, 'promptContext']);
 		Route::post('/api/books/full-manuscript', [BooksApiController::class, 'fullManuscript']);
 		Route::post('/api/books/all-content', [BooksApiController::class, 'allContent']);
 		Route::post('/api/books/for-export', [BooksApiController::class, 'forExport']);

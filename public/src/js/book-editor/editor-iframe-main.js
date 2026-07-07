@@ -651,7 +651,8 @@ window.addEventListener('message', (event) => {
 			const tempDiv = document.createElement('div');
 			tempDiv.innerHTML = newContentHtml;
 			const newFragment = DOMParser.fromSchema(schema).parseSlice(tempDiv).content;
-			let tr = state.tr.replaceWith(from, to, newFragment);
+			let tr = state.tr.removeMark(0, state.doc.content.size, schema.marks.ai_suggestion);
+			tr = tr.replaceWith(from, to, newFragment);
 			
 			let finalTo = from + newFragment.size;
 			
