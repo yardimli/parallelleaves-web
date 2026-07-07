@@ -68,6 +68,10 @@
 				<!-- MODIFIED: Codex plain-text content label translated using $tr -->
 				<label class="label"><span id="codex-label-content" class="label-text" data-i18n="editor.codex.editor.plainTextLabel">{{ $tr('editor.codex.editor.plainTextLabel', 'Codex Plain Text Content') }}</span></label>
 				<textarea id="codex-textarea" class="textarea textarea-bordered w-full h-96 font-mono"></textarea>
+				<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/70">
+					<span>Words: <strong id="codex-visible-word-count">0</strong></span>
+					<span>Estimated tokens: <strong id="codex-token-count">0</strong></span>
+				</div>
 			</div>
 			
 			<div class="form-control mt-6">
@@ -127,6 +131,10 @@
 				<div class="form-control">
 					<label class="label"><span class="label-text">{{ $tr('editor.codex.style.contentLabel', 'Style Analysis Plain Text Content') }}</span></label>
 					<textarea id="style-analysis-textarea" class="textarea textarea-bordered w-full h-80 font-mono"></textarea>
+					<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/70">
+						<span>Words: <strong id="style-analysis-word-count">0</strong></span>
+						<span>Estimated tokens: <strong id="style-analysis-token-count">0</strong></span>
+					</div>
 				</div>
 
 				<div class="form-control">

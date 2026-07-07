@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	
 	let booksData = Array.isArray(window.dashboardBooks) ? window.dashboardBooks : [];
 	let stagedCover = null;
+	let coverRefreshTimer = null;
 	
 	async function populateLanguages() {
 		const supportedLanguages = await window.api.getSupportedLanguages();
@@ -342,6 +343,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 		applyListViewStyles();
 	}
+
+	async function refreshBooksWithCovers() {
+		if (!booksData.some(book => !book.cover_path)) {
+			if (coverRefreshTimer) {
+				clearInterval(coverRefreshTimer);
+				coverRefreshTimer = null;
+			}
+			return;
+		}
+
+		try {
+			const latestBooks = await window.api.getBooksWithCovers();
+			if (!Array.isArray(latestBooks)) return;
+
+			let changed = false;
+			latestBooks.forEach(latestBook => {
+				const currentBook = booksData.find(book => Number(book.id) === Number(latestBook.id));
+				if (currentBook && currentBook.cover_path !== latestBook.cover_path) {
+					Object.assign(currentBook, latestBook);
+					changed = true;
+				}
+			});
+
+			if (changed) {
+				renderBooks();
+			}
+		} catch (error) {
+			console.error('Failed to refresh generated covers:', error);
+		}
+	}
+
+	function startCoverRefreshPolling() {
+		if (coverRefreshTimer || !booksData.some(book => !book.cover_path)) {
+			return;
+		}
+
+		coverRefreshTimer = setInterval(refreshBooksWithCovers, 10000);
+		setTimeout(refreshBooksWithCovers, 2000);
+	}
 	
 	function renderBooks() {
 		if (loadingMessage) loadingMessage.style.display = 'none';
@@ -471,6 +511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 		applyListViewStyles();
 		applyTranslationsTo(bookList);
+		startCoverRefreshPolling();
 	}
 	
 	// --- Event Listeners ---
@@ -684,6 +725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	// --- Initializations ---
 	populateLanguages();
 	initAuth();
+	startCoverRefreshPolling();
 	
 	window.addEventListener('focus', () => {
 		// Only refresh if the user is logged in (auth container has a logout button).

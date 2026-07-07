@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const textareaEl = document.getElementById('codex-textarea');
 	const saveBtnEl = document.getElementById('codex-save-btn');
 	const wordCountEl = document.getElementById('codex-word-count');
+	const visibleWordCountEl = document.getElementById('codex-visible-word-count');
+	const tokenCountEl = document.getElementById('codex-token-count');
 	const styleStatusEl = document.getElementById('style-analysis-status');
 	const stylePercentSliderEl = document.getElementById('style-analysis-percent-slider');
 	const stylePercentValueEl = document.getElementById('style-analysis-percent-value');
@@ -36,6 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const styleProgressBarEl = document.getElementById('style-analysis-progress-bar');
 	const styleProgressPercentEl = document.getElementById('style-analysis-progress-percent');
 	const styleTextareaEl = document.getElementById('style-analysis-textarea');
+	const styleWordCountEl = document.getElementById('style-analysis-word-count');
+	const styleTokenCountEl = document.getElementById('style-analysis-token-count');
 	const styleSaveBtnEl = document.getElementById('style-analysis-save-btn');
 	
 	const escapeHtml = (value) => String(value ?? '')
@@ -50,9 +54,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 		return words ? words.length : 0;
 	}
 
-	function updateCodexWordCount () {
+	function estimateTokens (text) {
+		const length = String(text || '').trim().length;
+		return length > 0 ? Math.ceil(length / 4) : 0;
+	}
+
+	function updateCodexStats () {
+		const text = textareaEl?.value || '';
+		const words = countWords(text);
+		const tokens = estimateTokens(text);
 		if (wordCountEl) {
-			wordCountEl.textContent = countWords(textareaEl?.value || '').toLocaleString();
+			wordCountEl.textContent = words.toLocaleString();
+		}
+		if (visibleWordCountEl) {
+			visibleWordCountEl.textContent = words.toLocaleString();
+		}
+		if (tokenCountEl) {
+			tokenCountEl.textContent = tokens.toLocaleString();
+		}
+	}
+
+	function updateStyleStats () {
+		const text = styleTextareaEl?.value || '';
+		if (styleWordCountEl) {
+			styleWordCountEl.textContent = countWords(text).toLocaleString();
+		}
+		if (styleTokenCountEl) {
+			styleTokenCountEl.textContent = estimateTokens(text).toLocaleString();
 		}
 	}
 
@@ -145,10 +173,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (textareaEl) {
 				textareaEl.value = book.codex_content || '';
-				updateCodexWordCount();
+				updateCodexStats();
 			}
 			if (styleTextareaEl) {
 				styleTextareaEl.value = book.style_analysis_content || '';
+				updateStyleStats();
 			}
 			if (styleStatusEl) {
 				styleStatusEl.textContent = styleStatusLabel(book);
@@ -251,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			});
 			if (textareaEl) {
 				textareaEl.value = result.codex_content || '';
-				updateCodexWordCount();
+				updateCodexStats();
 			}
 			activeBook = {
 				...activeBook,
@@ -322,6 +351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 			if (status.style_analysis_content && styleTextareaEl) {
 				styleTextareaEl.value = status.style_analysis_content;
+				updateStyleStats();
 			}
 			if (styleProgressBarEl) styleProgressBarEl.value = 100;
 			if (styleProgressPercentEl) styleProgressPercentEl.textContent = '100%';
@@ -412,6 +442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				
 				if (status.codex_content && textareaEl) {
 					textareaEl.value = status.codex_content;
+					updateCodexStats();
 				}
 				
 				if (status.status === 'complete') {
@@ -455,7 +486,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		}
 	});
 
-	textareaEl?.addEventListener('input', updateCodexWordCount);
+	textareaEl?.addEventListener('input', updateCodexStats);
+	styleTextareaEl?.addEventListener('input', updateStyleStats);
 
 	document.querySelectorAll('.js-compact-codex-option').forEach(button => {
 		button.addEventListener('click', () => {
