@@ -239,6 +239,7 @@
 					$updates = ['codex_content' => $content];
 					if ($markComplete) {
 						$updates['codex_status'] = 'complete';
+						$updates['codex_chunks_processed'] = DB::raw('codex_chunks_total');
 					}
 
 					UserBook::where('id', $bookId)
