@@ -54,12 +54,34 @@ let searchResultHandler = null; // Callback for search results from iframes.
 let searchReplaceResultHandler = null;
 let lastFocusedSourceEditor = null;
 let targetEditCount = 0;
+let isTargetEditorPointerDown = false;
 
 // NEW SECTION START: Translation memory processing now runs from backend-detected pending blocks.
 let isTmUpdateActive = false;
 let bookSourceLanguage = 'Source';
 let bookTargetLanguage = 'Translation';
 // NEW SECTION END
+
+function isTargetEditorIframe(element) {
+	return element instanceof HTMLIFrameElement && element.classList.contains('js-target-content-editable');
+}
+
+function shouldPreserveSourceSelectionForTargetEditor() {
+	return currentSourceSelection.hasSelection && (isTargetEditorPointerDown || isTargetEditorIframe(document.activeElement));
+}
+
+function broadcastSourceSelectionState(hasSelection) {
+	if (hasSelection === lastBroadcastedSourceSelectionState) return;
+	lastBroadcastedSourceSelectionState = hasSelection;
+	chapterEditorViews.forEach(viewInfo => {
+		if (viewInfo.isReady) {
+			viewInfo.contentWindow.postMessage({
+				type: 'sourceSelectionChanged',
+				payload: {hasSelection}
+			}, window.location.origin);
+		}
+	});
+}
 
 // Sanitizes and escapes HTML strings for render presentation
 function escapeHtml (str) {
@@ -705,23 +727,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 			}
 			
+			if (!hasSourceSelection && shouldPreserveSourceSelectionForTargetEditor()) {
+				updateGoogleSearchButton();
+				return;
+			}
+			
 			currentSourceSelection = {text: selectedText, hasSelection: hasSourceSelection, range: selectionRange};
 			if (hasSourceSelection) {
 				currentTargetSelection = {text: '', hasSelection: false};
 			}
 			updateGoogleSearchButton();
 			
-			if (hasSourceSelection !== lastBroadcastedSourceSelectionState) {
-				lastBroadcastedSourceSelectionState = hasSourceSelection;
-				chapterEditorViews.forEach(viewInfo => {
-					if (viewInfo.isReady) {
-						viewInfo.contentWindow.postMessage({
-							type: 'sourceSelectionChanged',
-							payload: {hasSelection: hasSourceSelection}
-						}, window.location.origin);
-					}
-				});
-			}
+			broadcastSourceSelectionState(hasSourceSelection);
 		});
 		
 		sourceContainer.addEventListener('click', async (event) => {
@@ -803,6 +820,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		
+		targetContainer.addEventListener('pointerdown', (event) => {
+			if (!isTargetEditorIframe(event.target)) return;
+			isTargetEditorPointerDown = true;
+			setTimeout(() => {
+				isTargetEditorPointerDown = false;
+			}, 300);
+		});
+		
 		targetContainer.addEventListener('click', (event) => {
 			const syncBtn = event.target.closest('.js-sync-scroll-btn');
 			if (syncBtn) {
@@ -836,6 +861,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					};
 					if (currentTargetSelection.hasSelection) {
 						currentSourceSelection = {text: '', hasSelection: false, range: null};
+						broadcastSourceSelectionState(false);
 					}
 					updateGoogleSearchButton();
 					setActiveChapterId(payload.chapterId, (id) => {
@@ -858,6 +884,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					};
 					if (currentTargetSelection.hasSelection) {
 						currentSourceSelection = {text: '', hasSelection: false, range: null};
+						broadcastSourceSelectionState(false);
 					}
 					updateGoogleSearchButton();
 					break;
