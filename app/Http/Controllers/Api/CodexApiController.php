@@ -248,7 +248,7 @@
 					'messages' => [
 						[
 							'role' => 'system',
-							'content' => "You compact book codex notes for translators and continuity tracking. Preserve important names, relationships, locations, terminology, lore, unresolved plot details, and translation-critical facts. Remove repetition and minor wording. Write in {$langInstruction}. Output only the compacted plain-text codex. Do not use XML, HTML, Markdown fences, or commentary.",
+							'content' => "You compact book codex notes for translators and continuity tracking. This codex is a translation aid, not a book summary. Preserve translation-critical facts such as character gender/pronouns, names, relationships, forms of address, locations, terminology, invented words, lore terms, and continuity details that affect wording. Remove plot recap, repetition, and minor wording. Keep the final codex under 1000 words. Write in {$langInstruction}. Output only the compacted plain-text codex. Do not use XML, HTML, Markdown fences, or commentary.",
 						],
 						[
 							'role' => 'user',
@@ -455,7 +455,7 @@
 						$result = ['status' => 'complete'];
 					} else {
 						// MODIFIED: Injected $langInstruction variables into the output formatting constraints
-						$systemPrompt = "You are a meticulous world-building assistant. Maintain a plain-text world codex for this book. Identify new characters, locations, terminology, continuity notes, or lore from the text chunk and integrate them into the existing codex. Output only the complete updated codex as plain text in {$langInstruction}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
+						$systemPrompt = "You maintain a plain-text translation codex for this book. The codex is there to help translation consistency, not to summarize the book. Keep only translation-critical reference notes: character names, gender/pronouns, relationships, forms of address, recurring titles, locations, terminology, invented words, lore terms, and continuity facts that affect wording. Remove plot recap, redundant details, and scene summaries. Integrate new useful facts from the text chunk into the existing codex while keeping the complete updated codex under 1000 words. Output only the complete updated codex as plain text in {$langInstruction}. Do not wrap the answer in XML, HTML, Markdown fences, or <codex> tags.";
 						$userPrompt = "Existing codex content:\n" . ($book->codex_content ?? 'This is the beginning of the codex.') . "\n\nText chunk to analyze (in {$book->source_language}, limit 8000 words):\n{$chunk->chunk_text}";
 
 						$payload = [
