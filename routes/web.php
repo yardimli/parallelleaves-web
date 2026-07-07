@@ -108,6 +108,7 @@
 		Route::post('/api/codex/books', [CodexApiController::class, 'books']);
 		Route::post('/api/codex/details', [CodexApiController::class, 'details']);
 		Route::post('/api/codex/save', [CodexApiController::class, 'save']);
+		Route::post('/api/codex/compact', [CodexApiController::class, 'compact']);
 		Route::post('/api/codex/reset', [CodexApiController::class, 'reset']);
 		Route::post('/api/codex/start', [CodexApiController::class, 'start']);
 		Route::post('/api/codex/process-batch', [CodexApiController::class, 'processBatch']);

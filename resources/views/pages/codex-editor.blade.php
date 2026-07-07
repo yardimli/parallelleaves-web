@@ -72,7 +72,24 @@
 			
 			<div class="form-control mt-6">
 				<!-- MODIFIED: Save button text translated using $tr -->
-				<button id="codex-save-btn" class="btn btn-success" data-i18n="editor.codex.editor.saveBtn">{{ $tr('editor.codex.editor.saveBtn', 'Save Codex') }}</button>
+				<div class="flex flex-wrap items-center gap-3">
+					<button id="codex-save-btn" class="btn btn-success" data-i18n="editor.codex.editor.saveBtn">{{ $tr('editor.codex.editor.saveBtn', 'Save Codex') }}</button>
+					<div class="dropdown dropdown-top">
+						<button id="codex-compact-menu-btn" tabindex="0" type="button" class="btn btn-outline">
+							<i class="bi bi-arrows-collapse"></i>
+							<span>Compact Codex</span>
+						</button>
+						<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-64">
+							<li class="menu-title">
+								<span>Current length: <strong id="codex-word-count">0</strong> words</span>
+							</li>
+							<li><button type="button" class="js-compact-codex-option" data-percent="10">Compact by 10%</button></li>
+							<li><button type="button" class="js-compact-codex-option" data-percent="25">Compact by 25%</button></li>
+							<li><button type="button" class="js-compact-codex-option" data-percent="50">Compact by 50%</button></li>
+							<li><button type="button" class="js-compact-codex-option" data-percent="75">Compact by 75%</button></li>
+						</ul>
+					</div>
+				</div>
 			</div>
 
 			<div class="divider my-8"></div>

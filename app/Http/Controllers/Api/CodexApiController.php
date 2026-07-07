@@ -30,6 +30,11 @@
 			return $text;
 		}
 
+		private function countPlainWords(string $text): int
+		{
+			return count(preg_split('/\s+/u', trim(strip_tags($text)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+		}
+
 		private function sourceWordsForBook(int|string $bookId): array
 		{
 			$chapters = Chapter::select('source_content')->where('book_id', $bookId)->orderBy('chapter_order')->get();
@@ -181,6 +186,73 @@
 				} while (false);
 
 				return response()->json(['success' => true, 'data' => $result]);
+			} catch (Throwable $exception) {
+				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+			}
+		}
+
+		public function compact(Request $request): JsonResponse
+		{
+			try {
+				$args = $request->input('args', []);
+				$args = is_array($args) ? $args : [$args];
+				$user = Auth::user();
+				$userId = $user?->id;
+				$userApiKey = $user?->openrouter_api_key ?? '';
+
+				$bookId = $args[0];
+				$options = $args[1] ?? [];
+				$options = is_array($options) ? $options : [];
+				$percent = max(10, min(75, (int)($options['percent'] ?? 25)));
+				$content = $this->cleanCodexText((string)($options['content'] ?? ''));
+				$model = !empty($options['model'])
+					? (string)$options['model']
+					: env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
+				$temperature = isset($options['temperature'])
+					? max(0, min(2, (float)$options['temperature']))
+					: 0.3;
+
+				$book = UserBook::where('id', $bookId)->where('user_id', $userId)->first();
+				if (!$book) {
+					throw new Exception('Book not found.');
+				}
+				if ($content === '') {
+					throw new Exception('There is no codex content to compact.');
+				}
+
+				$originalWordCount = $this->countPlainWords($content);
+				$targetWordCount = max(1, (int)ceil($originalWordCount * ((100 - $percent) / 100)));
+				$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
+
+				$payload = [
+					'model' => $model,
+					'messages' => [
+						[
+							'role' => 'system',
+							'content' => "You compact book codex notes for translators and continuity tracking. Preserve important names, relationships, locations, terminology, lore, unresolved plot details, and translation-critical facts. Remove repetition and minor wording. Write in {$langInstruction}. Output only the compacted plain-text codex. Do not use XML, HTML, Markdown fences, or commentary.",
+						],
+						[
+							'role' => 'user',
+							'content' => "Compact this codex by {$percent}%, aiming for about {$targetWordCount} words instead of {$originalWordCount} words:\n\n{$content}",
+						],
+					],
+					'temperature' => $temperature,
+				];
+
+				$aiResponse = callOpenRouter($payload, ['userId' => $userId, 'action' => 'codex_compact_llm_call'], $userApiKey);
+				$compacted = $this->cleanCodexText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
+				if ($compacted === '') {
+					throw new Exception('The model returned an empty compacted codex.');
+				}
+
+				$book->update(['codex_content' => $compacted]);
+
+				return response()->json(['success' => true, 'data' => [
+					'success' => true,
+					'codex_content' => $compacted,
+					'original_word_count' => $originalWordCount,
+					'compacted_word_count' => $this->countPlainWords($compacted),
+				]]);
 			} catch (Throwable $exception) {
 				return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
 			}

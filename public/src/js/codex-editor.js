@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	const progressPercentEl = document.getElementById('codex-progress-percent');
 	const textareaEl = document.getElementById('codex-textarea');
 	const saveBtnEl = document.getElementById('codex-save-btn');
+	const wordCountEl = document.getElementById('codex-word-count');
 	const styleStatusEl = document.getElementById('style-analysis-status');
 	const stylePercentSliderEl = document.getElementById('style-analysis-percent-slider');
 	const stylePercentValueEl = document.getElementById('style-analysis-percent-value');
@@ -43,6 +44,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#039;');
+
+	function countWords (text) {
+		const words = String(text || '').trim().match(/\S+/g);
+		return words ? words.length : 0;
+	}
+
+	function updateCodexWordCount () {
+		if (wordCountEl) {
+			wordCountEl.textContent = countWords(textareaEl?.value || '').toLocaleString();
+		}
+	}
 	
 	// MODIFIED: Configured status parsing to accurately return translation lookups
 	function statusLabel (book) {
@@ -120,6 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (textareaEl) {
 				textareaEl.value = book.codex_content || '';
+				updateCodexWordCount();
 			}
 			if (styleTextareaEl) {
 				styleTextareaEl.value = book.style_analysis_content || '';
@@ -187,6 +200,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 			window.showAlertModal(t('editor.codex.messages.savedSuccess'), t('editor.codex.messages.savedTitle'));
 		} catch (error) {
 			window.showAlertModal(t('editor.codex.messages.saveFailed', { message: error.message }), t('editor.codex.messages.saveFailedTitle'));
+		}
+	}
+
+	async function compactCodex (bookId, percent) {
+		if (isGenerating) return;
+		const content = textareaEl?.value || '';
+		const wordCount = countWords(content);
+		if (wordCount === 0) {
+			window.showAlertModal('There is no codex content to compact.', 'Compact Codex');
+			return;
+		}
+
+		const targetWordCount = Math.max(1, Math.ceil(wordCount * ((100 - percent) / 100)));
+		const choice = await window.showConfirmationModal(
+			`Compact the current codex from ${wordCount.toLocaleString()} words to about ${targetWordCount.toLocaleString()} words?`,
+			'Compact Codex'
+		);
+		if (choice !== 'confirm') return;
+
+		isGenerating = true;
+		const currentSaveBtn = document.getElementById('codex-save-btn');
+		const currentCompactBtn = document.getElementById('codex-compact-menu-btn');
+		const compactOptions = document.querySelectorAll('.js-compact-codex-option');
+
+		if (currentSaveBtn) currentSaveBtn.disabled = true;
+		if (currentCompactBtn) currentCompactBtn.disabled = true;
+		compactOptions.forEach(button => { button.disabled = true; });
+		if (textareaEl) textareaEl.readOnly = true;
+		if (statusEl) statusEl.textContent = `Compacting codex by ${percent}%...`;
+
+		try {
+			const result = await window.api.compactCodex(bookId, {
+				...getGenerationOptions(false),
+				content,
+				percent
+			});
+			if (textareaEl) {
+				textareaEl.value = result.codex_content || '';
+				updateCodexWordCount();
+			}
+			activeBook = {
+				...activeBook,
+				codex_content: result.codex_content || ''
+			};
+			if (statusEl) {
+				statusEl.textContent = `Compacted: ${Number(result.original_word_count || wordCount).toLocaleString()} to ${Number(result.compacted_word_count || countWords(textareaEl?.value || '')).toLocaleString()} words`;
+			}
+		} catch (error) {
+			if (statusEl) statusEl.textContent = 'Error: ' + error.message;
+			window.showAlertModal(t('editor.codex.messages.generationFailed', { message: error.message }), t('editor.codex.messages.generationFailedTitle'));
+		} finally {
+			isGenerating = false;
+			const finalSaveBtn = document.getElementById('codex-save-btn');
+			const finalCompactBtn = document.getElementById('codex-compact-menu-btn');
+			const finalCompactOptions = document.querySelectorAll('.js-compact-codex-option');
+			if (finalSaveBtn) finalSaveBtn.disabled = false;
+			if (finalCompactBtn) finalCompactBtn.disabled = false;
+			finalCompactOptions.forEach(button => { button.disabled = false; });
+			if (textareaEl) textareaEl.readOnly = false;
 		}
 	}
 
@@ -368,5 +440,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 		if (stylePercentValueEl) {
 			stylePercentValueEl.textContent = `${stylePercentSliderEl.value}%`;
 		}
+	});
+
+	textareaEl?.addEventListener('input', updateCodexWordCount);
+
+	document.querySelectorAll('.js-compact-codex-option').forEach(button => {
+		button.addEventListener('click', () => {
+			const percent = Number(button.dataset.percent || 25);
+			if (activeBook?.id) {
+				compactCodex(activeBook.id, percent);
+			}
+		});
 	});
 });
