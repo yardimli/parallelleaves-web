@@ -120,7 +120,8 @@
 				$table->integer('book_id')->index('user_book_id');
 				$table->integer('block_id')->index();
 				$table->text('source_sentence');
-				$table->text('target_sentence');
+				$table->text('original_target_sentence')->nullable();
+				$table->text('edited_target_sentence')->nullable();
 				$table->fullText('source_sentence');
 			});
 

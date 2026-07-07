@@ -84,7 +84,7 @@
 						?? $modelSettings['translation_model']
 						?? env('OPEN_ROUTER_MODEL', 'openai/gpt-4o-mini');
 
-					$systemPrompt = "You are a literary translation analyst. Your task is to identify and analyze the specific sentences that the user/translator has modified or polished in the translation, compared to their previous translation. Focus ONLY on those modified sentences. Do not include unedited surrounding sentences. Generate translation pairs ONLY for the edited/modified sentences to capture the translator's unique stylistic choices. Return your response as a single JSON object with one key: 'pairs'. The value of 'pairs' must be an array of objects, where each object has two keys: 'source' and 'target'.";
+					$systemPrompt = "You are a literary translation analyst. Identify only the specific sentences whose {$book->target_language} translation was changed by the user compared with the original machine translation. Return a single JSON object with one key, \"pairs\". Each pair must contain exactly these keys: \"source_sentence\" for the matching {$book->source_language} source sentence, \"original_target_sentence\" for the original machine {$book->target_language} sentence, and \"edited_target_sentence\" for the user-edited {$book->target_language} sentence. Do not put {$book->source_language} text in either target field. Do not include unchanged surrounding sentences.";
 					$pendingBlocks = UserBookBlock::where('book_id', $bookId)
 						->where('is_analyzed', 0)
 						->orderBy('id')
@@ -104,7 +104,7 @@
 							continue;
 						}
 
-						$userPrompt = "Analyze the following translation update. Compare the original machine translation with the current user-edited translation. Identify the specific sentences that were edited or modified. Focus only on those changed sentences and do not include unedited sentences above or below them. Generate translation pairs representing only those specific changes.\n\nSource Segment ({$book->source_language}):\n{$sourceText}\n\nOriginal Machine Translation ({$book->target_language}):\n{$originalTargetText}\n\nCurrent User Translation ({$book->target_language}):\n{$changedTargetText}";
+						$userPrompt = "Analyze the following translation update for a {$book->source_language} to {$book->target_language} project. Compare the original machine {$book->target_language} translation with the current user-edited {$book->target_language} translation. Identify only the edited sentences.\n\n{$book->source_language} source segment:\n{$sourceText}\n\nOriginal machine {$book->target_language} translation:\n{$originalTargetText}\n\nCurrent user-edited {$book->target_language} translation:\n{$changedTargetText}";
 
 						$payload = [
 							'model' => $model,
@@ -148,16 +148,18 @@
 
 						if (isset($content['pairs'])) {
 							foreach ($content['pairs'] as $pair) {
-								$sourceSentence = trim((string)($pair['source'] ?? ''));
-								$targetSentence = trim((string)($pair['target'] ?? ''));
-								if ($sourceSentence === '' || $targetSentence === '') {
+								$sourceSentence = trim((string)($pair['source_sentence'] ?? $pair['source'] ?? ''));
+								$originalTargetSentence = trim((string)($pair['original_target_sentence'] ?? ''));
+								$editedTargetSentence = trim((string)($pair['edited_target_sentence'] ?? $pair['target'] ?? ''));
+								if ($sourceSentence === '' || $originalTargetSentence === '' || $editedTargetSentence === '') {
 									continue;
 								}
 								UserBookTranslationMemory::create([
 									'book_id' => $bookId,
 									'block_id' => $block->id,
 									'source_sentence' => $sourceSentence,
-									'target_sentence' => $targetSentence
+									'original_target_sentence' => $originalTargetSentence,
+									'edited_target_sentence' => $editedTargetSentence
 								]);
 							}
 						}

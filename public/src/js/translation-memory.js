@@ -69,11 +69,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 			} else {
 				html += `
 <table class="table w-full table-zebra">
-<thead><tr><th class="w-1/2">Source</th><th class="w-1/2">Target</th></tr></thead>
+<thead><tr><th>Source</th><th>Original Target</th><th>Edited Target</th></tr></thead>
 <tbody>
 `;
 				details.forEach(tm => {
-					html += `<tr><td>${tm.source_sentence}</td><td>${tm.target_sentence}</td></tr>`;
+					html += `<tr><td>${tm.source_sentence}</td><td>${tm.original_target_sentence || ''}</td><td>${tm.edited_target_sentence || ''}</td></tr>`;
 				});
 				html += '</tbody></table>';
 			}

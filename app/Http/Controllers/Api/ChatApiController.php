@@ -96,7 +96,7 @@
 										$regexpPattern = '[[:<:]]' . $word . '[[:>:]]';
 										$memoriesForWord = DB::table('user_books_translation_memory as tm')
 											->join('user_books as b', 'tm.book_id', '=', 'b.id')
-											->select('tm.id', 'tm.source_sentence', 'tm.target_sentence', 'b.source_language', 'b.target_language')
+											->select('tm.id', 'tm.source_sentence', 'tm.edited_target_sentence', 'b.source_language', 'b.target_language')
 											->where(function ($query) use ($userId) {
 												$query->where('b.user_id', $userId)
 													->orWhereRaw('? = 1', [$userId]);
@@ -130,7 +130,7 @@
 										// MODIFIED: Dynamic REGEXP execution with standard Query Builder queries [1]
 										$query = DB::table('user_books_translation_memory as tm')
 											->join('user_books as b', 'tm.book_id', '=', 'b.id')
-											->select('tm.id', 'tm.source_sentence', 'tm.target_sentence', 'b.source_language', 'b.target_language')
+											->select('tm.id', 'tm.source_sentence', 'tm.edited_target_sentence', 'b.source_language', 'b.target_language')
 											->where(function ($q) use ($userId) {
 												$q->where('b.user_id', $userId)
 													->orWhereRaw('? = 1', [$userId]);
@@ -162,7 +162,7 @@
 
 								foreach ($allMemories as $mem) {
 									$tmContent .= "<{$mem['source_language']}>{$mem['source_sentence']}</{$mem['source_language']}>\n";
-									$tmContent .= "<{$mem['target_language']}>{$mem['target_sentence']}</{$mem['target_language']}>\n";
+									$tmContent .= "<{$mem['target_language']}>{$mem['edited_target_sentence']}</{$mem['target_language']}>\n";
 								}
 								$tmContent = trim($tmContent);
 							}

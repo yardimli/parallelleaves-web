@@ -25,7 +25,8 @@ function filterData () {
 		const query = searchQuery.toLowerCase();
 		filteredData = tmData.filter(entry =>
 			(entry.source_sentence || '').toLowerCase().includes(query) ||
-			(entry.target_sentence || '').toLowerCase().includes(query)
+			(entry.original_target_sentence || '').toLowerCase().includes(query) ||
+			(entry.edited_target_sentence || '').toLowerCase().includes(query)
 		);
 	}
 	
@@ -93,9 +94,14 @@ function renderTmCards () {
           <textarea class="js-tm-source-input textarea textarea-bordered textarea-sm w-full font-mono hidden mt-1">${escape(entry.source_sentence)}</textarea>
         </div>
         <div class="border-t border-base-300/50 pt-2">
-          <div class="text-xs font-bold text-base-content/50 uppercase">Target:</div>
-          <div class="js-tm-target-text font-mono whitespace-pre-wrap leading-relaxed text-sm">${escape(entry.target_sentence)}</div>
-          <textarea class="js-tm-target-input textarea textarea-bordered textarea-sm w-full font-mono hidden mt-1">${escape(entry.target_sentence)}</textarea>
+          <div class="text-xs font-bold text-base-content/50 uppercase">Original Target:</div>
+          <div class="js-tm-original-target-text font-mono whitespace-pre-wrap leading-relaxed text-sm">${escape(entry.original_target_sentence)}</div>
+          <textarea class="js-tm-original-target-input textarea textarea-bordered textarea-sm w-full font-mono hidden mt-1">${escape(entry.original_target_sentence)}</textarea>
+        </div>
+        <div class="border-t border-base-300/50 pt-2">
+          <div class="text-xs font-bold text-base-content/50 uppercase">Edited Target:</div>
+          <div class="js-tm-edited-target-text font-mono whitespace-pre-wrap leading-relaxed text-sm">${escape(entry.edited_target_sentence)}</div>
+          <textarea class="js-tm-edited-target-input textarea textarea-bordered textarea-sm w-full font-mono hidden mt-1">${escape(entry.edited_target_sentence)}</textarea>
         </div>
       </div>
     `;
@@ -107,8 +113,10 @@ function renderTmCards () {
 		
 		const sourceTextEl = card.querySelector('.js-tm-source-text');
 		const sourceInputEl = card.querySelector('.js-tm-source-input');
-		const targetTextEl = card.querySelector('.js-tm-target-text');
-		const targetInputEl = card.querySelector('.js-tm-target-input');
+		const originalTargetTextEl = card.querySelector('.js-tm-original-target-text');
+		const originalTargetInputEl = card.querySelector('.js-tm-original-target-input');
+		const editedTargetTextEl = card.querySelector('.js-tm-edited-target-text');
+		const editedTargetInputEl = card.querySelector('.js-tm-edited-target-input');
 		
 		editBtn.addEventListener('click', () => {
 			editBtn.classList.add('hidden');
@@ -118,8 +126,10 @@ function renderTmCards () {
 			
 			sourceTextEl.classList.add('hidden');
 			sourceInputEl.classList.remove('hidden');
-			targetTextEl.classList.add('hidden');
-			targetInputEl.classList.remove('hidden');
+			originalTargetTextEl.classList.add('hidden');
+			originalTargetInputEl.classList.remove('hidden');
+			editedTargetTextEl.classList.add('hidden');
+			editedTargetInputEl.classList.remove('hidden');
 		});
 		
 		cancelBtn.addEventListener('click', () => {
@@ -130,22 +140,27 @@ function renderTmCards () {
 			
 			sourceTextEl.classList.remove('hidden');
 			sourceInputEl.classList.add('hidden');
-			targetTextEl.classList.remove('hidden');
-			targetInputEl.classList.add('hidden');
+			originalTargetTextEl.classList.remove('hidden');
+			originalTargetInputEl.classList.add('hidden');
+			editedTargetTextEl.classList.remove('hidden');
+			editedTargetInputEl.classList.add('hidden');
 			
 			sourceInputEl.value = entry.source_sentence;
-			targetInputEl.value = entry.target_sentence;
+			originalTargetInputEl.value = entry.original_target_sentence || '';
+			editedTargetInputEl.value = entry.edited_target_sentence || '';
 		});
 		
 		saveBtn.addEventListener('click', async () => {
 			const newSource = sourceInputEl.value.trim();
-			const newTarget = targetInputEl.value.trim();
+			const newOriginalTarget = originalTargetInputEl.value.trim();
+			const newEditedTarget = editedTargetInputEl.value.trim();
 			
 			try {
-				await window.api.updateTmRow(entry.id, newSource, newTarget);
+				await window.api.updateTmRow(entry.id, newSource, newOriginalTarget, newEditedTarget);
 				
 				entry.source_sentence = newSource;
-				entry.target_sentence = newTarget;
+				entry.original_target_sentence = newOriginalTarget;
+				entry.edited_target_sentence = newEditedTarget;
 				
 				filterData();
 				renderTmCards();

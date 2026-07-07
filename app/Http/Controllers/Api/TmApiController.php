@@ -70,7 +70,7 @@
 				do {
 					$bookId = $args[0];
 					// MODIFIED: Included primary record 'id' in results to allow front-end editing and deletion
-					$result = UserBookTranslationMemory::select('id', 'source_sentence', 'target_sentence')
+					$result = UserBookTranslationMemory::select('id', 'source_sentence', 'original_target_sentence', 'edited_target_sentence')
 						->where('book_id', $bookId)
 						->orderBy('id', 'ASC')
 						->get()
@@ -108,11 +108,13 @@
 				$args = is_array($args) ? $args : [$args];
 				$id = $args[0];
 				$source = $args[1] ?? '';
-				$target = $args[2] ?? '';
+				$originalTarget = $args[2] ?? '';
+				$editedTarget = $args[3] ?? '';
 
 				UserBookTranslationMemory::where('id', $id)->update([
 					'source_sentence' => $source,
-					'target_sentence' => $target
+					'original_target_sentence' => $originalTarget,
+					'edited_target_sentence' => $editedTarget
 				]);
 
 				return response()->json(['success' => true, 'data' => ['success' => true]]);

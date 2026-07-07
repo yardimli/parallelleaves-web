@@ -63,7 +63,7 @@
 
 		private function outputLanguageInstruction(UserBook $book, mixed $language): string
 		{
-			$language = is_string($language) && $language !== '' ? $language : 'English';
+			$language = is_string($language) && $language !== '' ? $language : $book->target_language;
 			return $language === 'both'
 				? "both {$book->source_language} and {$book->target_language}"
 				: $language;
@@ -292,7 +292,7 @@
 					$content,
 					$model,
 					$temperature,
-					$options['codex_language'] ?? 'English',
+					$options['codex_language'] ?? $book->target_language,
 					(int)$userId,
 					$userApiKey,
 					$targetWordCount
@@ -477,7 +477,7 @@
 						throw new Exception('Book not found.');
 					}
 
-					$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
+					$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? $book->target_language);
 
 					$chunk = UserBookCodexChunk::where('book_id', $bookId)
 						->where('is_processed', 0)
@@ -520,7 +520,7 @@
 								$updatedCodexText,
 								$model,
 								$temperature,
-								$options['codex_language'] ?? 'English',
+								$options['codex_language'] ?? $book->target_language,
 								(int)$userId,
 								$userApiKey,
 								1000
@@ -642,7 +642,7 @@
 					throw new Exception('Book not found.');
 				}
 
-				$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
+				$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? $book->target_language);
 				$percent = is_array($options) && isset($options['percent'])
 					? max(5, min(100, (int)$options['percent']))
 					: max(5, min(100, (int)($book->style_analysis_percent ?: 5)));

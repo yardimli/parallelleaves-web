@@ -395,7 +395,7 @@ window.api = {
 	getTmDetails: (bookId) => rpcInvoke('tm:getDetails', bookId),
 	deleteTm: (bookId) => rpcInvoke('tm:delete', bookId),
 	deleteTmRow: (id) => rpcInvoke('tm:deleteRow', id),
-	updateTmRow: (id, source, target) => rpcInvoke('tm:updateRow', id, source, target),
+	updateTmRow: (id, source, originalTarget, editedTarget) => rpcInvoke('tm:updateRow', id, source, originalTarget, editedTarget),
 	getCodexBooks: () => rpcInvoke('codex:getAll'),
 	getCodexDetails: (bookId) => rpcInvoke('codex:getDetails', bookId),
 	saveCodex: (bookId, content, options = {}) => rpcInvoke('codex:save', bookId, content, options),

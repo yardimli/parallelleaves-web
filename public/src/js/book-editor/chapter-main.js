@@ -581,6 +581,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		setupTopToolbar({
 			isChapterEditor: true,
 			getActiveChapterId: () => activeChapterId,
+			getSourceLanguage: () => bookSourceLanguage,
+			getTargetLanguage: () => bookTargetLanguage,
 			getChapterViews: (chapterId) => chapterEditorViews.get(chapterId.toString()),
 			onOpenDictionary: () => handleOpenDictionaryWithSelection(getActiveEditor(), currentSourceSelection)
 		});
@@ -906,8 +908,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 					const context = {
 						selectedText: currentSourceSelection.text,
 						sourceSelectionRange: currentSourceSelection.range,
-						languageForPrompt: 'English',
-						targetLanguage: 'English',
+						languageForPrompt: bookSourceLanguage,
+						targetLanguage: bookTargetLanguage,
 						activeEditorView: sourceWindow,
 						editorInterface: createIframeEditorInterface(sourceWindow),
 						chapterId: viewInfo.iframe.dataset.chapterId,

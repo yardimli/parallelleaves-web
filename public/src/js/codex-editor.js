@@ -160,9 +160,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 			
 			if (languageSelectEl) {
 				languageSelectEl.innerHTML = `
-          <option value="English" selected>English</option>
+          <option value="${escapeHtml(book.target_language)}" selected>${escapeHtml(t('editor.codex.editor.target'))} (${escapeHtml(book.target_language)})</option>
+          <option value="English">English</option>
           <option value="${escapeHtml(book.source_language)}">${escapeHtml(t('editor.codex.editor.source'))} (${escapeHtml(book.source_language)})</option>
-          <option value="${escapeHtml(book.target_language)}">${escapeHtml(t('editor.codex.editor.target'))} (${escapeHtml(book.target_language)})</option>
           <option value="both">${escapeHtml(t('editor.codex.editor.both'))} (${escapeHtml(book.source_language)} &amp; ${escapeHtml(book.target_language)})</option>
         `;
 			}

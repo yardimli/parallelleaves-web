@@ -10,5 +10,11 @@
 
 		protected $table = 'user_books_translation_memory';
 
-		protected $fillable = ['book_id', 'block_id', 'source_sentence', 'target_sentence'];
+		protected $fillable = [
+			'book_id',
+			'block_id',
+			'source_sentence',
+			'original_target_sentence',
+			'edited_target_sentence',
+		];
 	}
