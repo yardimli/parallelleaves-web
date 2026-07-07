@@ -9,6 +9,17 @@ let tmPerPageSelect;
 let tmPrevPageBtn;
 let tmNextPageBtn;
 let tmPaginationInfo;
+let tmOpenPurgeBtn;
+let tmPurgeDialog;
+let tmPurgeRuleInput;
+let tmPurgeModelSelect;
+let tmPurgeStartBtn;
+let tmPurgeCancelBtn;
+let tmPurgeCloseBtn;
+let tmPurgeProgressContainer;
+let tmPurgeProgressBar;
+let tmPurgeProgressCount;
+let tmPurgeResultText;
 
 let currentBookId;
 let tmData = [];
@@ -16,6 +27,121 @@ let filteredData = [];
 let currentPage = 1;
 let perPage = 10;
 let searchQuery = '';
+let isPurgeRunning = false;
+
+function modelOptionLabel (model) {
+	const inputPrice = Number(model.prompt_price_per_million);
+	const outputPrice = Number(model.completion_price_per_million);
+	const priceLabel = Number.isFinite(inputPrice) && Number.isFinite(outputPrice)
+		? ` ($${inputPrice.toFixed(2)} in / $${outputPrice.toFixed(2)} out per 1M)`
+		: '';
+	return `${model.name || model.id}${priceLabel}`;
+}
+
+function populatePurgeModelSelect () {
+	if (!tmPurgeModelSelect) return;
+	const modelGroups = window.initialModels?.models || [];
+	const savedModel = localStorage.getItem('parallel-leaves-ai-model') || localStorage.getItem('parallel-leaves-codex-model') || '';
+	let hasOptions = false;
+	
+	tmPurgeModelSelect.innerHTML = '';
+	modelGroups.forEach(group => {
+		const optgroup = document.createElement('optgroup');
+		optgroup.label = group.group || group.provider || group.name || 'Models';
+		(group.models || []).forEach(model => {
+			const option = document.createElement('option');
+			option.value = model.id;
+			option.textContent = modelOptionLabel(model);
+			if (savedModel && model.id === savedModel) {
+				option.selected = true;
+			}
+			optgroup.appendChild(option);
+			hasOptions = true;
+		});
+		if (optgroup.children.length > 0) {
+			tmPurgeModelSelect.appendChild(optgroup);
+		}
+	});
+	
+	if (!hasOptions) {
+		const option = document.createElement('option');
+		option.value = 'openai/gpt-4o-mini';
+		option.textContent = 'openai/gpt-4o-mini';
+		option.selected = true;
+		tmPurgeModelSelect.appendChild(option);
+	}
+}
+
+function setPurgeProgress (processed, total, deleted) {
+	const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+	if (tmPurgeProgressBar) tmPurgeProgressBar.value = percent;
+	if (tmPurgeProgressCount) tmPurgeProgressCount.textContent = `${processed} / ${total}`;
+	if (tmPurgeResultText) tmPurgeResultText.textContent = `Deleted ${deleted} of ${total} entries.`;
+}
+
+async function refreshTmData () {
+	const data = await window.api.getTmDetails(currentBookId);
+	tmData = data || [];
+	filterData();
+	renderTmCards();
+}
+
+async function startPurge () {
+	if (isPurgeRunning) return;
+	const rule = (tmPurgeRuleInput?.value || '').trim();
+	const model = tmPurgeModelSelect?.value || '';
+	if (!rule) {
+		window.showAlert('Enter a purge rule first.');
+		return;
+	}
+	if (!model) {
+		window.showAlert('Choose a model first.');
+		return;
+	}
+	if (tmData.length === 0) {
+		window.showAlert('There are no translation memory entries to purge.');
+		return;
+	}
+	if (!confirm(`Check ${tmData.length} translation memory entries and delete rows that match this rule?`)) {
+		return;
+	}
+	
+	isPurgeRunning = true;
+	localStorage.setItem('parallel-leaves-ai-model', model);
+	if (tmPurgeStartBtn) tmPurgeStartBtn.disabled = true;
+	if (tmPurgeCancelBtn) tmPurgeCancelBtn.disabled = true;
+	if (tmPurgeCloseBtn) tmPurgeCloseBtn.disabled = true;
+	if (tmPurgeProgressContainer) tmPurgeProgressContainer.classList.remove('hidden');
+	setPurgeProgress(0, tmData.length, 0);
+	
+	let processed = 0;
+	let deleted = 0;
+	const entries = [...tmData];
+	
+	try {
+		for (const entry of entries) {
+			const result = await window.api.purgeTmRow(entry.id, rule, model);
+			processed++;
+			if (result?.deleted) {
+				deleted++;
+				tmData = tmData.filter(item => item.id !== entry.id);
+			}
+			setPurgeProgress(processed, entries.length, deleted);
+		}
+		
+		await refreshTmData();
+		if (tmPurgeResultText) tmPurgeResultText.textContent = `Purge complete. Deleted ${deleted} of ${entries.length} entries.`;
+	} catch (error) {
+		console.error('Failed to purge translation memory:', error);
+		window.showAlert(`Failed to purge translation memory: ${error.message}`);
+		if (tmPurgeResultText) tmPurgeResultText.textContent = `Stopped after ${processed} of ${entries.length}. Deleted ${deleted}.`;
+	} finally {
+		isPurgeRunning = false;
+		if (tmPurgeStartBtn) tmPurgeStartBtn.disabled = false;
+		if (tmPurgeCancelBtn) tmPurgeCancelBtn.disabled = false;
+		if (tmPurgeCloseBtn) tmPurgeCloseBtn.disabled = false;
+	}
+}
 
 // Filters translation memory matching against both target and source segments
 function filterData () {
@@ -203,6 +329,17 @@ export function initTmModal (bookId) {
 	tmPrevPageBtn = document.getElementById('tm-prev-page-btn');
 	tmNextPageBtn = document.getElementById('tm-next-page-btn');
 	tmPaginationInfo = document.getElementById('tm-pagination-info');
+	tmOpenPurgeBtn = document.getElementById('tm-open-purge-btn');
+	tmPurgeDialog = document.getElementById('tm-purge-dialog');
+	tmPurgeRuleInput = document.getElementById('tm-purge-rule-input');
+	tmPurgeModelSelect = document.getElementById('tm-purge-model-select');
+	tmPurgeStartBtn = document.getElementById('tm-purge-start-btn');
+	tmPurgeCancelBtn = document.getElementById('tm-purge-cancel-btn');
+	tmPurgeCloseBtn = document.getElementById('tm-purge-close-btn');
+	tmPurgeProgressContainer = document.getElementById('tm-purge-progress-container');
+	tmPurgeProgressBar = document.getElementById('tm-purge-progress-bar');
+	tmPurgeProgressCount = document.getElementById('tm-purge-progress-count');
+	tmPurgeResultText = document.getElementById('tm-purge-result-text');
 	
 	if (!tmModal) {
 		console.error('TM Manager Modal element not found.');
@@ -239,6 +376,17 @@ export function initTmModal (bookId) {
 			renderTmCards();
 		}
 	});
+
+	populatePurgeModelSelect();
+	tmOpenPurgeBtn?.addEventListener('click', () => {
+		populatePurgeModelSelect();
+		if (tmPurgeProgressContainer) tmPurgeProgressContainer.classList.add('hidden');
+		if (tmPurgeProgressBar) tmPurgeProgressBar.value = 0;
+		if (tmPurgeProgressCount) tmPurgeProgressCount.textContent = `0 / ${tmData.length}`;
+		if (tmPurgeResultText) tmPurgeResultText.textContent = '';
+		tmPurgeDialog?.showModal();
+	});
+	tmPurgeStartBtn?.addEventListener('click', startPurge);
 }
 
 export async function openTmModal () {
@@ -249,11 +397,7 @@ export async function openTmModal () {
 		searchQuery = '';
 		if (tmSearchInput) tmSearchInput.value = '';
 		
-		const data = await window.api.getTmDetails(currentBookId);
-		tmData = data || [];
-		
-		filterData();
-		renderTmCards();
+		await refreshTmData();
 		tmModal.showModal();
 	} catch (error) {
 		console.error('Failed to open TM modal:', error);

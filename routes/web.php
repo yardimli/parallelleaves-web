@@ -104,6 +104,7 @@
 		Route::post('/api/translation-memory/process-batch', [TranslationMemoryApiController::class, 'processBatch']);
 		Route::post('/api/translation-memory/delete-row', [TmApiController::class, 'deleteRow']);
 		Route::post('/api/translation-memory/update-row', [TmApiController::class, 'updateRow']);
+		Route::post('/api/translation-memory/purge-row', [TmApiController::class, 'purgeRow']);
 
 		Route::post('/api/codex/books', [CodexApiController::class, 'books']);
 		Route::post('/api/codex/details', [CodexApiController::class, 'details']);
