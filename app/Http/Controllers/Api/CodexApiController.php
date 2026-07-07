@@ -96,6 +96,44 @@
 			return $text;
 		}
 
+		private function compactCodexText(
+			UserBook $book,
+			string $content,
+			string $model,
+			float $temperature,
+			mixed $language,
+			int $userId,
+			string $userApiKey,
+			int $targetWordCount = 1000
+		): string {
+			$targetWordCount = max(1, min(1000, $targetWordCount));
+			$originalWordCount = $this->countPlainWords($content);
+			$langInstruction = $this->outputLanguageInstruction($book, $language);
+
+			$payload = [
+				'model' => $model,
+				'messages' => [
+					[
+						'role' => 'system',
+						'content' => "You compact book codex notes for translators and continuity tracking. This codex is a translation aid, not a book summary. Preserve translation-critical facts such as character gender/pronouns, names, relationships, forms of address, locations, terminology, invented words, lore terms, and continuity details that affect wording. Remove plot recap, repetition, and minor wording. Keep the final codex under {$targetWordCount} words. Write in {$langInstruction}. Output only the compacted plain-text codex. Do not use XML, HTML, Markdown fences, or commentary.",
+					],
+					[
+						'role' => 'user',
+						'content' => "Compact this codex from {$originalWordCount} words to under {$targetWordCount} words:\n\n{$content}",
+					],
+				],
+				'temperature' => $temperature,
+			];
+
+			$aiResponse = callOpenRouter($payload, ['userId' => $userId, 'action' => 'codex_compact_llm_call'], $userApiKey);
+			$compacted = $this->cleanCodexText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
+			if ($compacted === '') {
+				throw new Exception('The model returned an empty compacted codex.');
+			}
+
+			return $compacted;
+		}
+
 		public function books(Request $request): JsonResponse
 		{
 			try {
@@ -240,29 +278,17 @@
 				}
 
 				$originalWordCount = $this->countPlainWords($content);
-				$targetWordCount = max(1, (int)ceil($originalWordCount * ((100 - $percent) / 100)));
-				$langInstruction = $this->outputLanguageInstruction($book, $options['codex_language'] ?? 'English');
-
-				$payload = [
-					'model' => $model,
-					'messages' => [
-						[
-							'role' => 'system',
-							'content' => "You compact book codex notes for translators and continuity tracking. This codex is a translation aid, not a book summary. Preserve translation-critical facts such as character gender/pronouns, names, relationships, forms of address, locations, terminology, invented words, lore terms, and continuity details that affect wording. Remove plot recap, repetition, and minor wording. Keep the final codex under 1000 words. Write in {$langInstruction}. Output only the compacted plain-text codex. Do not use XML, HTML, Markdown fences, or commentary.",
-						],
-						[
-							'role' => 'user',
-							'content' => "Compact this codex by {$percent}%, aiming for about {$targetWordCount} words instead of {$originalWordCount} words:\n\n{$content}",
-						],
-					],
-					'temperature' => $temperature,
-				];
-
-				$aiResponse = callOpenRouter($payload, ['userId' => $userId, 'action' => 'codex_compact_llm_call'], $userApiKey);
-				$compacted = $this->cleanCodexText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
-				if ($compacted === '') {
-					throw new Exception('The model returned an empty compacted codex.');
-				}
+				$targetWordCount = min(1000, max(1, (int)ceil($originalWordCount * ((100 - $percent) / 100))));
+				$compacted = $this->compactCodexText(
+					$book,
+					$content,
+					$model,
+					$temperature,
+					$options['codex_language'] ?? 'English',
+					(int)$userId,
+					$userApiKey,
+					$targetWordCount
+				);
 
 				$book->update(['codex_content' => $compacted]);
 
@@ -478,6 +504,22 @@
 						$totalChunks = (int)$book->codex_chunks_total;
 						$isComplete = $totalChunks > 0 && $processedAfter >= $totalChunks;
 
+						$codexWasCompacted = false;
+						$codexWordCountBeforeCompaction = $this->countPlainWords($updatedCodexText);
+						if ($updatedCodexText && $codexWordCountBeforeCompaction > 1200) {
+							$updatedCodexText = $this->compactCodexText(
+								$book,
+								$updatedCodexText,
+								$model,
+								$temperature,
+								$options['codex_language'] ?? 'English',
+								(int)$userId,
+								$userApiKey,
+								1000
+							);
+							$codexWasCompacted = true;
+						}
+
 						if ($updatedCodexText) {
 							UserBook::where('id', $bookId)->update([
 								'codex_content' => $updatedCodexText,
@@ -492,7 +534,9 @@
 							'status' => $isComplete ? 'complete' : 'generating',
 							'processed' => $processedAfter,
 							'total' => $totalChunks,
-							'codex_content' => $updatedCodexText
+							'codex_content' => $updatedCodexText,
+							'codex_compacted' => $codexWasCompacted,
+							'codex_word_count' => $this->countPlainWords($updatedCodexText),
 						];
 					}
 					break;
