@@ -140,15 +140,16 @@
 						</div>
 					</div>
 					
-					@if(($book['codex_status'] ?? 'none') !== 'complete')
-						@php
-							$codexStatus = $book['codex_status'] ?? 'none';
-							$codexProcessed = (int)($book['codex_chunks_processed'] ?? 0);
-							$codexTotal = (int)($book['codex_chunks_total'] ?? 0);
-							$codexText = $codexStatus === 'generating' && $codexTotal > 0
-								? 'Codex incomplete (' . $codexProcessed . '/' . $codexTotal . ')'
-								: 'Codex incomplete';
-						@endphp
+					@php
+						$codexStatus = $book['codex_status'] ?? 'none';
+						$codexProcessed = (int)($book['codex_chunks_processed'] ?? 0);
+						$codexTotal = (int)($book['codex_chunks_total'] ?? 0);
+						$codexComplete = $codexStatus === 'complete' || ($codexTotal > 0 && $codexProcessed >= $codexTotal);
+						$codexText = $codexStatus === 'generating' && $codexTotal > 0
+							? 'Codex incomplete (' . $codexProcessed . '/' . $codexTotal . ')'
+							: 'Codex incomplete';
+					@endphp
+					@if(!$codexComplete)
 						<div class="text-xs text-warning font-medium mt-2 js-codex-status">{{ $codexText }}</div>
 					@endif
 					

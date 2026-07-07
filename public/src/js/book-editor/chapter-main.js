@@ -147,13 +147,13 @@ function showCodexStatus(bookData) {
 	if (!codexStatusEl) return;
 	
 	const status = bookData.codex_status || 'none';
-	if (status === 'complete') {
+	const processed = Number(bookData.codex_chunks_processed || 0);
+	const total = Number(bookData.codex_chunks_total || 0);
+	if (status === 'complete' || (total > 0 && processed >= total)) {
 		codexStatusEl.textContent = '';
 		return;
 	}
 	
-	const processed = Number(bookData.codex_chunks_processed || 0);
-	const total = Number(bookData.codex_chunks_total || 0);
 	if (status === 'generating' && total > 0) {
 		codexStatusEl.textContent = `Codex: incomplete (${processed}/${total})`;
 	} else if (status === 'error') {

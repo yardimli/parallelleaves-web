@@ -59,11 +59,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 	// MODIFIED: Configured status parsing to accurately return translation lookups
 	function statusLabel (book) {
 		const status = book?.codex_status || 'none';
+		const processed = Number(book?.codex_chunks_processed || 0);
+		const total = Number(book?.codex_chunks_total || 0);
+		if (total > 0 && processed >= total) return t('editor.codex.statusLabel.complete');
 		if (status === 'complete') return t('editor.codex.statusLabel.complete');
-		if (status === 'generating' && Number(book?.codex_chunks_total || 0) > 0) {
+		if (status === 'generating' && total > 0) {
 			return t('editor.codex.statusLabel.incomplete', {
-				processed: Number(book.codex_chunks_processed || 0),
-				total: Number(book.codex_chunks_total || 0)
+				processed,
+				total
 			});
 		}
 		if (status === 'error') return t('editor.codex.statusLabel.error');

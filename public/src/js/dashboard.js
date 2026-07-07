@@ -360,10 +360,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const coverHtml = book.cover_path
 				? `<img src="${book.cover_path}?t=${new Date(book.updated_at).getTime()}" alt="${t('dashboard.metaSettings.altCoverFor', {title: book.title})}" class="w-full">`
 				: `<img src="./assets/bookcover-placeholder.jpg" alt="${t('dashboard.metaSettings.altNoCover')}" class="w-full h-auto">`;
-			const codexStatusHtml = book.codex_status && book.codex_status !== 'complete'
+			const codexProcessed = Number(book.codex_chunks_processed || 0);
+			const codexTotal = Number(book.codex_chunks_total || 0);
+			const codexComplete = book.codex_status === 'complete' || (codexTotal > 0 && codexProcessed >= codexTotal);
+			const codexStatusHtml = book.codex_status && !codexComplete
 				? `<div class="text-xs text-warning font-medium mt-2 js-codex-status">${
-					book.codex_status === 'generating' && Number(book.codex_chunks_total || 0) > 0
-						? `Codex incomplete (${Number(book.codex_chunks_processed || 0)}/${Number(book.codex_chunks_total || 0)})`
+					book.codex_status === 'generating' && codexTotal > 0
+						? `Codex incomplete (${codexProcessed}/${codexTotal})`
 						: 'Codex incomplete'
 				}</div>`
 				: '';

@@ -35,6 +35,21 @@
 			return count(preg_split('/\s+/u', trim(strip_tags($text)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
 		}
 
+		private function normalizeCodexStatus(UserBook $book): UserBook
+		{
+			$total = (int)($book->codex_chunks_total ?? 0);
+			$processed = (int)($book->codex_chunks_processed ?? 0);
+			if ($total > 0 && $processed >= $total && $book->codex_status !== 'complete') {
+				$book->forceFill([
+					'codex_status' => 'complete',
+					'codex_chunks_processed' => $total,
+				])->save();
+				$book->refresh();
+			}
+
+			return $book;
+		}
+
 		private function sourceWordsForBook(int|string $bookId): array
 		{
 			$chapters = Chapter::select('source_content')->where('book_id', $bookId)->orderBy('chapter_order')->get();
@@ -101,6 +116,7 @@
 						->where('user_id', $userId)
 						->orderBy('updated_at', 'DESC')
 						->get()
+						->map(fn(UserBook $book) => $this->normalizeCodexStatus($book))
 						->toArray();
 					break;
 				} while (false);
@@ -146,6 +162,9 @@
 						->where('id', $bookId)
 						->where('user_id', $userId)
 						->first();
+					if ($book) {
+						$book = $this->normalizeCodexStatus($book);
+					}
 					$result = $book ? $book->toArray() : null;
 					if ($result && isset($result['codex_content'])) {
 						$result['codex_content'] = $this->cleanCodexText((string)$result['codex_content']);
@@ -455,19 +474,24 @@
 						);
 						$updatedCodexText = $this->cleanCodexText((string)($aiResponse['choices'][0]['message']['content'] ?? ''));
 
+						$processedAfter = (int)$book->codex_chunks_processed + 1;
+						$totalChunks = (int)$book->codex_chunks_total;
+						$isComplete = $totalChunks > 0 && $processedAfter >= $totalChunks;
+
 						if ($updatedCodexText) {
 							UserBook::where('id', $bookId)->update([
 								'codex_content' => $updatedCodexText,
-								'codex_chunks_processed' => DB::raw('codex_chunks_processed + 1')
+								'codex_chunks_processed' => DB::raw('codex_chunks_processed + 1'),
+								'codex_status' => $isComplete ? 'complete' : 'generating',
 							]);
 						}
 
 						UserBookCodexChunk::where('id', $chunk->id)->update(['is_processed' => 1]);
 
 						$result = [
-							'status' => 'generating',
-							'processed' => $book->codex_chunks_processed + 1,
-							'total' => $book->codex_chunks_total,
+							'status' => $isComplete ? 'complete' : 'generating',
+							'processed' => $processedAfter,
+							'total' => $totalChunks,
 							'codex_content' => $updatedCodexText
 						];
 					}
