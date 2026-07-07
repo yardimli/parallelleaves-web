@@ -238,7 +238,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 	async function saveCodex (bookId) {
 		const content = textareaEl.value;
 		try {
-			await window.api.saveCodex(bookId, content);
+			const choice = await window.showConfirmationModal(
+				'Do you want to mark this codex as complete as well?',
+				'Save Codex',
+				{
+					confirmText: 'Mark complete',
+					confirmClass: 'btn btn-success flex-1',
+					cancelText: 'Save only',
+					cancelClass: 'btn flex-1'
+				}
+			);
+			const markComplete = choice === 'confirm';
+			const result = await window.api.saveCodex(bookId, content, {mark_complete: markComplete});
+			if (markComplete) {
+				activeBook = {...activeBook, codex_status: 'complete'};
+				if (statusEl) statusEl.textContent = t('editor.codex.statusLabel.complete');
+			} else if (result?.codex_status && activeBook) {
+				activeBook = {...activeBook, codex_status: result.codex_status};
+			}
 			window.showAlertModal(t('editor.codex.messages.savedSuccess'), t('editor.codex.messages.savedTitle'));
 		} catch (error) {
 			window.showAlertModal(t('editor.codex.messages.saveFailed', { message: error.message }), t('editor.codex.messages.saveFailedTitle'));

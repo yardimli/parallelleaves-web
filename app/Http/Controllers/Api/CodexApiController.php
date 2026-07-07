@@ -234,11 +234,18 @@
 				do {
 					$bookId = $args[0];
 					$content = $this->cleanCodexText((string)$args[1]);
+					$options = $args[2] ?? [];
+					$markComplete = is_array($options) && !empty($options['mark_complete']);
+					$updates = ['codex_content' => $content];
+					if ($markComplete) {
+						$updates['codex_status'] = 'complete';
+					}
+
 					UserBook::where('id', $bookId)
 						->where('user_id', $userId)
-						->update(['codex_content' => $content]);
+						->update($updates);
 
-					$result = ['success' => true];
+					$result = ['success' => true, 'codex_status' => $markComplete ? 'complete' : null];
 					break;
 				} while (false);
 
