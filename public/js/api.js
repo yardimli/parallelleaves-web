@@ -51,6 +51,7 @@ const API_ENDPOINTS = {
 	'dictionary:get': '/api/dictionary/get',
 	'dictionary:save': '/api/dictionary/save',
 	'dictionary:getContentForAI': '/api/dictionary/for-ai',
+	'tm:forPrompt': '/api/translation-memory/for-prompt',
 	'tm:getAll': '/api/translation-memory/books',
 	'tm:getDetails': '/api/translation-memory/details',
 	'tm:delete': '/api/translation-memory/delete',
@@ -394,6 +395,7 @@ window.api = {
 	
 	// UI Dashboards
 	getLogs: (page) => rpcInvoke('logs:get', page),
+	getTranslationMemoryForPrompt: (data) => rpcInvoke('tm:forPrompt', data),
 	getTmBooks: () => rpcInvoke('tm:getAll'),
 	getTmDetails: (bookId) => rpcInvoke('tm:getDetails', bookId),
 	deleteTm: (bookId) => rpcInvoke('tm:delete', bookId),

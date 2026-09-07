@@ -117,6 +117,8 @@
   },
   "translationMemory": {
     "openEditor": "Çeviri Belleğini Aç",
+    "exportMemory": "Belleği Dışa Aktar",
+    "errorExport": "Çeviri belleği dışa aktarılamadı: {message}",
     "updateTitle": "Çeviri Belleğini Güncelle",
     "status": {
       "starting": "ÇB güncellemesi başlıyor...",

@@ -23,6 +23,7 @@
   "login": {
     "title": "Giriş Yap",
     "username": "Kullanıcı Adı",
+    "usernameOrEmail": "Kullanıcı adı veya e-posta",
     "password": "Şifre",
     "noAccount": "Hesabınız yok mu?",
     "signUp": "Kayıt Ol",

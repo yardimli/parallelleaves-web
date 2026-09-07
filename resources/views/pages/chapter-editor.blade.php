@@ -7,7 +7,13 @@
 	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
 	<link rel="stylesheet" href="/dist/styles.css">
 </head>
-<body class="h-full bg-base-100 text-base-content overflow-hidden flex flex-col">
+<body class="h-full bg-base-100 text-base-content overflow-hidden flex flex-col" aria-busy="true">
+<div id="chapter-loading-overlay" class="bg-base-100 text-base-content"
+     style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem"
+     role="status" aria-live="polite">
+	<span class="loading loading-spinner loading-lg" aria-hidden="true"></span>
+	<span>{{ $tr('common.loading', 'Loading...') }}</span>
+</div>
 
 <!-- Top Toolbar (copied from book-editor.php for consistent editing experience) -->
 <div id="top-toolbar"

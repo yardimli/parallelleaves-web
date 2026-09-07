@@ -49,6 +49,7 @@ let lastBroadcastedSourceSelectionState = false;
 let totalIframes = 0;
 let iframesReadyCount = 0;
 let viewInitialized = false;
+let viewInitializing = false;
 let activeEditor = null; // contentWindow of the currently focused iframe editor.
 let searchResultHandler = null; // Callback for search results from iframes.
 let searchReplaceResultHandler = null;
@@ -537,22 +538,44 @@ function populateNavDropdown(bookData) {
 	navDropdown.addEventListener('change', () => scrollToChapter(navDropdown.value, setActiveChapterId));
 }
 
-function initializeView(bookId, bookData, initialChapterId) {
-	if (viewInitialized) return;
-	viewInitialized = true;
-	
-	const sourceContainer = document.getElementById('js-source-column-container');
-	const targetContainer = document.getElementById('js-target-column-container');
-	
-	setTimeout(() => {
+function finishPageLoading() {
+	document.getElementById('chapter-loading-overlay')?.remove();
+	document.body.setAttribute('aria-busy', 'false');
+}
+
+const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+async function initializeView(bookId, bookData, initialChapterId) {
+	if (viewInitialized || viewInitializing) return;
+	viewInitializing = true;
+	try {
+		if (document.readyState !== 'complete') {
+			await new Promise(resolve => window.addEventListener('load', resolve, {once: true}));
+		}
+		await Promise.all([
+			document.fonts.ready,
+			...Array.from(chapterEditorViews.values(), view => view.iframe.contentDocument.fonts.ready)
+		]);
+		// Allow font layout and iframe resize messages to settle before restoring.
+		await nextPaint();
+		const sourceContainer = document.getElementById('js-source-column-container');
+		const targetContainer = document.getElementById('js-target-column-container');
 		if (!restoreScrollPositions(bookId, sourceContainer, targetContainer)) {
 			const chapterToLoad = initialChapterId || bookData.chapters[0]?.id;
 			if (chapterToLoad) {
 				document.getElementById('js-chapter-nav-dropdown').value = chapterToLoad;
-				setTimeout(() => scrollToChapter(chapterToLoad, setActiveChapterId), 50);
+				scrollToChapter(chapterToLoad, setActiveChapterId, 'instant');
 			}
 		}
-	}, 500);
+		await nextPaint();
+		viewInitialized = true;
+	} catch (error) {
+		console.error('Failed to restore editor position:', error);
+		window.showAlert(t('editor.errorLoadManuscript', {message: error.message}));
+	} finally {
+		viewInitializing = false;
+		finishPageLoading();
+	}
 }
 
 // NEW SECTION START: Non-disruptive update helper triggers
@@ -575,7 +598,13 @@ async function processPendingTranslationMemory(bookId) {
 
 // --- Main Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-	await initI18n();
+	try {
+		await initI18n();
+	} catch (error) {
+		finishPageLoading();
+		console.error('Failed to initialize editor language:', error);
+		return;
+	}
 	
 	document.getElementById('js-refresh-page-btn')?.addEventListener('click', () => window.location.reload());
 	
@@ -595,6 +624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	};
 	
 	if (!bookId) {
+		finishPageLoading();
 		document.body.innerHTML = `<p class="text-error p-8">${t('editor.errorProjectMissing')}</p>`;
 		return;
 	}
@@ -654,6 +684,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			sourceContainer.innerHTML = noContentHtml;
 			targetContainer.innerHTML = noContentHtml;
 			document.getElementById('js-chapter-nav-dropdown').disabled = true;
+			finishPageLoading();
 			return;
 		}
 		
@@ -1035,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		
 	} catch (error) {
 		console.error('Failed to load manuscript data:', error);
+		finishPageLoading();
 		document.body.innerHTML = `<p class="p-8 text-error">${t('editor.errorLoadManuscript', {message: error.message})}</p>`;
 	}
 });

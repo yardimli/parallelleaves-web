@@ -17,6 +17,22 @@
 
 	class TmApiController extends Controller
 	{
+		public function forPrompt(Request $request): JsonResponse
+		{
+			$validated = $request->validate([
+				'args.0.bookId' => ['required', 'integer'],
+				'args.0.text' => ['present', 'string'],
+			]);
+			$data = $validated['args'][0];
+			$userId = Auth::id();
+			// The preview is only available for books owned by the signed-in user.
+			UserBook::where('id', $data['bookId'])->where('user_id', $userId)->firstOrFail();
+			$content = app(\App\Services\TranslationMemoryPrompt::class)
+				->content($data['bookId'], $userId, $data['text']);
+
+			return response()->json(['success' => true, 'data' => $content]);
+		}
+
 		private function decodeLlmJsonContent(string $content): array
 		{
 			$content = trim($content);

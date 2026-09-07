@@ -41,9 +41,10 @@
     "custom tools",
     "05-06",
     "lyria",
-    "flash lite preview"
+    "flash lite preview",
+    "batch"
   ],
-  "maxPricePerMillion": 20.0,
+  "maxPricePerMillion": 30.0,
   "descriptionOverrides": {
     "google/gemini-2.5-flash-lite-preview-09-2025": "Fast and highly cost-effective.",
     "openai/gpt-4o-mini": "Great balance of speed, cost, and quality.",

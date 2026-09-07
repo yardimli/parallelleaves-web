@@ -98,6 +98,7 @@
 		Route::post('/api/dictionary/save', [DictionaryApiController::class, 'save']);
 		Route::post('/api/dictionary/for-ai', [DictionaryApiController::class, 'forAi']);
 
+		Route::post('/api/translation-memory/for-prompt', [TmApiController::class, 'forPrompt']);
 		Route::post('/api/translation-memory/books', [TmApiController::class, 'books']);
 		Route::post('/api/translation-memory/details', [TmApiController::class, 'details']);
 		Route::post('/api/translation-memory/delete', [TmApiController::class, 'delete']);

@@ -51,7 +51,7 @@ export function syncChapterScroll(chapterId, direction) {
  * @param {string} chapterId - The ID of the chapter to scroll to.
  * @param {function} setActiveChapterIdCallback - Callback to update the active chapter ID state.
  */
-export function scrollToChapter(chapterId, setActiveChapterIdCallback) {
+export function scrollToChapter(chapterId, setActiveChapterIdCallback, behavior = 'smooth') {
 	const sourceTarget = document.getElementById(`source-chapter-scroll-target-${chapterId}`);
 	const targetTarget = document.getElementById(`target-chapter-scroll-target-${chapterId}`);
 	const sourceContainer = document.getElementById('js-source-column-container');
@@ -68,7 +68,7 @@ export function scrollToChapter(chapterId, setActiveChapterIdCallback) {
 			
 			container.scrollTo({
 				top: scrollPosition,
-				behavior: 'smooth'
+				behavior
 			});
 		}
 	};

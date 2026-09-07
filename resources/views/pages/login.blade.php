@@ -27,7 +27,7 @@
 		<form id="login-form" class="space-y-4">
 			<div class="form-control">
 				<label for="login-username" class="label">
-					<span class="label-text">{{ $tr('dashboard.login.username', 'Username') }}</span>
+					<span class="label-text">{{ $tr('dashboard.login.usernameOrEmail', 'Username or email') }}</span>
 				</label>
 				<input type="text" id="login-username" name="username" class="input input-bordered" required>
 			</div>

@@ -59,7 +59,7 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 	const instructions = formData.includeInstructions === false ? '' : (formData.instructions || '').trim();
 	const instructionsBlock = instructions ? `Follow these specific instructions: ${instructions}` : '';
 	
-	const system = t('prompt.translate.system.base', {
+	let system = t('prompt.translate.system.base', {
 		sourceLanguage: languageForPrompt,
 		targetLanguage: targetLanguage,
 		instructionsBlock,
@@ -67,6 +67,14 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 		dictionary: userDictionary
 	}).trim();
 	
+	for (const [setting, placeholder] of [
+		['includeTranslationMemory', '##TRANSLATION_MEMORY##'],
+		['includeStyleAnalysis', '##STYLE_ANALYSIS_BLOCK##'],
+		['includeCodex', '##CODEX_BLOCK##']
+	]) {
+		if (formData[setting] === false) system = system.replaceAll(placeholder, '');
+	}
+
 	const contextMessages = buildTranslationContextBlock(translationPairs, languageForPrompt, targetLanguage);
 	
 	const finalUserPromptParts = [];
@@ -85,14 +93,10 @@ export const buildPromptJson = (formData, context, userDictionary = '') => {
 	};
 };
 
-async function expandSystemPlaceholders(system, context, translationPairs) {
+async function expandSystemPlaceholders(system, context, userPrompt) {
 	const details = context.bookId ? await window.api.getCodexDetails(context.bookId) : null;
-	const tmBlock = translationPairs && translationPairs.length > 0
-		? `Use the following translation examples to guide the translation:\n${translationPairs.map(pair => {
-			const sourceText = htmlToPlainText(pair.source || '');
-			const targetText = htmlToPlainText(pair.target || '');
-			return `<${context.languageForPrompt}>${sourceText}</${context.languageForPrompt}>\n<${context.targetLanguage}>${targetText}</${context.targetLanguage}>`;
-		}).join('\n')}`
+	const tmBlock = context.bookId && system.includes('##TRANSLATION_MEMORY##')
+		? await window.api.getTranslationMemoryForPrompt({bookId: context.bookId, text: userPrompt})
 		: '';
 	const styleBlock = details?.style_analysis_content
 		? `Use the following source style analysis and translation guidance before glossary/codex instructions:\n<style_analysis>\n${details.style_analysis_content}\n</style_analysis>`
@@ -115,12 +119,16 @@ const updatePreview = async (container, context) => {
 		return;
 	}
 	
-	// MODIFIED: Removed logic for getting selected memory IDs
+	const previewVersion = (container._previewVersion || 0) + 1;
+	container._previewVersion = previewVersion;
 	const formData = {
 		instructions: form.elements.instructions.value.trim(),
 		includeInstructions: form.elements.include_instructions?.checked !== false,
 		tense: form.elements.tense.value,
-		contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0
+		contextPairs: parseInt(form.elements.context_pairs.value, 10) || 0,
+		includeTranslationMemory: form.elements.include_translation_memory?.checked !== false,
+		includeStyleAnalysis: form.elements.include_style_analysis?.checked !== false,
+		includeCodex: form.elements.include_codex?.checked !== false
 	};
 	
 	const systemPreview = container.querySelector('.js-preview-system');
@@ -153,9 +161,11 @@ const updatePreview = async (container, context) => {
 	
 	try {
 		const promptJson = buildPromptJson(formData, previewContext, userDictionaryContent);
-		systemPreview.textContent = container.dataset.expandPlaceholders === 'true'
-			? await expandSystemPlaceholders(promptJson.system, previewContext, previewContext.translationPairs)
+		const systemText = container.dataset.expandPlaceholders === 'true'
+			? await expandSystemPlaceholders(promptJson.system, previewContext, promptJson.user)
 			: promptJson.system;
+		if (container._previewVersion !== previewVersion) return;
+		systemPreview.textContent = systemText;
 		userPreview.textContent = promptJson.user;
 		aiPreview.textContent = promptJson.ai || t('prompt.preview.empty');
 		
@@ -181,6 +191,7 @@ const updatePreview = async (container, context) => {
 			});
 		}
 	} catch (error) {
+		if (container._previewVersion !== previewVersion) return;
 		systemPreview.textContent = `Error building preview: ${error.message}`;
 		userPreview.textContent = '';
 		aiPreview.textContent = '';

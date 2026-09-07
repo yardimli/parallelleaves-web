@@ -23,6 +23,7 @@
   "login": {
     "title": "Logg inn",
     "username": "Brukernavn",
+    "usernameOrEmail": "Brukernavn eller e-post",
     "password": "Passord",
     "noAccount": "Har du ikke en konto?",
     "signUp": "Registrer deg",

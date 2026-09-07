@@ -117,6 +117,8 @@
   },
   "translationMemory": {
     "openEditor": "Åpne oversettelsesminne",
+    "exportMemory": "Eksporter minne",
+    "errorExport": "Kunne ikke eksportere oversettelsesminnet: {message}",
     "updateTitle": "Oppdater oversettelsesminne",
     "status": {
       "starting": "Starter TM-oppdatering...",

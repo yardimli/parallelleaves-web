@@ -20,6 +20,10 @@
 			</div>
 			
 			<div class="flex items-center gap-4">
+				<button type="button" id="tm-export-btn" class="btn btn-xs btn-outline">
+					<i class="bi bi-download"></i>
+					<span data-i18n="editor.translationMemory.exportMemory">Export Memory</span>
+				</button>
 				<button type="button" id="tm-open-purge-btn" class="btn btn-xs btn-outline btn-error">
 					<i class="bi bi-funnel"></i>
 					<span>{{__i18n:editor.translationMemory.purge.open|Purge__}}</span>

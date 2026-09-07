@@ -69,7 +69,7 @@
 			$rules = self::modelRules();
 			$includeRules = array_map('strtolower', $rules['includeRules'] ?? []);
 			$excludeRules = array_map('strtolower', $rules['excludeRules'] ?? []);
-			$maxPrice = (float)($rules['maxPricePerMillion'] ?? 20.0);
+			$maxPrice = (float)($rules['maxPricePerMillion'] ?? 30.0);
 			$descriptionOverrides = is_array($rules['descriptionOverrides'] ?? null) ? $rules['descriptionOverrides'] : [];
 			$grouped = [];
 

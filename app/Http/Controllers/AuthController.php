@@ -31,14 +31,19 @@
 				'password' => ['required', 'string'],
 			])->validate();
 
-			$user = User::where('username', $credentials['username'])->first();
-
-			if (!$user || !$user->password_hash || !Hash::check($credentials['password'], $user->password_hash)) {
+			if (!Auth::attempt([
+				fn ($query) => $query->where(function ($query) use ($credentials) {
+					$query->where('username', $credentials['username'])
+						->orWhere('email', $credentials['username']);
+				})->whereNotNull('password_hash')->where('password_hash', '!=', ''),
+				'password' => $credentials['password'],
+			])) {
 				return response()->json(['success' => false, 'message' => 'Invalid credentials']);
 			}
 
-			Auth::login($user);
+			// Auth::attempt automatically logs the user in if successful, so you just regenerate the session
 			$request->session()->regenerate();
+			$user = Auth::user();
 
 			return response()->json([
 				'success' => true,
@@ -51,6 +56,7 @@
 				],
 			]);
 		}
+
 
 		public function register(Request $request): JsonResponse
 		{

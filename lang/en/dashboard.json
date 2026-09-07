@@ -23,6 +23,7 @@
   "login": {
     "title": "Sign In",
     "username": "Username",
+    "usernameOrEmail": "Username or email",
     "password": "Password",
     "noAccount": "Don't have an account?",
     "signUp": "Sign Up",

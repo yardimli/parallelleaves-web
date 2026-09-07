@@ -114,6 +114,8 @@
   },
   "translationMemory": {
     "openEditor": "Open Translation Memory",
+    "exportMemory": "Export Memory",
+    "errorExport": "Error exporting Translation Memory: {message}",
     "updateTitle": "Update Translation Memory",
     "description": "View, search, edit, or delete individual sentences in your Translation Memory database.",
     "searchPlaceholder": "Search memories...",

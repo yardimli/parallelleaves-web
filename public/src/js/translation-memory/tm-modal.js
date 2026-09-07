@@ -1,5 +1,6 @@
 // NEW JS FILE: Controls the inside-editor dialog interface for managing translation memory entries
 import { t, applyTranslationsTo } from '../i18n.js';
+import { buildMemoryXml } from './tm-export.js';
 
 let tmModal;
 let tmCardsContainer;
@@ -10,6 +11,7 @@ let tmPrevPageBtn;
 let tmNextPageBtn;
 let tmPaginationInfo;
 let tmOpenPurgeBtn;
+let tmExportBtn;
 let tmPurgeDialog;
 let tmPurgeRuleInput;
 let tmPurgeModelSelect;
@@ -84,6 +86,33 @@ async function refreshTmData () {
 	tmData = data || [];
 	filterData();
 	renderTmCards();
+}
+
+async function exportMemory () {
+	if (tmExportBtn.disabled) return;
+	tmExportBtn.disabled = true;
+	try {
+		// Fetch every saved entry, independently of search and pagination.
+		const [entries, books] = await Promise.all([
+			window.api.getTmDetails(currentBookId),
+			window.api.getTmBooks()
+		]);
+		const book = books.find(item => String(item.id) === String(currentBookId));
+		if (!book) throw new Error(t('editor.toolbar.errorNoProject'));
+		const blob = new Blob([buildMemoryXml(entries || [], book)], {type: 'application/xml;charset=utf-8'});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `translation-memory-${currentBookId}.xml`;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 1000);
+	} catch (error) {
+		window.showAlert(t('editor.translationMemory.errorExport', {message: error.message}));
+	} finally {
+		tmExportBtn.disabled = false;
+	}
 }
 
 async function startPurge () {
@@ -359,6 +388,7 @@ export function initTmModal (bookId) {
 	tmNextPageBtn = document.getElementById('tm-next-page-btn');
 	tmPaginationInfo = document.getElementById('tm-pagination-info');
 	tmOpenPurgeBtn = document.getElementById('tm-open-purge-btn');
+	tmExportBtn = document.getElementById('tm-export-btn');
 	tmPurgeDialog = document.getElementById('tm-purge-dialog');
 	tmPurgeRuleInput = document.getElementById('tm-purge-rule-input');
 	tmPurgeModelSelect = document.getElementById('tm-purge-model-select');
@@ -411,6 +441,7 @@ export function initTmModal (bookId) {
 
 	populatePurgeModelSelect();
 	tmOpenPurgeBtn?.addEventListener('click', openPurgeDialog);
+	tmExportBtn?.addEventListener('click', exportMemory);
 	tmPurgeDialog?.addEventListener('close', reopenTmModalAfterPurge);
 	tmPurgeStartBtn?.addEventListener('click', startPurge);
 }
