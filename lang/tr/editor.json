@@ -54,6 +54,11 @@
   "promptNewChapterTitle": "Yeni fasıl başlığını girin:",
   "confirmModalBtn": "Eylemi Onayla",
   "confirmDeleteChapter": "Bu fasılı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+  "sectionWarnings": {
+    "title": "Bölüm hizalama uyarısı",
+    "misaligned": "{count} kaynak bölümün çeviri işaretleri farklı bir hedef bölümde bulundu. İşaretler korundu, ancak kaynak ve hedef bölümler hizalı değil. Çevrilmiş metni eşleşen hedef bölüme taşıyın.",
+    "emptyTargets": "{count} hedef bölüm boş. Hedef bölümleri boş bırakmak hizalama sorunlarına yol açabilir."
+  },
   "confirmDeleteAct": "Bu bölümü ve içindeki tüm fasılları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
   "aiToolbar": {
     "apply": "Uygula",

@@ -316,29 +316,58 @@ async function saveSourceChanges(chapterId) {
 	}
 }
 
-function synchronizeMarkers(rawSourceHtml, rawTargetHtml) {
+function getMarkerNumbers(html) {
+	const markerRegex = /(\[\[#(\d+)\]\])|(\{\{#(\d+)\}\})/g;
+	const numbers = new Set();
+	if (!html) return numbers;
+	const matches = [...html.matchAll(markerRegex)];
+	matches.forEach(match => numbers.add(parseInt(match[2] || match[4], 10)));
+	return numbers;
+}
+
+function buildTargetMarkerLocations(chapters) {
+	const locations = new Map();
+	(chapters || []).forEach(chapter => {
+		getMarkerNumbers(chapter.target_content || '').forEach(number => {
+			if (!locations.has(number)) locations.set(number, new Set());
+			locations.get(number).add(chapter.id.toString());
+		});
+	});
+	return locations;
+}
+
+function isTargetSectionEmpty(html) {
+	return htmlToPlainText(html || '')
+		.replace(/\[\[#\d+\]\]|\{\{#\d+\}\}/g, '')
+		.trim() === '';
+}
+
+function synchronizeMarkers(rawSourceHtml, rawTargetHtml, chapterId, targetMarkerLocations) {
 	const markerRegex = /(\[\[#(\d+)\]\])|(\{\{#(\d+)\}\})/g;
 	let sourceHtml = rawSourceHtml || '';
-	const targetHtml = rawTargetHtml || '';
-	
-	const getMarkerNumbers = (html) => {
-		const numbers = new Set();
-		if (!html) return numbers;
-		const matches = [...html.matchAll(markerRegex)];
-		matches.forEach(match => numbers.add(parseInt(match[2] || match[4], 10)));
-		return numbers;
-	};
 	
 	const sourceMarkerNumbers = getMarkerNumbers(sourceHtml);
 	if (sourceMarkerNumbers.size === 0) {
-		return {cleanedSourceContent: sourceHtml, wasModified: false};
+		return {cleanedSourceContent: sourceHtml, wasModified: false, misalignedMarkerNumbers: []};
 	}
 	
-	const targetMarkerNumbers = getMarkerNumbers(targetHtml);
+	const currentChapterId = chapterId.toString();
+	const currentTargetMarkerNumbers = getMarkerNumbers(rawTargetHtml || '');
+	const misalignedMarkerNumbers = [];
 	let wasModified = false;
 	
 	sourceMarkerNumbers.forEach(number => {
-		if (!targetMarkerNumbers.has(number)) {
+		if (currentTargetMarkerNumbers.has(number)) return;
+
+		// A translation can accidentally be entered in another target section. Keep
+		// its source markers when they exist anywhere in the target manuscript.
+		const targetChapterIds = targetMarkerLocations.get(number) || new Set();
+		if ([...targetChapterIds].some(targetChapterId => targetChapterId !== currentChapterId)) {
+			misalignedMarkerNumbers.push(number);
+			return;
+		}
+
+		if (targetChapterIds.size === 0) {
 			const openingMarkerRegex = new RegExp(`\\[\\[#${number}\\]\\]\\s*`, 'g');
 			const closingMarkerRegex = new RegExp(`\\{\\{#${number}\\}\\}\\s*`, 'g');
 			const originalSourceHtml = sourceHtml;
@@ -349,7 +378,21 @@ function synchronizeMarkers(rawSourceHtml, rawTargetHtml) {
 		}
 	});
 	
-	return {cleanedSourceContent: sourceHtml, wasModified};
+	return {cleanedSourceContent: sourceHtml, wasModified, misalignedMarkerNumbers};
+}
+
+function getSectionWarnings(chapters, misalignedChapterIds) {
+	const warnings = [];
+	if (misalignedChapterIds.size > 0) {
+		warnings.push(t('editor.sectionWarnings.misaligned', {count: misalignedChapterIds.size}));
+	}
+
+	const emptyTargetSections = (chapters || []).filter(chapter => isTargetSectionEmpty(chapter.target_content));
+	if (emptyTargetSections.length > 0) {
+		warnings.push(t('editor.sectionWarnings.emptyTargets', {count: emptyTargetSections.length}));
+	}
+
+	return warnings;
 }
 
 async function renderManuscript(bookData) {
@@ -363,6 +406,9 @@ async function renderManuscript(bookData) {
 	const targetChapterTpl = document.getElementById('template-editor-target-chapter')?.innerHTML || '';
 	
 	const tempDiv = document.createElement('div');
+	const chapters = bookData.chapters || [];
+	const targetMarkerLocations = buildTargetMarkerLocations(chapters);
+	const misalignedChapterIds = new Set();
 	
 	if (!bookData.chapters || bookData.chapters.length === 0) {
 		const noChaptersMessage = document.createElement('p');
@@ -371,8 +417,17 @@ async function renderManuscript(bookData) {
 		sourceFragment.appendChild(noChaptersMessage);
 		targetFragment.appendChild(noChaptersMessage.cloneNode(true));
 	} else {
-		for (const chapter of bookData.chapters) {
-			const {cleanedSourceContent, wasModified} = synchronizeMarkers(chapter.source_content, chapter.target_content);
+		for (const chapter of chapters) {
+			const {cleanedSourceContent, wasModified, misalignedMarkerNumbers} = synchronizeMarkers(
+				chapter.source_content,
+				chapter.target_content,
+				chapter.id,
+				targetMarkerLocations
+			);
+
+			if (misalignedMarkerNumbers.length > 0) {
+				misalignedChapterIds.add(chapter.id.toString());
+			}
 			
 			if (wasModified) {
 				window.api.updateChapterField({chapterId: chapter.id, field: 'source_content', value: cleanedSourceContent});
@@ -461,6 +516,11 @@ async function renderManuscript(bookData) {
 	
 	applyTranslationsTo(sourceContainer);
 	applyTranslationsTo(targetContainer);
+
+	const sectionWarnings = getSectionWarnings(chapters, misalignedChapterIds);
+	if (sectionWarnings.length > 0) {
+		window.showAlert(sectionWarnings.join('\n\n'), t('editor.sectionWarnings.title'));
+	}
 }
 
 function populateNavDropdown(bookData) {

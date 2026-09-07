@@ -52,6 +52,11 @@
   "promptNewChapterTitle": "Enter the new chapter title:",
   "confirmModalBtn": "Confirm Action",
   "confirmDeleteChapter": "Are you sure you want to delete this chapter? This cannot be undone.",
+  "sectionWarnings": {
+    "title": "Section alignment warning",
+    "misaligned": "Translation markers were found in a different target section for {count} source section(s). The markers were preserved, but the source and target sections are not aligned. Move the translated text to the matching target section.",
+    "emptyTargets": "There are {count} empty target section(s). Leaving target sections empty can cause alignment problems."
+  },
   "aiToolbar": {
     "apply": "Apply",
     "retry": "Retry",
