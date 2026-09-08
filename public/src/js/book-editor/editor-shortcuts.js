@@ -26,8 +26,8 @@ export function createShortcutKeymap(postToParent) {
 		},
 		'Mod-t': (state, dispatch, view) => {
 			// This shortcut directly triggers the translation action if the floating button is visible.
-			// We query the DOM within the iframe to find the button.
-			const floatingBtn = view.dom.ownerDocument.body.querySelector('.floating-translate-btn');
+			// Only inspect the button belonging to this chapter.
+			const floatingBtn = view.dom.parentElement.querySelector('.floating-translate-btn');
 			if (floatingBtn) {
 				const {selection} = state;
 				if (selection.empty) {

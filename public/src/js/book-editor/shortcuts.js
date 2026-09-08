@@ -17,6 +17,7 @@ export function setupShortcuts(dependencies) {
 	} = dependencies;
 	
 	window.addEventListener('keydown', (e) => {
+		if (e.defaultPrevented) return;
 		const activeEl = document.activeElement;
 		const isModalOpen = document.querySelector('.modal[open], .modal-open');
 		

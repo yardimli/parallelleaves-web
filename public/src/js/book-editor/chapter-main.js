@@ -1,3 +1,4 @@
+import {createChapterEditor} from './chapter-editor.js';
 import {setupTopToolbar, setActiveContentWindow, updateToolbarState} from './toolbar.js';
 import {setupPromptEditor, openPromptEditor} from '../prompt-editor.js';
 import {
@@ -46,12 +47,10 @@ const chapterEditorViews = new Map();
 let currentSourceSelection = {text: '', hasSelection: false, range: null};
 let currentTargetSelection = {text: '', hasSelection: false};
 let lastBroadcastedSourceSelectionState = false;
-let totalIframes = 0;
-let iframesReadyCount = 0;
 let viewInitialized = false;
 let viewInitializing = false;
-let activeEditor = null; // contentWindow of the currently focused iframe editor.
-let searchResultHandler = null; // Callback for search results from iframes.
+let activeEditor = null; // Command endpoint of the currently focused chapter editor.
+let searchResultHandler = null; // Callback for chapter search results.
 let searchReplaceResultHandler = null;
 let lastFocusedSourceEditor = null;
 let targetEditCount = 0;
@@ -63,12 +62,12 @@ let bookSourceLanguage = 'Source';
 let bookTargetLanguage = 'Translation';
 // NEW SECTION END
 
-function isTargetEditorIframe(element) {
-	return element instanceof HTMLIFrameElement && element.classList.contains('js-target-content-editable');
+function isTargetEditorElement(element) {
+	return Boolean(element?.closest?.('.js-target-content-editable'));
 }
 
 function shouldPreserveSourceSelectionForTargetEditor() {
-	return currentSourceSelection.hasSelection && (isTargetEditorPointerDown || isTargetEditorIframe(document.activeElement));
+	return currentSourceSelection.hasSelection && (isTargetEditorPointerDown || isTargetEditorElement(document.activeElement));
 }
 
 function broadcastSourceSelectionState(hasSelection) {
@@ -408,7 +407,8 @@ async function renderManuscript(bookData) {
 	const targetContainer = document.getElementById('js-target-column-container');
 	const sourceFragment = document.createDocumentFragment();
 	const targetFragment = document.createDocumentFragment();
-	totalIframes = 0;
+	chapterEditorViews.forEach(info => info.editor.destroy());
+	chapterEditorViews.clear();
 	
 	const sourceChapterTpl = document.getElementById('template-editor-source-chapter')?.innerHTML || '';
 	const targetChapterTpl = document.getElementById('template-editor-target-chapter')?.innerHTML || '';
@@ -476,38 +476,24 @@ async function renderManuscript(bookData) {
 			const targetChapterWrapper = tempDiv.firstChild;
 			targetFragment.appendChild(targetChapterWrapper);
 			
-			const iframe = targetChapterWrapper.querySelector('iframe');
-			
-			totalIframes++;
-			const viewInfo = {
-				iframe,
-				isReady: false,
-				initialContent: chapter.target_content || '',
-				initialResizeComplete: false
+			const mount = targetChapterWrapper.querySelector('.js-target-content-editable');
+			// Preserve the command endpoint used by toolbar/search integrations without an iframe.
+			const contentWindow = {
+				frameElement: mount,
+				postMessage: message => queueMicrotask(() => editor.dispatch(message))
 			};
-			chapterEditorViews.set(chapter.id.toString(), viewInfo);
-			
-			iframe.addEventListener('load', () => {
-				viewInfo.contentWindow = iframe.contentWindow;
-				viewInfo.isReady = true;
-				const settings = getTypographySettings();
-				const styleProps = generateTypographyStyleProperties(settings);
-				iframe.contentWindow.postMessage({
-					type: 'updateTypography',
-					payload: {styleProps, settings}
-				}, window.location.origin);
-				iframe.contentWindow.postMessage({
-					type: 'init',
-					payload: {
-						initialHtml: viewInfo.initialContent,
-						isEditable: true,
-						chapterId: chapter.id,
-						field: 'target_content',
-						theme: document.documentElement.getAttribute('data-theme') || 'light',
-						i18n: {}
-					}
-				}, window.location.origin);
+			const editor = createChapterEditor(mount, (type, payload) => {
+				window.dispatchEvent(new CustomEvent('chapter-editor-message', {
+					detail: {source: contentWindow, data: {type, payload}}
+				}));
 			});
+			chapterEditorViews.set(chapter.id.toString(), {mount, editor, contentWindow, isReady: true});
+			const settings = getTypographySettings();
+			editor.dispatch({type: 'updateTypography', payload: {styleProps: generateTypographyStyleProperties(settings), settings}});
+			editor.dispatch({type: 'init', payload: {
+				initialHtml: chapter.target_content || '', isEditable: true,
+				chapterId: chapter.id, field: 'target_content', i18n: {}
+			}});
 		}
 	}
 	
@@ -559,11 +545,8 @@ async function initializeView(bookId, bookData, initialChapterId) {
 		if (document.readyState !== 'complete') {
 			await new Promise(resolve => window.addEventListener('load', resolve, {once: true}));
 		}
-		await Promise.all([
-			document.fonts.ready,
-			...Array.from(chapterEditorViews.values(), view => view.iframe.contentDocument.fonts.ready)
-		]);
-		// Allow font layout and iframe resize messages to settle before restoring.
+		await document.fonts.ready;
+		// Allow chapter layout to settle before restoring the scroll position.
 		await nextPaint();
 		const sourceContainer = document.getElementById('js-source-column-container');
 		const targetContainer = document.getElementById('js-target-column-container');
@@ -753,7 +736,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		
-		if (totalIframes === 0) {
+		if (!viewInitialized) {
 			initializeView(bookId, bookData, initialChapterId);
 		}
 		
@@ -803,7 +786,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					}
 				}
 			}
-			if (!isSourceSelectionHandled) updateToolbarState(null);
+			if (!isSourceSelectionHandled && !isTargetEditorElement(document.activeElement)) updateToolbarState(null);
 		}, 100);
 		
 		document.addEventListener('selectionchange', () => {
@@ -919,7 +902,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		});
 		
 		targetContainer.addEventListener('pointerdown', (event) => {
-			if (!isTargetEditorIframe(event.target)) return;
+			if (!isTargetEditorElement(event.target)) return;
 			isTargetEditorPointerDown = true;
 			setTimeout(() => {
 				isTargetEditorPointerDown = false;
@@ -941,9 +924,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 			}
 		});
 		
-		window.addEventListener('message', (event) => {
-			const isFromKnownIframe = Array.from(chapterEditorViews.values()).some(view => view.iframe.contentWindow === event.source);
-			if (!isFromKnownIframe) return;
+		window.addEventListener('chapter-editor-message', ({detail: event}) => {
+			if (!Array.from(chapterEditorViews.values()).some(view => view.contentWindow === event.source)) return;
 			
 			const {type, payload} = event.data;
 			const sourceWindow = event.source;
@@ -968,6 +950,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					break;
 				case 'editorBlurred':
 					setTimeout(() => {
+						if (getActiveEditor() !== sourceWindow || document.activeElement.closest('.js-target-content-editable')) return;
 						if (document.activeElement.closest('#top-toolbar') || document.activeElement.closest('.modal')) return;
 						setActiveEditor(null);
 						setActiveContentWindow(null);
@@ -989,26 +972,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 				case 'contentChanged':
 					debouncedContentSave(payload);
 					break;
-				case 'resize': {
-					const viewInfo = Array.from(chapterEditorViews.values()).find(v => v.contentWindow === sourceWindow);
-					if (viewInfo) {
-						viewInfo.iframe.style.height = `${payload.height}px`;
-						if (!viewInfo.initialResizeComplete) {
-							viewInfo.initialResizeComplete = true;
-							iframesReadyCount++;
-							if (iframesReadyCount >= totalIframes && !viewInitialized) {
-								initializeView(bookId, bookData, initialChapterId);
-							}
-						}
-					}
-					break;
-				}
 				case 'scrollToCoordinates': {
 					const viewInfo = Array.from(chapterEditorViews.values()).find(v => v.contentWindow === event.source);
 					if (viewInfo) {
-						const iframeRect = viewInfo.iframe.getBoundingClientRect();
+						const mountRect = viewInfo.mount.getBoundingClientRect();
 						const containerRect = targetContainer.getBoundingClientRect();
-						const scrollPosition = targetContainer.scrollTop + (iframeRect.top - containerRect.top) + payload.top - 100;
+						const scrollPosition = targetContainer.scrollTop + (mountRect.top - containerRect.top) + payload.top - 100;
 						targetContainer.scrollTo({top: scrollPosition, behavior: 'smooth'});
 					}
 					break;
@@ -1037,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						targetLanguage: bookTargetLanguage,
 						activeEditorView: sourceWindow,
 						editorInterface: createIframeEditorInterface(sourceWindow),
-						chapterId: viewInfo.iframe.dataset.chapterId,
+						chapterId: viewInfo.mount.dataset.chapterId,
 						bookId: bookId,
 						insertionPoint: {from: payload.from, to: payload.to}
 					};

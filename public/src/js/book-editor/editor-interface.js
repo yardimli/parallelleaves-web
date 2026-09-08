@@ -1,8 +1,6 @@
 /**
- * Creates an interface object for communicating with a specific editor iframe.
- * This standardizes how the main window sends commands and requests data from iframes.
- * @param {Window} contentWindow - The contentWindow of the target iframe.
- * @returns {object} An interface object with methods to interact with the iframe.
+ * Adapts an inline chapter command endpoint to the toolbar and prompt interface.
+ * The exported name and type retain the legacy interface contract; no iframe is used.
  */
 export const createIframeEditorInterface = (contentWindow) => {
 	const post = (type, payload) => contentWindow.postMessage({type, payload}, window.location.origin);
@@ -11,35 +9,35 @@ export const createIframeEditorInterface = (contentWindow) => {
 		type: 'iframe',
 		// getting the current selection from the target editor to use as an insertion point.
 		getSelectionInfo: (action) => new Promise((resolve) => {
-			const listener = (event) => {
+			const listener = ({detail: event}) => {
 				if (event.source === contentWindow && event.data.type === 'selectionResponse') {
-					window.removeEventListener('message', listener);
+					window.removeEventListener('chapter-editor-message', listener);
 					resolve(event.data.payload);
 				}
 			};
-			window.addEventListener('message', listener);
+			window.addEventListener('chapter-editor-message', listener);
 			
 			// Both actions now just need the current selection state from the editor.
 			post('prepareForRephrase', {isRephrase: action === 'rephrase'});
 		}),
 		getSelectionText: () => new Promise((resolve) => {
-			const listener = (event) => {
+			const listener = ({detail: event}) => {
 				if (event.source === contentWindow && event.data.type === 'selectionResponse') {
-					window.removeEventListener('message', listener);
+					window.removeEventListener('chapter-editor-message', listener);
 					resolve(event.data.payload.selectedText);
 				}
 			};
-			window.addEventListener('message', listener);
-			post('getSelectionText'); // Send message to iframe to get selection text
+			window.addEventListener('chapter-editor-message', listener);
+			post('getSelectionText'); // Request selection text from this chapter
 		}),
 		getFullHtml: () => new Promise((resolve) => {
-			const listener = (event) => {
+			const listener = ({detail: event}) => {
 				if (event.source === contentWindow && event.data.type === 'fullHtmlResponse') {
-					window.removeEventListener('message', listener);
+					window.removeEventListener('chapter-editor-message', listener);
 					resolve(event.data.payload.html);
 				}
 			};
-			window.addEventListener('message', listener);
+			window.addEventListener('chapter-editor-message', listener);
 			post('prepareForGetFullHtml');
 		}),
 		setEditable: (isEditable) => post('setEditable', {isEditable}),
@@ -51,9 +49,9 @@ export const createIframeEditorInterface = (contentWindow) => {
 		}),
 		
 		replaceRangeWithSuggestion: (from, to, newContentHtml) => new Promise((resolve) => {
-			const listener = (event) => {
+			const listener = ({detail: event}) => {
 				if (event.source === contentWindow && event.data.type === 'replacementComplete') {
-					window.removeEventListener('message', listener);
+					window.removeEventListener('chapter-editor-message', listener);
 					resolve({
 						finalRange: event.data.payload.finalRange,
 						endCoords: event.data.payload.endCoords,
@@ -61,7 +59,7 @@ export const createIframeEditorInterface = (contentWindow) => {
 					});
 				}
 			};
-			window.addEventListener('message', listener);
+			window.addEventListener('chapter-editor-message', listener);
 			post('replaceRange', {from, to, newContentHtml});
 		})
 	};

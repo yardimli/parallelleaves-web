@@ -309,7 +309,7 @@
 			<!-- Source content will be rendered here by JS -->
 		</div>
 		<div id="js-target-column-container" class="w-1/2 overflow-y-auto">
-			<!-- Target iframes will be rendered here by JS -->
+			<!-- Target chapter editors will be rendered here by JS -->
 		</div>
 	</div>
 </div>
@@ -417,8 +417,8 @@
 					<span class="text-base-content/70 text-lg"><i class="bi bi-arrow-left-circle"></i></span>
 				</div>
 			</div>
-			<iframe class="js-target-content-editable w-full border-0 min-h-[100px]" src="/editor-iframe"
-			        data-chapter-id="{{id}}"></iframe>
+			<div class="js-target-content-editable relative prose prose-sm dark:prose-invert max-w-none p-4 rounded-lg bg-accent/5 min-h-[100px]"
+			        data-chapter-id="{{id}}"></div>
 		</div>
 	@endverbatim
 </template>
