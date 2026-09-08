@@ -10,7 +10,7 @@ import {initI18n, t, applyTranslationsTo} from '../i18n.js';
 import {processSourceContentForMarkers, htmlToPlainText} from '../../utils/html-processing.js';
 import {initDictionaryModal} from '../dictionary/dictionary-modal.js';
 import {initTmModal, openTmModal} from '../translation-memory/tm-modal.js';
-import {showConfirmationModal, showInputModal} from '../modals.js';
+import '../modals.js';
 import {
 	syncChapterScroll,
 	scrollToChapter,
@@ -388,7 +388,14 @@ function getSectionWarnings(chapters, misalignedChapterIds) {
 		warnings.push(t('editor.sectionWarnings.misaligned', {count: misalignedChapterIds.size}));
 	}
 
-	const emptyTargetSections = (chapters || []).filter(chapter => isTargetSectionEmpty(chapter.target_content));
+	const sections = chapters || [];
+	let lastTranslatedIndex = sections.length - 1;
+	while (lastTranslatedIndex >= 0 && isTargetSectionEmpty(sections[lastTranslatedIndex].target_content)) {
+		lastTranslatedIndex--;
+	}
+	// Untranslated sections at the end are normal work in progress.
+	const emptyTargetSections = sections.slice(0, Math.max(0, lastTranslatedIndex))
+		.filter(chapter => isTargetSectionEmpty(chapter.target_content));
 	if (emptyTargetSections.length > 0) {
 		warnings.push(t('editor.sectionWarnings.emptyTargets', {count: emptyTargetSections.length}));
 	}
@@ -866,13 +873,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 				const {action, chapterId} = chapterActionBtn.dataset;
 				if (action === 'rename') {
 					const currentTitle = chapterActionBtn.closest('.js-source-actions').parentElement.querySelector('h3').textContent.split('(')[0].trim();
-					const newTitle = await showInputModal(t('editor.renameChapter'), t('editor.promptNewChapterTitle'), currentTitle);
+					const newTitle = await window.showInputModal(t('editor.renameChapter'), t('editor.promptNewChapterTitle'), currentTitle);
 					if (newTitle) {
 						await window.api.renameChapter({chapterId, newTitle});
 						window.location.reload();
 					}
 				} else if (action === 'delete') {
-					if (await showConfirmationModal(t('editor.deleteChapter'), t('editor.confirmDeleteChapter'))) {
+					if (await window.showConfirmationModal(t('editor.confirmDeleteChapter'), t('editor.deleteChapter')) === 'confirm') {
 						await window.api.deleteChapter({chapterId});
 						window.location.reload();
 					}

@@ -57,7 +57,7 @@
   "sectionWarnings": {
     "title": "Advarsel om seksjonsjustering",
     "misaligned": "Oversettelsesmarkører for {count} kildeseksjon(er) ble funnet i en annen målseksjon. Markørene ble bevart, men kilde- og målseksjonene er ikke justert. Flytt den oversatte teksten til den samsvarende målseksjonen.",
-    "emptyTargets": "Det finnes {count} tomme målseksjon(er). Tomme målseksjoner kan føre til justeringsproblemer."
+    "emptyTargets": "Det finnes {count} tomme målseksjon(er) før senere oversatt innhold. Kontroller disse hullene for justeringsproblemer."
   },
   "confirmDeleteAct": "Er du sikker på at du vil slette denne akten og alle dens kapitler? Dette kan ikke angres.",
   "aiToolbar": {

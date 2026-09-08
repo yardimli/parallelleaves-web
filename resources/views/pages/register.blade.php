@@ -1,53 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Parallel Leaves - Register</title>
-	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
-	<link rel="stylesheet" href="/dist/styles.css">
-</head>
-<body class="bg-base-100 min-h-screen flex flex-col items-center justify-center p-4 text-base-content">
-
-<!-- MODIFIED: Added uniform brand header containing the logo, title, and current version -->
-<div class="text-center mb-6">
-	<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Brand Logo" class="w-16 h-16 rounded-xl mx-auto mb-2 shadow-md">
-	<h1 class="text-3xl font-bold text-base-content">Parallel Leaves</h1>
-	<p class="text-xs text-base-content/60 mt-1">v{{ env('APP_VERSION', '0.1') }}</p>
-</div>
-
-<div class="card w-full max-w-md bg-base-200 shadow-xl">
-	<div class="card-body">
-		<h2 class="card-title text-2xl justify-center mb-2">Create an Account</h2>
-		<div id="register-alert" class="alert hidden my-4">
-			<span id="register-alert-msg"></span>
-		</div>
-		<a href="/login/google" class="btn btn-outline w-full mb-4">
-			<i class="bi bi-google"></i>
-			<span>Sign up with Google</span>
-		</a>
-		<div class="divider my-2">or</div>
-		<form id="register-form" class="space-y-4">
-			<div class="form-control">
-				<label class="label" for="username"><span class="label-text">Username</span></label>
-				<input type="text" id="username" name="username" required class="input input-bordered w-full"/>
-			</div>
-			<div class="form-control">
-				<label class="label" for="password"><span class="label-text">Password (min. 8 characters)</span></label>
-				<input type="password" id="password" name="password" required minlength="8"
-				       class="input input-bordered w-full"/>
-			</div>
-			<div class="form-control mt-6">
-				<button type="submit" class="btn btn-primary" id="register-btn">Register</button>
-			</div>
-			<div class="text-center mt-4">
-				<a href="/login" class="link link-hover text-sm">Back to Login</a>
-			</div>
-		</form>
-	</div>
-</div>
-<script src="/js/api.js"></script>
-<script src="/src/js/theme.js"></script>
-<script type="module" src="/src/js/register.js"></script>
-</body>
-</html>
+@extends('layouts.auth')
+@section('title', 'Create an account — Parallel Leaves')
+@section('form')
+<p class="eyebrow">YOUR NEXT CHAPTER</p><h2>Make room for your words.</h2><p>All current features are free. No credit card needed.</p>
+<a href="/login/google" class="button google-button"><i class="bi bi-google" aria-hidden="true"></i> Continue with Google</a><div class="divider">or create an account with email</div>
+<form data-auth-action="/api/auth/register" id="register-form">
+<div class="field"><label for="username">Username</label><input id="username" name="username" autocomplete="username" maxlength="50" required></div>
+<div class="field"><label for="email">Email address</label><input type="email" id="email" name="email" autocomplete="email" maxlength="255" required aria-describedby="email-help"><small id="email-help">Used for account access and password recovery.</small></div>
+<div class="field"><label for="password">Password</label><div class="password-field"><input type="password" id="password" name="password" autocomplete="new-password" minlength="8" required aria-describedby="password-help"><button type="button" data-password-toggle="password" aria-label="Show or hide password" aria-pressed="false">Show</button></div><small id="password-help">At least 8 characters. Use a unique password.</small></div>
+<div class="form-message error" role="alert" tabindex="-1" hidden></div><button type="submit" class="button" id="register-btn">Create free account ↗</button></form>
+<p class="legal-note">By creating an account, including through Google, you agree to the <a href="/terms">Terms & conditions</a>. Read our <a href="/privacy">Privacy notice</a> to learn how we handle your data.</p><p class="legal-note">App access is free today. AI provider usage through your own key may cost extra.</p><p class="form-footer">Already have an account? <a href="/login">Sign in</a></p>
+@endsection

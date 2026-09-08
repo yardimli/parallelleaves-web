@@ -12,6 +12,8 @@
         "laravel/socialite": "^5.27",
         "laravel/tinker": "^2.8",
         "phpoffice/phpword": "^1.4",
+        "symfony/http-client": "^6.4",
+        "symfony/mailgun-mailer": "^6.4",
         "twbs/bootstrap-icons": "^1.13"
     },
     "require-dev": {

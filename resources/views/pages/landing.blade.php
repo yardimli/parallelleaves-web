@@ -1,201 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Parallel Leaves - Interactive Translation Workspace</title>
-	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
-	<link rel="stylesheet" href="/dist/styles.css">
-</head>
-<body class="bg-base-100 text-base-content min-h-screen flex flex-col">
-<!-- Navbar header -->
-<header class="navbar bg-base-200 border-b border-base-300 px-4 md:px-8">
-	<div class="flex-1 gap-2">
-		<!-- App Logo using assets directory image -->
-		<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Brand Logo" class="w-8 h-8 rounded-lg">
-		<span class="text-xl font-bold tracking-tight">Parallel Leaves</span>
-	</div>
-	<div class="flex-none gap-2">
-		<!-- Theme Switcher Button -->
-		<button id="theme-toggle" class="btn btn-ghost btn-circle" aria-label="Toggle Theme">
-			<i class="bi bi-sun-fill text-xl"></i>
-		</button>
-		@auth
-			<!-- Authenticated navigation elements -->
-			<a href="/dashboard" class="btn btn-primary btn-sm">Go to Dashboard</a>
-			<button id="logout-btn" class="btn btn-outline btn-sm">Sign Out</button>
-		@else
-			<!-- Guest navigation elements -->
-			<a href="/login" class="btn btn-ghost btn-sm">Sign In</a>
-			<a href="/register" class="btn btn-primary btn-sm">Register</a>
-		@endauth
-	</div>
-</header>
-
-<!-- Main landing content workspace -->
-<main class="flex-grow">
-	<!-- Hero Presentation Block -->
-	<section class="hero min-h-[50vh] bg-base-200 py-12 px-4 md:px-8">
-		<div class="hero-content flex-col lg:flex-row-reverse gap-8 max-w-7xl mx-auto">
-			<!-- Splash Artwork visualizer -->
-			<div class="max-w-md lg:max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-base-300">
-				<img src="/assets/splash-v1.png" onerror="this.src='/assets/splash-v1.jpg'" alt="Parallel Leaves Workspace Splash Artwork" class="w-full h-auto">
-			</div>
-			<!-- Hero context -->
-			<div class="max-w-xl">
-				<h1 class="text-5xl font-extrabold tracking-tight leading-none mb-6">
-					Refine Prose Translation with <span class="text-primary">AI Context</span>
-				</h1>
-				<p class="text-lg text-base-content/70 mb-8">
-					Parallel Leaves is a side-by-side bilingual workbook environment. Import your manuscripts, establish custom stylistic translation memory maps, and align text structures with highly tailorable, contextualized large language models.
-				</p>
-				<div class="flex gap-4">
-					@auth
-						<a href="/dashboard" class="btn btn-primary btn-md">Go to Dashboard &rarr;</a>
-					@else
-						<a href="/register" class="btn btn-primary btn-md">Get Started</a>
-						<a href="/login" class="btn btn-outline btn-md">Sign In</a>
-					@endauth
-				</div>
-			</div>
-		</div>
-	</section>
-	
-	<!-- Complete Scanned Features Grid -->
-	<section class="py-16 px-4 md:px-8 max-w-7xl mx-auto">
-		<h2 class="text-3xl font-bold text-center mb-4">Comprehensive Application Features</h2>
-		<p class="text-center text-base-content/60 max-w-2xl mx-auto mb-12">
-			Discover tools specifically engineered for prose writers and literary translation workflows to ensure absolute stylistic coherence.
-		</p>
-		
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-			<!-- Feature item 1: Manuscript parser -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-file-earmark-arrow-up text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Manuscript Import</h3>
-					<p class="text-sm text-base-content/70">
-						Upload formatted .docx Word documents or flat text .txt drafts. The system parses nested elements and flattens them cleanly into independent paragraphs.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 2: Segmenter -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-scissors text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Intelligent Chapter Segmenter</h3>
-					<p class="text-sm text-base-content/70">
-						Auto-detect manuscript chapters using advanced pattern matches (such as numerical index lines, Roman numerals, keywords, or All-Caps lines) to split huge documents cleanly.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 3: Side editor -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-columns-gap text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Synchronized Dual-Pane Editor</h3>
-					<p class="text-sm text-base-content/70">
-						Work with a side-by-side editing split using interactive ProseMirror iframes. Includes scroll lock sync, formatting controls, and customizable themes.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 4: Translators -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-stars text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Contextual AI Workspace</h3>
-					<p class="text-sm text-base-content/70">
-						Initiate LLM operations via OpenRouter. Customize tone instructions, translation style references, grammatical tenses, and context configurations dynamically.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 5: TM -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-book-fill text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Translation Memory Maps</h3>
-					<p class="text-sm text-base-content/70">
-						Background jobs process parsed segments, compiling style guides from translation pairs to feed stylistic examples into future AI generations.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 6: Codex -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-journal-bookmark-fill text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Automatic World Codex</h3>
-					<p class="text-sm text-base-content/70">
-						Ensure world-building coherence. Background LLM batch processes scan text chapters to compile, update, and maintain descriptions of characters, settings, and lore.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 7: Term consistency -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-spellcheck text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Glossary & Dictionary Control</h3>
-					<p class="text-sm text-base-content/70">
-						Enforce strict translations for proprietary concepts. Map exact words in your custom project glossary to keep key nomenclature consistent.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 8: AI covers -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-palette text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Art Cover Generator</h3>
-					<p class="text-sm text-base-content/70">
-						Create aesthetic prompts from book titles and generate portrait book covers using advanced Fal.ai API model pipelines.
-					</p>
-				</div>
-			</div>
-			
-			<!-- Feature item 9: AI chat -->
-			<div class="card bg-base-200 border border-base-300">
-				<div class="card-body">
-					<div class="text-primary mb-2"><i class="bi bi-chat-left-dots-fill text-3xl"></i></div>
-					<h3 class="card-title text-lg font-bold">Interactive AI Companion</h3>
-					<p class="text-sm text-base-content/70">
-						Discuss plot, continuity, styling preferences, or consult draft translations using an inline AI chat companion that knows your active chapter details.
-					</p>
-				</div>
-			</div>
-		</div>
-	</section>
-</main>
-
-<!-- Footer branding -->
-<footer class="footer footer-center p-8 bg-base-200 text-base-content/60 border-t border-base-300">
-	<div>
-		<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Footer Logo" class="w-10 h-10 rounded-lg mx-auto mb-2 opacity-80">
-		<p class="font-bold">Parallel Leaves Workspace</p>
-		<p>Copyright &copy; 2026. All rights reserved.</p>
-	</div>
-</footer>
-
-<script src="/js/api.js"></script>
-<script src="/src/js/theme.js"></script>
-<script>
-	// NEW: Handling the logout trigger using StandardJS with semicolons
-	document.addEventListener('DOMContentLoaded', function () {
-		const logoutBtn = document.getElementById('logout-btn');
-		if (logoutBtn) {
-			logoutBtn.addEventListener('click', function () {
-				window.api.logout().then(function () {
-					window.location.reload();
-				}).catch(function (error) {
-					console.error('Logout request failed:', error);
-				});
-			});
-		}
-	});
-</script>
-</body>
-</html>
+@extends('layouts.public')
+@section('content')
+<section class="hero-section shell"><div class="hero-copy">
+<a class="availability" href="/subscription"><span></span> Free to use today · No subscription required ↗</a>
+<p class="eyebrow hero-eyebrow">A WORKSPACE FOR HUMAN + AI TRANSLATION</p>
+<h1>Translate faster.<br>Keep <em>your voice.</em></h1>
+<p class="hero-description">Let AI help with the first draft. Bring your ear for language, your understanding of the story, and your final say. Parallel Leaves puts both strengths on the same page.</p>
+<div class="button-row"><a class="button" href="{{ auth()->check() ? '/dashboard' : '/register' }}">Start translating free ↗</a><a class="text-link" href="#features">Take a look inside ↓</a></div>
+<p class="fine-print">No credit card. No hidden app fees. Your AI provider may charge for BYOK usage.</p></div>
+<div class="hero-product"><div class="product-label"><span class="eyebrow">YOUR WORDS, SIDE BY SIDE</span><span>01 / THE WORKSPACE</span></div><x-feature-shot name="editor" alt="Firefly English source and Turkish translation side by side" caption="Firefly – Episode 15 · English → Turkish" :eager="true" /></div></section>
+<div class="proof-strip"><div class="shell"><span><i class="bi bi-person-check" aria-hidden="true"></i> Human judgment, always</span><span><i class="bi bi-journal-bookmark" aria-hidden="true"></i> Context that stays with the book</span><span><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Your work, exportable</span></div></div>
+<section class="section shell" id="how-it-works"><div class="section-heading"><p class="eyebrow">A BETTER RHYTHM</p><h2>From manuscript<br>to <em>something that reads like you.</em></h2><p>Less switching between tools. More time on the choices that make a translation worth reading.</p></div>
+<div class="workflow"><article><span>01</span><h3>Bring your book</h3><p>Start a blank manuscript or import a .docx or .txt file. Choose your languages and organize your chapters.</p></article><article><span>02</span><h3>Give AI the context</h3><p>Add your dictionary, Codex, style guidance, and translation examples. Choose a model with your own key.</p></article><article><span>03</span><h3>Translate. Listen. Refine.</h3><p>Draft with AI, compare with the original, and rephrase or edit until the meaning and rhythm feel right.</p></article><article><span>04</span><h3>Carry your work forward</h3><p>Reuse edited examples through translation memory, then export your writing and the context behind it.</p></article></div></section>
+<section class="section feature-section" id="features"><div class="shell"><div class="section-heading"><p class="eyebrow">INSIDE PARALLEL LEAVES</p><h2>One book.<br><em>A connected set of tools.</em></h2><p>Real screens from the app. Click any screenshot for a closer look.</p></div>
+<article class="feature-row"><div class="feature-copy"><span class="feature-number">01 / TRANSLATE</span><h3>A first draft with<br>your context in mind.</h3><p>Translate a passage with the original close at hand. Choose the model, tune your instructions, and bring in the context that matters to this book.</p><ul class="check-list"><li>Source and translation side by side</li><li>Custom prompts, style, and context controls</li><li>Chapter navigation and synchronized scrolling</li></ul><p class="benefit">AI brings momentum. You bring meaning.</p></div><x-feature-shot name="translation" alt="Translation controls for a selected Firefly passage" caption="Guide the draft before you run the model." /></article>
+<article class="feature-row reverse"><div class="feature-copy"><span class="feature-number">02 / REPHRASE & EDIT</span><h3>Find the phrasing<br>that feels right.</h3><p>A sentence can be accurate and still need work. Select a passage, explore a rephrase, and shape its tone, clarity, and flow with your own editorial judgment.</p><ul class="check-list"><li>Refine selected text in context</li><li>Control the instructions and model</li><li>Keep editing with formatting and undo tools</li></ul><p class="benefit">The suggestion is a starting point. The voice is yours.</p></div><x-feature-shot name="rephrase" alt="Rephrase controls for a selected Turkish passage in Firefly" caption="Make room for nuance, rhythm, and a second thought." /></article>
+<article class="feature-row"><div class="feature-copy"><span class="feature-number">03 / CODEX & STYLE</span><h3>Keep the whole<br>story in view.</h3><p>Give characters, places, lore, and writing style a shared reference. Build and edit a Codex so useful context can follow you from chapter to chapter.</p><ul class="check-list"><li>Book-specific story and world knowledge</li><li>Editable Codex and style analysis</li><li>Context you can bring into AI prompts</li></ul><p class="benefit">Spend less time explaining the same world again.</p></div><x-feature-shot name="codex" alt="Populated Firefly Codex and style editor" caption="A reference that belongs to your book." /></article>
+<article class="feature-row reverse"><div class="feature-copy"><span class="feature-number">04 / TRANSLATION MEMORY</span><h3>Your best decisions<br>shouldn't get lost.</h3><p>Keep source sentences alongside their edited translations. Search and refine your memory, then use relevant examples to guide later AI requests.</p><ul class="check-list"><li>Review source, original target, and edited target</li><li>Search and edit reusable examples</li><li>Export translation memory independently as XML</li></ul><p class="benefit">Human refinement becomes useful guidance for the next draft.</p></div><x-feature-shot name="memory" alt="Firefly translation memory with edited target sentences and Export Memory" caption="Your translation choices, ready to reuse or take with you." /></article>
+<div class="feature-pair"><article><span class="feature-number">05 / DICTIONARY</span><h3>A name is never<br>just another word.</h3><p>Set preferred translations for names and recurring terms. Enable the custom dictionary in prompt settings to give AI a consistent reference.</p><x-feature-shot name="dictionary" alt="Custom dictionary setup with source term and target translation columns" caption="The dictionary setup, ready for your terminology." /></article><article><span class="feature-number">06 / BRING YOUR MANUSCRIPT</span><h3>Start with a blank page.<br>Or a book already written.</h3><p>Create a new book or import .docx and .txt manuscripts. Detect chapter breaks automatically and adjust the structure before importing.</p><x-feature-shot name="import" alt="Manuscript import with file selection and chapter detection controls" caption="Import a manuscript and make its structure your own." /><details class="inline-detail"><summary>See the new-book setup</summary><x-feature-shot name="new-book" alt="New book dialog with title and source and target language fields" caption="A title and two languages are a place to begin." /></details></article></div></div></section>
+<section class="section shell"><div class="section-heading compact"><p class="eyebrow">THE SMALL THINGS THAT ADD UP</p><h2>Stay in the flow.</h2></div><div class="tools-grid">
+@foreach([['chat-square-text','AI conversation','Talk through a passage, a plot detail, or a stylistic choice with chapter context.'],['sliders','Your instructions','Tune prompts, models, and temperature to suit the task in front of you.'],['spellcheck','Editing essentials','Formatting, spellcheck, search and replace, and undo within the workspace.'],['type','A comfortable page','Adjust typography, page width, spacing, and themes for focused reading.'],['palette','Book covers','Upload a cover or explore AI cover generation for your manuscript.'],['translate','Languages that fit','Choose source and target languages, including English, Turkish, Chinese, Japanese, and more. Model quality varies by language.']] as [$icon,$title,$description])
+<article><i class="bi bi-{{ $icon }}" aria-hidden="true"></i><h3>{{ $title }}</h3><p>{{ $description }}</p></article>@endforeach
+</div></section>
+<section class="section byok-section" id="byok"><div class="shell byok-grid"><div><p class="eyebrow">BRING YOUR OWN KEY</p><h2>Your model.<br><em>Your choice.</em></h2><p>Connect your OpenRouter API key and choose the model that suits your book and budget. Parallel Leaves is the workspace; your provider handles AI usage billing.</p><ol class="setup-steps"><li>Create an OpenRouter account and API key.</li><li>In My books, open the menu and choose Set API Key.</li><li>Choose a model in the translation or rephrase controls.</li></ol><a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="text-link">Open OpenRouter key settings ↗</a></div><div><x-feature-shot name="byok" alt="OpenRouter API key setup with a masked key field" caption="Connect your key. Provider usage is separate." /><div class="cost-note"><strong>No hidden costs means knowing what you pay for.</strong><p>App access is free today. AI requests through your key may incur provider charges. Prices depend on your model and usage; paid AI usage is not included in the planned subscription prices.</p></div></div></div></section>
+<section class="section shell portability" id="export"><div><p class="eyebrow">YOUR WORK GOES WITH YOU</p><h2>A workspace.<br><em>Not a lock-in.</em></h2><p>Your writing and the context you build are valuable. Download your translation as a Word document, your translation memory as XML, or a complete book archive.</p><a class="text-link" href="/privacy">Read how your data is handled ↗</a></div><div class="export-list"><div><i class="bi bi-file-earmark-word" aria-hidden="true"></i><span><strong>Translation · DOCX</strong><small>Take your translated manuscript into Word.</small></span><span>↗</span></div><div><i class="bi bi-journal-text" aria-hidden="true"></i><span><strong>Translation memory · XML</strong><small>Export your reusable source and edited-target pairs.</small></span><span>↗</span></div><div><i class="bi bi-file-earmark-zip" aria-hidden="true"></i><span><strong>Complete book · ZIP</strong><small>Source, translation, chapters, metadata, Codex, style, dictionary, memory, and available cover files.</small></span><span>↗</span></div><p class="fine-print">The archive contains readable JSON and original cover files. Archive reimport is not currently supported.</p></div><details class="inline-detail export-demo"><summary>See the book export controls</summary><x-feature-shot name="export" alt="Firefly book with DOCX and Export all download controls" caption="Download a document or the complete book archive." /></details></section>
+<section class="section pricing-section"><div class="shell"><div class="section-heading"><p class="eyebrow">ROOM TO GET STARTED</p><h2>Try it freely.<br><em>Know what comes next.</em></h2><p>All current app features are free. Monthly and yearly subscriptions are previews only — no billing is active.</p></div><x-pricing-cards /><p class="center-note">No automatic trial conversion. <a href="/subscription">See pricing details ↗</a></p></div></section>
+<section class="section shell faq-section" id="faq"><div class="section-heading"><p class="eyebrow">BEFORE YOUR FIRST PAGE</p><h2>A few good questions.</h2><p>Something else on your mind? <a href="mailto:{{ config('public.support_email') }}">Get in touch.</a></p></div><div class="faq-list">
+@foreach([
+['Is Parallel Leaves free?','Yes. All current app features are free to use. The USD 19/month and USD 199/year plans show planned pricing only. There is no active subscription, checkout, or automatic conversion. Your AI provider may charge separately for usage.'],
+['What is BYOK, and do I need it?','BYOK means Bring Your Own Key. Connect an OpenRouter API key for AI translation, rephrasing, and other supported language-model tools. You can organize and edit your manuscript without running AI requests. Provider access, model availability, and usage costs are separate from app access.'],
+['How do the human and AI parts work together?','AI helps produce drafts and explore alternatives quickly. You review meaning, tone, and cultural nuance, edit the result, and use your dictionary, Codex, and translation memory to guide subsequent requests. Translation memory supplies examples in prompts; it does not mean a provider trains its model on your edits.'],
+['What can I import and export?','Import Word .docx files or plain .txt manuscripts, or create a blank book. Export the translation as DOCX, translation memory as custom XML, and a complete book archive as ZIP with readable JSON and available covers. ZIP archive reimport and standard TMX export are not currently supported.'],
+['Will AI get every translation right?','No. Output depends on the model, language pair, instructions, and context. Human review remains essential for meaning, style, facts, and consistency. Parallel Leaves keeps that review close to the source.'],
+['Where does my manuscript data go?','Your book and related data are stored by the service. When you use AI features, selected text and configured context are sent to relevant external providers. See the Privacy page for storage, logging, provider processing, and how to request access or deletion.'],
+['Can I use it on a phone?','You can browse the site and access your account on smaller screens. For focused side-by-side manuscript editing, a desktop or larger screen gives you more room.'],
+['How do I recover my password?','Choose Forgot password on the sign-in page and enter the email attached to your account. If an older account has no email address, contact support. You can also continue to use Google sign-in for an account connected to Google.']
+] as [$question,$answer])
+<details><summary>{{ $question }}<span aria-hidden="true">+</span></summary><p>{{ $answer }}</p></details>@endforeach
+</div></section>
+<section class="final-cta"><div class="shell"><p class="eyebrow">THE NEXT PAGE IS YOURS</p><h2>Let the machine help.<br>Let the human <em>make it sing.</em></h2><a class="button light-button" href="{{ auth()->check() ? '/dashboard' : '/register' }}">Start translating free ↗</a><p>Free app access today. No credit card required.</p></div></section>
+@endsection

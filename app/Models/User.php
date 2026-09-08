@@ -7,10 +7,12 @@
 	use Illuminate\Database\Eloquent\Model;
 	use Illuminate\Auth\Authenticatable;
 
-	class User extends Model implements AuthenticatableContract
+	class User extends Model implements AuthenticatableContract, \Illuminate\Contracts\Auth\CanResetPassword
 	{
 		use Authenticatable;
 		use HasFactory;
+		use \Illuminate\Auth\Passwords\CanResetPassword;
+		use \Illuminate\Notifications\Notifiable;
 
 		public const UPDATED_AT = null;
 

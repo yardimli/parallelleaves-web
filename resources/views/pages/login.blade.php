@@ -1,81 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Login - Parallel Leaves</title>
-	<link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
-	<link rel="stylesheet" href="/dist/styles.css">
-</head>
-<body class="bg-base-200 min-h-screen flex flex-col items-center justify-center p-4">
-
-<!-- MODIFIED: Added uniform brand header containing the logo, title, and current version -->
-<div class="text-center mb-6">
-	<img src="/assets/android-chrome-192x192.png" alt="Parallel Leaves Brand Logo" class="w-16 h-16 rounded-xl mx-auto mb-2 shadow-md">
-	<h1 class="text-3xl font-bold">Parallel Leaves</h1>
-	<p class="text-xs text-base-content/60 mt-1">v{{ env('APP_VERSION', '0.1') }}</p>
-</div>
-
-<div class="card w-96 bg-base-100 shadow-xl">
-	<div class="card-body">
-		<h2 class="card-title justify-center text-2xl mb-4">{{ $tr('dashboard.login.title', 'Sign In') }}</h2>
-		<a href="/login/google" class="btn btn-outline w-full mb-4">
-			<i class="bi bi-google"></i>
-			<span>Sign in with Google</span>
-		</a>
-		<div class="divider my-2">or</div>
-		<form id="login-form" class="space-y-4">
-			<div class="form-control">
-				<label for="login-username" class="label">
-					<span class="label-text">{{ $tr('dashboard.login.usernameOrEmail', 'Username or email') }}</span>
-				</label>
-				<input type="text" id="login-username" name="username" class="input input-bordered" required>
-			</div>
-			<div class="form-control">
-				<label for="login-password" class="label">
-					<span class="label-text">{{ $tr('dashboard.login.password', 'Password') }}</span>
-				</label>
-				<input type="password" id="login-password" name="password" class="input input-bordered" required>
-			</div>
-			<p id="login-error-message" class="text-error text-sm hidden"></p>
-			<div class="form-control mt-6">
-				<button id="login-submit-btn" type="submit" class="btn btn-primary w-full">{{ $tr('dashboard.login.signIn', 'Sign In') }}</button>
-			</div>
-		</form>
-		<div class="text-center text-sm mt-4">
-			<span>{{ $tr('dashboard.login.noAccount', 'Don\'t have an account?') }}</span>
-			<a id="signup-link" href="/register" class="link link-primary">{{ $tr('dashboard.login.signUp', 'Sign Up') }}</a>
-		</div>
-	</div>
-</div>
-<script src="/js/api.js"></script>
-<script>
-	// MODIFIED: Restyled script structure according to StandardJS with semicolons
-	if (@json(session('google_error', false))) {
-		const errorMsg = document.getElementById('login-error-message');
-		errorMsg.textContent = 'Google sign in failed. Please try again.';
-		errorMsg.classList.remove('hidden');
-	}
-	
-	document.getElementById('login-form').addEventListener('submit', async (e) => {
-		e.preventDefault();
-		const username = document.getElementById('login-username').value;
-		const password = document.getElementById('login-password').value;
-		const errorMsg = document.getElementById('login-error-message');
-		
-		try {
-			const result = await window.api.login({username, password});
-			if (result && result.session) {
-				window.location.href = '/dashboard';
-			} else {
-				errorMsg.textContent = 'Invalid credentials';
-				errorMsg.classList.remove('hidden');
-			}
-		} catch (err) {
-			errorMsg.textContent = err.message;
-			errorMsg.classList.remove('hidden');
-		}
-	});
-</script>
-</body>
-</html>
+@extends('layouts.auth')
+@section('title', 'Sign in — Parallel Leaves')
+@section('form')
+<p class="eyebrow">BACK TO YOUR BOOKS</p><h2>Welcome back.</h2><p>Pick up where your last sentence left off.</p>
+@if(session('status'))<div class="form-message" role="status">{{ session('status') }}</div>@endif
+@if(session('google_error'))<div class="form-message error" role="alert">{{ is_string(session('google_error')) ? session('google_error') : 'Google sign-in failed. Please try again.' }}</div>@endif
+<a href="/login/google" class="button google-button"><i class="bi bi-google" aria-hidden="true"></i> Continue with Google</a><div class="divider">or sign in with your password</div>
+<form data-auth-action="/api/auth/login" id="login-form">
+<div class="field"><label for="login-username">Username or email</label><input id="login-username" name="username" autocomplete="username" required></div>
+<div class="field"><label for="login-password">Password</label><div class="password-field"><input type="password" id="login-password" name="password" autocomplete="current-password" required><button type="button" data-password-toggle="login-password" aria-label="Show or hide password" aria-pressed="false">Show</button></div></div>
+<div class="form-links"><a href="/forgot-password">Forgot password?</a></div><div class="form-message error" role="alert" tabindex="-1" hidden></div><button id="login-submit-btn" type="submit" class="button">Sign in ↗</button></form>
+<p class="form-footer">New to Parallel Leaves? <a href="/register">Create a free account</a></p>
+@endsection

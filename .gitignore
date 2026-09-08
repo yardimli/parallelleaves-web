@@ -23,3 +23,6 @@ composer.lock
 /public/dist
 /public/vendor/bootstrap-icons
 php_errors.log
+PUBLIC_FRONTEND_CHANGE_PLAN.md
+MAILGUN_SETUP.md
+.phpunit.result.cache

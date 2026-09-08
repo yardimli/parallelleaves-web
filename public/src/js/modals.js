@@ -2,6 +2,39 @@
  * Centralized alert and confirmation modal controls using DaisyUI/HTML5 dialog tags.
  */
 
+// Keep global helpers compatible with both classic scripts and bundled imports.
+window.showInputModal = function (title, message, initialValue = '') {
+	const modal = document.getElementById('input-modal');
+	if (!modal || typeof modal.showModal !== 'function') {
+		return Promise.resolve(prompt(message, initialValue));
+	}
+	return new Promise(resolve => {
+		const form = modal.querySelector('#input-modal-form');
+		const input = modal.querySelector('#input-modal-input');
+		modal.querySelector('#input-modal-title').textContent = title;
+		modal.querySelector('#input-modal-label').textContent = message;
+		input.value = initialValue;
+		const finish = value => {
+			form.removeEventListener('submit', onSubmit);
+			modal.removeEventListener('close', onClose);
+			resolve(value);
+		};
+		const onSubmit = event => {
+			event.preventDefault();
+			const value = input.value.trim();
+			if (!value) return;
+			finish(value);
+			modal.close();
+		};
+		const onClose = () => finish(null);
+		form.addEventListener('submit', onSubmit);
+		modal.addEventListener('close', onClose);
+		modal.showModal();
+		input.focus();
+		input.select();
+	});
+};
+
 // NEW: Expose showAlertModal globally
 window.showAlertModal = function (message, title = 'Information') {
 	const modal = document.getElementById('alert-modal');

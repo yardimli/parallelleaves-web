@@ -21,7 +21,7 @@
 
 			return is_array($firstArg) && $firstArg
 				? $firstArg
-				: $request->only(['username', 'password']);
+				: $request->only(['username', 'email', 'password']);
 		}
 
 		public function login(Request $request): JsonResponse
@@ -62,11 +62,13 @@
 		{
 			$data = validator($this->rpcCredentials($request), [
 				'username' => ['required', 'string', 'max:50', 'unique:users,username'],
+				'email' => ['required', 'email', 'max:255', 'unique:users,email'],
 				'password' => ['required', 'string', 'min:8'],
 			])->validate();
 
 			$user = User::create([
 				'username' => $data['username'],
+				'email' => $data['email'],
 				'password_hash' => Hash::make($data['password']),
 			]);
 
@@ -109,9 +111,15 @@
 					->redirectUrl(route('login.google.callback'))
 					->user();
 
-				$user = User::where('google_id', $googleUser->getId())
-					->orWhere('email', $googleUser->getEmail())
-					->first();
+				if (!$googleUser->getId() || !filter_var($googleUser->getEmail(), FILTER_VALIDATE_EMAIL)) {
+					return redirect('/login')->with('google_error', 'Google did not provide a usable email address. Please sign in with your password.');
+				}
+				$user = User::where('google_id', $googleUser->getId())->first();
+				// Password signups have not verified email ownership. Never silently link
+				// an OAuth identity to one and leave a previously chosen password active.
+				if (!$user && User::where('email', $googleUser->getEmail())->exists()) {
+					return redirect('/login')->with('google_error', 'An account already uses this email. Sign in with your password or use Forgot password to recover it.');
+				}
 
 				if ($user) {
 					$user->forceFill([

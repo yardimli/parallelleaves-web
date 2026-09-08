@@ -57,7 +57,7 @@
   "sectionWarnings": {
     "title": "Bölüm hizalama uyarısı",
     "misaligned": "{count} kaynak bölümün çeviri işaretleri farklı bir hedef bölümde bulundu. İşaretler korundu, ancak kaynak ve hedef bölümler hizalı değil. Çevrilmiş metni eşleşen hedef bölüme taşıyın.",
-    "emptyTargets": "{count} hedef bölüm boş. Hedef bölümleri boş bırakmak hizalama sorunlarına yol açabilir."
+    "emptyTargets": "Daha ileride çevrilmiş içerik bulunan {count} hedef bölüm boş. Bu boşluklarda hizalama sorunu olup olmadığını kontrol edin."
   },
   "confirmDeleteAct": "Bu bölümü ve içindeki tüm fasılları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
   "aiToolbar": {

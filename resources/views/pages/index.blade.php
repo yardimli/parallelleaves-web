@@ -164,6 +164,7 @@
 						<button class="btn btn-ghost btn-sm js-export-docx" title="{{ $tr('export.exportDocx', '') }}">
 							<i class="bi bi-file-earmark-word text-lg"></i>
 						</button>
+						<a href="/books/{{ $book['id'] }}/archive" class="btn btn-ghost btn-sm" title="Export complete book: source, translation, Codex, dictionary, memory, and covers"><i class="bi bi-file-earmark-zip" aria-hidden="true"></i> Export all</a>
 					</div>
 				</div>
 			</div>

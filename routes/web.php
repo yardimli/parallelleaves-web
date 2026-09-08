@@ -30,10 +30,18 @@
 // MODIFIED: Updated routes to call specific methods in PageController
 	Route::get('/login', [PageController::class, 'login'])->name('login');
 	Route::get('/register', [PageController::class, 'register'])->name('register');
+	Route::view('/subscription', 'pages.subscription')->name('subscription');
+	Route::view('/terms', 'pages.terms')->name('terms');
+	Route::view('/privacy', 'pages.privacy')->name('privacy');
+	Route::get('/forgot-password', [\App\Http\Controllers\PasswordController::class, 'request'])->name('password.request');
+	Route::post('/forgot-password', [\App\Http\Controllers\PasswordController::class, 'email'])->middleware('throttle:5,1')->name('password.email');
+	Route::get('/reset-password/{token}', [\App\Http\Controllers\PasswordController::class, 'form'])->name('password.reset');
+	Route::post('/reset-password', [\App\Http\Controllers\PasswordController::class, 'reset'])->middleware('throttle:10,1')->name('password.update');
 	Route::get('/splash', [PageController::class, 'splash']);
 
 	Route::middleware('auth')->group(function () {
 		Route::get('/dashboard', [PageController::class, 'dashboard']);
+		Route::get('/books/{bookId}/archive', [\App\Http\Controllers\BookArchiveController::class, 'download'])->name('books.archive');
 		Route::get('/chapter-editor/{bookId}/{chapterId?}', [PageController::class, 'chapterEditor']);
 		Route::get('/chat/{bookId}', [PageController::class, 'chatWindow']);
 		Route::get('/codex/{bookId?}', [PageController::class, 'codexEditor']);
